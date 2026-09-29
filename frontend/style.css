@@ -1455,3 +1455,58 @@ button { font-family: inherit; cursor: pointer; }
   .ready-list { flex-direction: row; flex-wrap: wrap; justify-content: center; }
   .ready-item { flex: 1 1 9.375rem; }
 }
+
+
+/* ---------------------------------------------------------------- */
+/* Editor de personagem: nada sai da tela em nenhuma resolução        */
+/* Causa do bug: ferramentas + boneco + painel de "Prontos" tinham    */
+/* largura fixa (flex-shrink: 0) e somavam mais que o painel, então   */
+/* transbordavam pros dois lados. Agora o boneco é o único que        */
+/* encolhe, e a tela rola se ainda assim faltar altura.               */
+/* ---------------------------------------------------------------- */
+#screen-character-editor.screen {
+  align-items: flex-start;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.75rem;
+}
+#screen-character-editor .character-panel-wide {
+  margin: auto;
+  width: min(74rem, 100%);
+  max-width: 100%;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+@media (min-width: 901px) {
+  #screen-character-editor .character-editor-layout {
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+  }
+  #screen-character-editor .character-toolbar {
+    flex: 0 0 16rem;
+    width: 16rem;
+    min-width: 0;
+    gap: 0.75rem;
+  }
+  #screen-character-editor .character-canvas-wrap {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    max-width: min(38.75rem, calc(100dvh - 12rem));
+  }
+  #screen-character-editor .character-ready-panel {
+    flex: 0 0 11rem;
+    min-width: 0;
+  }
+}
+
+/* botões da barra de ferramentas nunca estouram a coluna */
+#screen-character-editor .tool-btn,
+#screen-character-editor .character-save-btn,
+#screen-character-editor .character-back-btn {
+  min-width: 0;
+  max-width: 100%;
+}
+#screen-character-editor .brush-row label { flex-shrink: 0; }
