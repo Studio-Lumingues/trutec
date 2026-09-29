@@ -39,11 +39,12 @@
    ESCALA GLOBAL. Todo o layout já está em rem, então basta mexer aqui
    pra aumentar/diminuir o site inteiro de forma proporcional.
    O tamanho acompanha a menor entre largura e altura da janela, então
-   nunca estoura a tela: 1280x720 ≈ 16.5px, 1366x768 ≈ 17.7px, 1920x1080 ≈
-   24.8px (+55%), 2560x1440 ≈ 33px. Celulares ficam em 16px.
-   Pra deixar maior: aumente 1.4vw / 2.3vh. Menor: diminua.
+   nunca estoura a tela. Valores já reduzidos em 20% (fator 0.8):
+   mínimo 12.8px (celulares), máximo 28.8px.
+   OBS: o index.html também define o font-size via JS (é ele que vale de
+   fato); mantenha os dois coerentes. Maior: aumente 1.12vw / 1.84vh.
    -------------------------------------------------------------------- */
-html { font-size: clamp(16px, min(1.4vw, 2.3vh), 36px); }
+html { font-size: clamp(12.8px, min(1.12vw, 1.84vh), 28.8px); }
 
 /* --------------------------------------------------------------------
    Bloqueia seleção de texto no site inteiro (o jogo não é um site de

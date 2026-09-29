@@ -7,15 +7,17 @@
 <link rel="stylesheet" href="style.css" />
 <script>
 /* Escala universal: 1rem cresce com a janela (o menor entre largura e altura).
-   Em 1366x768 (janela ~1366x650) fica ~19px; em 1920x1080 ~26px.
-   Celular em pe (<900px) mantem o layout responsivo original (16px).
-   Pra deixar tudo maior/menor, mude so os dois numeros abaixo. */
+   ESCALA = 0.8 reduz todo o site em 20% (antes era 1.0).
+   Pra deixar tudo maior/menor, mude só o número ESCALA abaixo
+   (ex.: 0.7 = 30% menor, 0.9 = 10% menor, 1 = tamanho antigo). */
 (function () {
-  var K_W = 0.0145, K_H = 0.0295; // fracao da largura / altura da janela
+  var ESCALA = 0.8;
+  var K_W = 0.0145 * ESCALA, K_H = 0.0295 * ESCALA; // fração da largura / altura da janela
+  var MIN_PX = 16 * ESCALA, MAX_PX = 40 * ESCALA;
   function fit() {
     var w = window.innerWidth, h = window.innerHeight;
-    var px = w >= 900 ? Math.min(w * K_W, h * K_H) : 16;
-    px = Math.max(16, Math.min(px, 40));
+    var px = w >= 900 ? Math.min(w * K_W, h * K_H) : 16 * ESCALA;
+    px = Math.max(MIN_PX, Math.min(px, MAX_PX));
     document.documentElement.style.fontSize = px + 'px';
   }
   fit();
