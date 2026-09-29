@@ -868,6 +868,9 @@ socket.on('game_start', (state) => {
   setupSeatLabels(state);
   renderState(state);
   setBanner('');
+  // som de receber as cartas (na 1ª mão espera a intro da logo sumir)
+  const dealDelay = matchIntroPlayed ? 0 : 2100;
+  if (window.GameAudio) setTimeout(() => GameAudio.deal(), dealDelay);
   if (!matchIntroPlayed) {
     matchIntroPlayed = true;
     playGameIntro();
@@ -1040,6 +1043,7 @@ function renderState(realState) {
 // Anima a carta "voando" da mão de quem jogou até a posição final na mesa
 // (técnica FLIP: parte da posição de origem e transiciona até o destino real).
 function animatePlayedCard(holder, play, pos, finalTransform) {
+  if (window.GameAudio) GameAudio.swoosh(); // som da carta cortando o ar
   let originRect = null;
   let fromMe = false;
 
