@@ -1643,3 +1643,69 @@ button { font-family: inherit; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   .active-seat .seat-avatar-img { animation: none; }
 }
+
+
+/* ==========================================================================
+   ZOOM NO BONECO DOS OUTROS JOGADORES (hover no desktop / toque no celular)
+   - O avatar cresce a partir da borda voltada pra fora da mesa, então nunca
+     sai da tela nem "invade" o outro lado do feltro.
+   - Mão e nome descem junto (mesma distância que o avatar cresceu), então
+     nada fica coberto: dá pra ler o nome enquanto olha o desenho.
+   - Curva com leve "overshoot" (mola) na entrada, saída mais rápida.
+   - O tremido (boil) e o wiggle da vez continuam; o wiggle pausa no zoom
+     pra não brigar com o movimento.
+   ========================================================================== */
+.seat {
+  --fig: 5.75rem;         /* mesmo tamanho de .seat-figure */
+  --zoom: 1.75;           /* quanto o boneco cresce */
+  --zoom-push: calc(var(--fig) * (var(--zoom) - 1) + 0.25rem);
+}
+.seat-top   .seat-figure { transform-origin: 50% 0; }
+.seat-left  .seat-figure { transform-origin: 0 0; }
+.seat-right .seat-figure { transform-origin: 100% 0; }
+
+.seat-figure { cursor: zoom-in; }
+.seat .opp-hand,
+.seat .seat-name {
+  transition: transform .22s cubic-bezier(.3, 0, .4, 1);
+}
+
+/* estado ampliado (hover ou .is-zoomed via toque) */
+.seat .seat-figure.is-zoomed {
+  transform: scale(var(--zoom)) rotate(-1.5deg);
+  box-shadow:
+    0 0 0 1.1rem rgba(0,0,0,0.30),
+    0 0 0 1.3rem rgba(255,248,240,0.16),
+    0 1.1rem 2rem rgba(0,0,0,0.6);
+}
+.seat .seat-figure.is-zoomed ~ .opp-hand,
+.seat .seat-figure.is-zoomed ~ .seat-name { transform: translateY(var(--zoom-push)); }
+.seat .seat-figure.is-zoomed .seat-avatar-img { animation: none; }
+.seat:has(.seat-figure.is-zoomed) { z-index: 30; }
+
+@media (hover: hover) and (pointer: fine) {
+  .seat .seat-figure {
+    transition: box-shadow .25s ease, transform .3s cubic-bezier(.2, .9, .25, 1.15);
+  }
+  .seat .seat-figure:hover {
+    transition-delay: .05s;   /* evita zoom sem querer ao só cruzar o mouse */
+    transform: scale(var(--zoom)) rotate(-1.5deg);
+    box-shadow:
+      0 0 0 1.1rem rgba(0,0,0,0.30),
+      0 0 0 1.3rem rgba(255,248,240,0.16),
+      0 1.1rem 2rem rgba(0,0,0,0.6);
+  }
+  .seat .seat-figure:hover ~ .opp-hand,
+  .seat .seat-figure:hover ~ .seat-name { transform: translateY(var(--zoom-push)); transition-delay: .05s; }
+  .seat .seat-figure:hover .seat-avatar-img { animation: none; }
+  .seat:hover { z-index: 30; }
+}
+
+@media (max-width: 720px) {
+  .seat { --fig: 4.125rem; --zoom: 1.6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .seat .seat-figure,
+  .seat .opp-hand,
+  .seat .seat-name { transition: none !important; }
+}
