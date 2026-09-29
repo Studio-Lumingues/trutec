@@ -866,11 +866,11 @@ socket.on('game_start', (state) => {
   clearOptimistic();
   showScreen('screen-game');
   setupSeatLabels(state);
+  // cartas subindo + swoosh sincronizado (na 1ª mão espera a intro da logo sumir)
+  const myHandCount = (state.players.find(p => p.seat === mySeat).hand || []).length;
+  startDealAnimation(myHandCount, matchIntroPlayed ? 0 : 2100);
   renderState(state);
   setBanner('');
-  // som de receber as cartas (na 1ª mão espera a intro da logo sumir)
-  const dealDelay = matchIntroPlayed ? 0 : 2100;
-  if (window.GameAudio) setTimeout(() => GameAudio.deal(), dealDelay);
   if (!matchIntroPlayed) {
     matchIntroPlayed = true;
     playGameIntro();
@@ -913,6 +913,40 @@ function seatOffsetLabel(seat, n) {
   if (rel === 1) return 'left';
   if (rel === 2) return 'top';
   if (rel === 3) return 'right';
+}
+
+// ------------------------------------------------------------------
+// Animação de distribuir: as cartas da minha mão sobem de baixo, uma após a
+// outra, e cada uma toca o swoosh no instante em que começa a subir.
+// O servidor manda um state_update logo depois do game_start e o renderState
+// recria a mão inteira — por isso o estado da animação fica guardado aqui e
+// cada render reaplica a animação com o atraso (possivelmente negativo) certo,
+// então ela continua de onde estava em vez de reiniciar ou sumir.
+// ------------------------------------------------------------------
+const DEAL_STAGGER_MS = 150; // intervalo entre uma carta e a próxima
+const DEAL_DUR_MS = 550;     // duração da subida de cada carta
+let dealAnim = null;         // { start: timestamp de início, count }
+let dealAnimTimer = null;
+
+function startDealAnimation(count, delayMs) {
+  if (!count) return;
+  clearTimeout(dealAnimTimer);
+  dealAnim = { start: performance.now() + delayMs, count };
+  for (let i = 0; i < count; i++) {
+    // swoosh agendado no relógio do áudio, no mesmo instante da subida da carta i
+    if (window.GameAudio) GameAudio.swoosh((delayMs + i * DEAL_STAGGER_MS) / 1000, 1 + i * 0.1);
+  }
+  dealAnimTimer = setTimeout(() => { dealAnim = null; },
+    delayMs + (count - 1) * DEAL_STAGGER_MS + DEAL_DUR_MS + 100);
+}
+
+function applyDealAnimation(el, index) {
+  if (!dealAnim) return;
+  const startAt = dealAnim.start + index * DEAL_STAGGER_MS;
+  const delay = startAt - performance.now(); // ms; negativo = já começou
+  if (delay + DEAL_DUR_MS <= 0) return;      // essa carta já terminou de subir
+  el.classList.add('dealing');
+  el.style.animationDelay = delay.toFixed(0) + 'ms';
 }
 
 function renderState(realState) {
@@ -1023,8 +1057,10 @@ function renderState(realState) {
   const handWrap = document.getElementById('my-hand');
   handWrap.innerHTML = '';
   if (me && me.hand) {
+    let cardIndex = 0;
     for (const card of me.hand) {
       const el = buildCardEl(card, state.manilhaRank);
+      applyDealAnimation(el, cardIndex++);
       if (card.id === selectedCardId) el.classList.add('selected');
       const isMyTurn = state.turnSeat === mySeat && !state.pendingCall;
       if (!isMyTurn) el.classList.add('disabled');

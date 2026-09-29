@@ -1788,3 +1788,21 @@ body::after {
   padding: 0;
 }
 .mute-btn:hover { background: rgba(0,0,0,0.65); }
+
+
+/* Cartas da mão subindo de baixo ao começar a rodada (ver startDealAnimation no client.js).
+   Usa a propriedade `translate` pra não mexer no leque (rotate) de cada carta.
+   Sem fill-mode "forwards": no fim a carta volta ao estilo normal (hover, selecionada…). */
+@keyframes deal-rise {
+  0%   { translate: 0 45vh; opacity: 0; }
+  25%  { opacity: 1; }
+  75%  { translate: 0 -1.2vh; opacity: 1; }
+  100% { translate: 0 0; opacity: 1; }
+}
+.my-hand .card.dealing {
+  animation: deal-rise 550ms cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .my-hand .card.dealing { animation: none; }
+}

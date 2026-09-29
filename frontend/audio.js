@@ -3,7 +3,7 @@
 // - A música toca só nas telas de lobby (início, editor de personagem aberto
 //   pelo lobby, sala de espera e fase de desenhar). Para de vez quando a mesa abre.
 // - Continua tocando mesmo com a aba em segundo plano (só o botão de mudo pausa).
-// - Cliques em botões e swooshes (jogar carta / receber cartas) são sintetizados aqui, sem arquivos.
+// - Cliques em botões e swooshes (jogar carta / cartas subindo na mão) são sintetizados aqui, sem arquivos.
 // - As falas tocam quando alguém pede (ou aumenta pra) truco, seis, nove, doze.
 // - Navegadores bloqueiam áudio antes do primeiro clique/toque; se a música
 //   for barrada, ela começa sozinha na primeira interação da pessoa.
@@ -127,13 +127,6 @@
     src.stop(t + dur + 0.02);
   }
 
-  // receber as cartas: três swooshes seguidos (uma por carta)
-  function sfxDeal() {
-    sfxSwoosh(0,    0.2, 1.0);
-    sfxSwoosh(0.11, 0.2, 1.1);
-    sfxSwoosh(0.22, 0.2, 1.2);
-  }
-
   // clique em qualquer botão da página
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest ? e.target.closest('button') : null;
@@ -203,8 +196,7 @@
       return muted;
     },
     click: sfxClick,
-    swoosh: function () { sfxSwoosh(0, 0.24, 1); },
-    deal: sfxDeal,
+    swoosh: function (delaySec, pitch) { sfxSwoosh(delaySec || 0, 0.24, pitch || 1); },
     isMuted: function () { return muted; }
   };
 
