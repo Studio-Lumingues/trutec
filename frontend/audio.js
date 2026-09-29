@@ -3,7 +3,7 @@
 // - A música toca só nas telas de lobby (início, editor de personagem aberto
 //   pelo lobby, sala de espera e fase de desenhar). Para de vez quando a mesa abre.
 // - Continua tocando mesmo com a aba em segundo plano (só o botão de mudo pausa).
-// - Cliques em botões e swooshes (jogar carta / cartas subindo na mão) são sintetizados aqui, sem arquivos.
+// - Cliques em botões e sons de carta (bater na mesa / distribuir) são sintetizados aqui, sem arquivos.
 // - As falas tocam quando alguém pede (ou aumenta pra) truco, seis, nove, doze.
 // - Navegadores bloqueiam áudio antes do primeiro clique/toque; se a música
 //   for barrada, ela começa sozinha na primeira interação da pessoa.
@@ -69,7 +69,7 @@
     return LOBBY_SCREENS.indexOf(currentScreen) !== -1;
   }
 
-  // ---- Efeitos sonoros gerados por código (clique e swoosh) ----
+  // ---- Efeitos sonoros gerados por código (clique e carta) ----
   // Não usam arquivo: são sintetizados na hora pela Web Audio API.
   var SFX_VOLUME = 0.5;
   var noiseBuf = null;
@@ -105,26 +105,54 @@
     osc.start(t); osc.stop(t + 0.08);
   }
 
-  // swoosh: ruído filtrado que "varre" de grave pra agudo (carta cortando o ar)
-  function sfxSwoosh(delaySec, dur, pitch) {
-    if (!sfxReady()) return;
-    var t = ctx.currentTime + (delaySec || 0);
-    dur = dur || 0.22;
-    pitch = pitch || 1;
+  // Uma "pancadinha" de ruído filtrado (é a base dos sons de papel/carta)
+  function noiseBurst(t, o) {
     var src = ctx.createBufferSource();
     src.buffer = getNoise();
     var f = ctx.createBiquadFilter();
-    f.type = 'bandpass';
-    f.Q.value = 1.1;
-    f.frequency.setValueAtTime(500 * pitch, t);
-    f.frequency.exponentialRampToValueAtTime(3200 * pitch, t + dur);
+    f.type = o.type;
+    f.Q.value = o.q || 0.7;
+    f.frequency.setValueAtTime(o.f, t);
+    if (o.f2) f.frequency.exponentialRampToValueAtTime(o.f2, t + o.dur);
     var g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.7 * SFX_VOLUME, t + dur * 0.3);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    g.gain.exponentialRampToValueAtTime(o.peak * SFX_VOLUME, t + (o.attack || 0.002));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + o.dur);
     src.connect(f); f.connect(g); g.connect(ctx.destination);
-    src.start(t, Math.random() * 0.3);
-    src.stop(t + dur + 0.02);
+    src.start(t, Math.random() * 0.4);
+    src.stop(t + o.dur + 0.02);
+  }
+
+  // carta batendo na mesa: estalo seco de papel + "toc" grave no feltro.
+  // Cada chamada varia um pouquinho (tom/timbre), pra não soar sempre igual.
+  function sfxCardPlay(delaySec) {
+    if (!sfxReady()) return;
+    var t = ctx.currentTime + (delaySec || 0);
+    var j = 0.9 + Math.random() * 0.2;
+    noiseBurst(t, { type: 'highpass',  f: 2600 * j, dur: 0.04, peak: 0.9, attack: 0.001 });               // estalo
+    noiseBurst(t, { type: 'bandpass',  f: 1100 * j, q: 0.9, dur: 0.09, peak: 0.7, attack: 0.002 });        // corpo do papel
+    var osc = ctx.createOscillator();                                                                     // toc no feltro
+    var g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(170 * j, t);
+    osc.frequency.exponentialRampToValueAtTime(70, t + 0.07);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.5 * SFX_VOLUME, t + 0.003);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.12);
+  }
+
+  // carta sendo distribuída/puxada: "fri-frit" curto e crocante (papel deslizando
+  // com micro-estalos, como a borda de um baralho)
+  function sfxCardDeal(delaySec, variation) {
+    if (!sfxReady()) return;
+    var t = ctx.currentTime + (delaySec || 0);
+    var j = 0.92 + Math.random() * 0.16 + (variation || 0) * 0.04;
+    noiseBurst(t, { type: 'bandpass', f: 1600 * j, f2: 5200 * j, q: 1.2, dur: 0.09, peak: 0.75, attack: 0.004 });
+    for (var k = 0; k < 3; k++) {
+      noiseBurst(t + k * 0.014, { type: 'highpass', f: 3200 * j, dur: 0.02, peak: 0.5 - k * 0.12, attack: 0.001 });
+    }
   }
 
   // clique em qualquer botão da página
@@ -196,7 +224,8 @@
       return muted;
     },
     click: sfxClick,
-    swoosh: function (delaySec, pitch) { sfxSwoosh(delaySec || 0, 0.24, pitch || 1); },
+    cardPlay: sfxCardPlay,
+    cardDeal: sfxCardDeal,
     isMuted: function () { return muted; }
   };
 

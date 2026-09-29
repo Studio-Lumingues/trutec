@@ -866,7 +866,7 @@ socket.on('game_start', (state) => {
   clearOptimistic();
   showScreen('screen-game');
   setupSeatLabels(state);
-  // cartas subindo + swoosh sincronizado (na 1ª mão espera a intro da logo sumir)
+  // cartas subindo + som de carta sincronizado (na 1ª mão espera a intro da logo sumir)
   const handWrapEl = document.getElementById('my-hand');
   handWrapEl.innerHTML = '';
   handWrapEl.dataset.mao = '';
@@ -920,7 +920,7 @@ function seatOffsetLabel(seat, n) {
 
 // ------------------------------------------------------------------
 // Animação de distribuir: as cartas da minha mão sobem de baixo, uma após a
-// outra, e cada uma toca o swoosh no instante em que começa a subir.
+// outra, e cada uma toca o som de carta no instante em que começa a subir.
 // O servidor manda um state_update logo depois do game_start e o renderState
 // recria a mão inteira — por isso o estado da animação fica guardado aqui e
 // cada render reaplica a animação com o atraso (possivelmente negativo) certo,
@@ -936,8 +936,8 @@ function startDealAnimation(count, delayMs) {
   clearTimeout(dealAnimTimer);
   dealAnim = { start: performance.now() + delayMs, count };
   for (let i = 0; i < count; i++) {
-    // swoosh agendado no relógio do áudio, no mesmo instante da subida da carta i
-    if (window.GameAudio) GameAudio.swoosh((delayMs + i * DEAL_STAGGER_MS) / 1000, 1 + i * 0.1);
+    // som de carta agendado no relógio do áudio, no mesmo instante da subida da carta i
+    if (window.GameAudio) GameAudio.cardDeal((delayMs + i * DEAL_STAGGER_MS) / 1000, i);
   }
   dealAnimTimer = setTimeout(() => { dealAnim = null; },
     delayMs + (count - 1) * DEAL_STAGGER_MS + DEAL_DUR_MS + 100);
@@ -1107,7 +1107,8 @@ function renderState(realState) {
 // Anima a carta "voando" da mão de quem jogou até a posição final na mesa
 // (técnica FLIP: parte da posição de origem e transiciona até o destino real).
 function animatePlayedCard(holder, play, pos, finalTransform) {
-  if (window.GameAudio) GameAudio.swoosh(); // som da carta cortando o ar
+  // som da carta batendo na mesa, no momento em que ela chega (a minha voa mais rápido)
+  if (window.GameAudio) GameAudio.cardPlay(play.seat === mySeat ? 0.11 : 0.25);
   let originRect = null;
   let fromMe = false;
 
