@@ -77,6 +77,23 @@ socket.on('connect_error', (err) => {
   );
 });
 
+
+// Se a conexão cair e voltar (Render free, wifi, celular), o socket ganha um id
+// novo e o servidor não sabe mais quem somos. Aqui retomamos o lugar na sala.
+function tryRejoin() {
+  if (!myRoomCode || !myToken) return;
+  socket.emit('rejoin_room', { code: myRoomCode, token: myToken }, (res) => {
+    if (res && res.ok) return;
+    alert((res && res.error ? res.error : 'Não foi possível voltar para a sala.') + ' Voltando ao início.');
+    location.reload();
+  });
+}
+socket.on('connect', tryRejoin);
+socket.on('disconnect', () => {
+  const t = document.getElementById('character-phase-timer');
+  if (t && t.classList.contains('active')) t.textContent = 'Conexão perdida — reconectando…';
+});
+
 function lobbyErrorSafe(msg) {
   const el = document.getElementById('lobby-error');
   if (el) el.textContent = msg;
@@ -91,6 +108,7 @@ let myRoomCode = null;
 let mySeat = null;
 let myTeam = null;
 let myWaitingSeat = null; // meu assento na sala de espera (antes do jogo começar)
+let myToken = null; // credencial pra retomar meu lugar na sala se a conexão cair
 let currentRoomCodeForCopy = null;
 let selectedCardId = null;
 let esconderAtivo = false;
@@ -350,14 +368,19 @@ function getSavedCharacter() {
     const previewImg = document.getElementById('character-preview-img');
     if (previewImg) previewImg.src = dataUrl;
 
-    // Se já estamos numa sala (esperando jogadores), avisa o backend
-    // pra atualizar o avatar em tempo real pros outros jogadores também.
-    if (myRoomCode) {
-      socket.emit('update_character', { character: dataUrl });
-    }
-
-    saveMsg.textContent = 'Personagem salvo! ✅';
-    setTimeout(() => { saveMsg.textContent = ''; }, 2500);
+    // Se já estamos numa sala, manda pro servidor e só diz "salvo" quando ele confirmar.
+    const flash = (txt, ms = 3500) => {
+      saveMsg.textContent = txt;
+      setTimeout(() => { if (saveMsg.textContent === txt) saveMsg.textContent = ''; }, ms);
+    };
+    if (!myRoomCode) return flash('Personagem salvo! ✅');
+    if (!socket.connected) return flash('Sem conexão com o servidor. Aguarde reconectar e salve de novo.', 5000);
+    saveMsg.textContent = 'Salvando…';
+    socket.timeout(6000).emit('update_character', { character: dataUrl }, (err, res) => {
+      if (err) return flash('O servidor não respondeu. Ele pode estar acordando ou desatualizado — tente de novo.', 6000);
+      if (!res || !res.ok) return flash('Erro ao salvar: ' + ((res && res.error) || 'desconhecido'), 6000);
+      flash('Personagem salvo! ✅');
+    });
   });
 
   // Carrega um personagem salvo anteriormente, se existir, e mostra na prévia do lobby.
@@ -392,6 +415,7 @@ document.getElementById('btn-quick').addEventListener('click', () => {
     if (!res.ok) return lobbyError(res.error);
     myRoomCode = res.code;
     myWaitingSeat = res.seat;
+    myToken = res.token || null;
     showScreen('screen-waiting');
   });
 });
@@ -402,6 +426,7 @@ document.getElementById('btn-create').addEventListener('click', () => {
     if (!res.ok) return lobbyError(res.error);
     myRoomCode = res.code;
     myWaitingSeat = res.seat;
+    myToken = res.token || null;
     showScreen('screen-waiting');
   });
 });
@@ -414,6 +439,7 @@ document.getElementById('btn-join').addEventListener('click', () => {
     if (!res.ok) return lobbyError(res.error);
     myRoomCode = res.code;
     myWaitingSeat = res.seat;
+    myToken = res.token || null;
     showScreen('screen-waiting');
   });
 });
@@ -722,6 +748,7 @@ document.getElementById('btn-copy-code').addEventListener('click', (e) => {
 // ------------------------------------------------------------------
 let matchIntroPlayed = false;
 let characterPhaseInterval = null;
+let phaseWatchdog = null;
 
 // Depois que o host aperta "Iniciar partida", todo mundo cai na tela de
 // personagem por alguns segundos antes da mão ser distribuída de verdade.
@@ -777,7 +804,17 @@ socket.on('character_phase_start', ({ durationMs, players }) => {
   const tick = () => {
     const secsLeft = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
     if (timerEl) timerEl.textContent = `A partida começa em ${secsLeft}s — ou assim que todos salvarem o personagem!`;
-    if (secsLeft <= 0) clearInterval(characterPhaseInterval);
+    if (secsLeft <= 0) {
+      clearInterval(characterPhaseInterval);
+      // Tempo acabou e a partida não veio? Pede ao servidor pra ressincronizar.
+      clearTimeout(phaseWatchdog);
+      phaseWatchdog = setTimeout(() => {
+        const onEditor = document.getElementById('screen-character-editor').classList.contains('active');
+        if (!onEditor) return;
+        if (timerEl) timerEl.textContent = 'Aguardando o servidor iniciar a partida…';
+        if (socket.connected) tryRejoin(); else socket.connect();
+      }, 4000);
+    }
   };
   tick();
   characterPhaseInterval = setInterval(tick, 250);
@@ -811,6 +848,7 @@ function playGameIntro() {
 
 socket.on('game_start', (state) => {
   clearInterval(characterPhaseInterval);
+  clearTimeout(phaseWatchdog);
   const timerEl = document.getElementById('character-phase-timer');
   if (timerEl) { timerEl.classList.remove('active'); timerEl.textContent = ''; }
   const backBtn = document.getElementById('btn-close-character-editor');

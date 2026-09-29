@@ -6,6 +6,7 @@
 const express = require('express');
 const http = require('http');
 const path = require('path');
+const crypto = require('crypto');
 const cors = require('cors');
 const { Server } = require('socket.io');
 
@@ -45,7 +46,8 @@ const PORT = process.env.PORT || 3000;
 // localmente sem precisar rodar dois servidores. Em produção o frontend fica
 // hospedado separadamente na Vercel.
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
-app.get('/health', (req, res) => res.json({ ok: true }));
+// /health mostra a versão do código que está rodando de verdade (útil pra conferir se o deploy no Render pegou).
+app.get('/health', (req, res) => res.json({ ok: true, version: '1.1.0', features: ['character-ack', 'rejoin'], rooms: rooms.size }));
 
 // ---------------------------------------------------------------------------
 // Constantes do jogo
@@ -151,6 +153,7 @@ class Room {
     this.started = false;
     this.chatLog = [];
     this.characterPhaseTimer = null; // setTimeout ativo durante os 45s de "desenhar o personagem"
+    this.characterPhaseEndsAt = 0;
 
     // Estado de jogo (preenchido em startGame)
     this.deck = [];
@@ -503,9 +506,16 @@ class Room {
 function beginMatch(r) {
   if (r.characterPhaseTimer) { clearTimeout(r.characterPhaseTimer); r.characterPhaseTimer = null; }
   if (rooms.get(r.code) !== r || r.started) return; // sala removida ou já começou
-  r.startGame();
-  r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
-  r.broadcastState(io);
+  try {
+    r.characterPhaseEndsAt = 0;
+    r.startGame();
+    r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
+    r.broadcastState(io);
+  } catch (e) {
+    console.error('Erro ao iniciar a partida da sala', r.code, e);
+    r.started = false;
+    io.to(r.code).emit('error_message', 'Erro ao iniciar a partida. Tente criar a sala de novo.');
+  }
 }
 
 // Se todo mundo (conectado) já salvou o personagem, não precisa esperar os 45s.
@@ -539,7 +549,7 @@ io.on('connection', (socket) => {
       rooms.set(code, r);
       const player = joinRoomInternal(r, socket, name || 'Jogador', character);
       currentRoomCode = code;
-      cb && cb({ ok: true, code, seat: player.seat });
+      cb && cb({ ok: true, code, seat: player.seat, token: player.token });
       io.to(code).emit('lobby_update', r.lobbyState());
     } catch (e) {
       cb && cb({ ok: false, error: e.message });
@@ -555,24 +565,53 @@ io.on('connection', (socket) => {
 
     const player = joinRoomInternal(r, socket, name || 'Jogador', character);
     currentRoomCode = code;
-    cb && cb({ ok: true, code, seat: player.seat });
+    cb && cb({ ok: true, code, seat: player.seat, token: player.token });
     io.to(code).emit('lobby_update', r.lobbyState());
     // A partida não começa mais sozinha ao encher a mesa — o host (assento 0)
     // aperta "Iniciar partida" quando quiser (ver evento 'start_game').
   });
 
-  socket.on('update_character', ({ character }) => {
+  socket.on('update_character', (payload, cb) => {
+    const reply = (obj) => { if (typeof cb === 'function') cb(obj); };
     const r = room();
-    if (!r) return;
+    if (!r) return reply({ ok: false, error: 'Você não está em uma sala (a conexão pode ter caído).' });
     const player = r.playerBySocket(socket.id);
-    if (!player) return;
-    player.character = sanitizeCharacter(character);
+    if (!player) return reply({ ok: false, error: 'Jogador não encontrado na sala.' });
+    const character = sanitizeCharacter(payload && payload.character);
+    if (!character) return reply({ ok: false, error: 'Imagem inválida ou grande demais.' });
+    player.character = character;
     io.to(r.code).emit('lobby_update', r.lobbyState());
     // Durante a fase de desenho, salvar = "estou pronto".
-    if (r.characterPhaseTimer && !r.started && player.character) {
+    if (r.characterPhaseTimer && !r.started) {
       r.readySeats.add(player.seat);
       io.to(r.code).emit('character_ready_update', { players: r.characterReadyState() });
       checkAllReady(r);
+    }
+    reply({ ok: true });
+  });
+
+  // Reconexão: se a conexão cair (Render free, wifi, celular), o cliente volta
+  // com o token que recebeu ao entrar e retoma o lugar na sala.
+  socket.on('rejoin_room', ({ code, token } = {}, cb) => {
+    const reply = (obj) => { if (typeof cb === 'function') cb(obj); };
+    const r = rooms.get(String(code || '').toUpperCase());
+    if (!r) return reply({ ok: false, error: 'A sala não existe mais (o servidor pode ter reiniciado).' });
+    const p = token ? r.players.find(x => x.token === token) : null;
+    if (!p) return reply({ ok: false, error: 'Jogador não encontrado nessa sala.' });
+    p.id = socket.id;
+    p.connected = true;
+    socket.join(r.code);
+    currentRoomCode = r.code;
+    reply({ ok: true, code: r.code, seat: p.seat, started: r.started });
+    io.to(r.code).emit('lobby_update', r.lobbyState());
+    if (r.started) {
+      socket.emit('game_start', r.redactedStateFor(p.seat));
+      r.broadcastState(io);
+    } else if (r.characterPhaseTimer) {
+      socket.emit('character_phase_start', {
+        durationMs: Math.max(0, r.characterPhaseEndsAt - Date.now()),
+        players: r.characterReadyState()
+      });
     }
   });
 
@@ -595,7 +634,7 @@ io.on('connection', (socket) => {
     }
     const player = joinRoomInternal(r, socket, name || 'Jogador', character);
     currentRoomCode = r.code;
-    cb && cb({ ok: true, code: r.code, seat: player.seat });
+    cb && cb({ ok: true, code: r.code, seat: player.seat, token: player.token });
     io.to(r.code).emit('lobby_update', r.lobbyState());
     // Idem: sem auto-start, o host clica em "Iniciar partida".
   });
@@ -615,6 +654,7 @@ io.on('connection', (socket) => {
     // (ou ajustar) o personagem. Só depois desse tempo a mão é distribuída.
     const CHARACTER_PHASE_MS = 45000;
     r.readySeats = new Set();
+    r.characterPhaseEndsAt = Date.now() + CHARACTER_PHASE_MS;
     io.to(r.code).emit('character_phase_start', { durationMs: CHARACTER_PHASE_MS, players: r.characterReadyState() });
     r.characterPhaseTimer = setTimeout(() => beginMatch(r), CHARACTER_PHASE_MS);
 
@@ -642,7 +682,7 @@ io.on('connection', (socket) => {
   function joinRoomInternal(r, socket, name, character) {
     const seat = r.players.length;
     const team = r.seatTeam(seat);
-    const player = { id: socket.id, name, seat, team, connected: true, hand: [], character: sanitizeCharacter(character) };
+    const player = { id: socket.id, token: crypto.randomBytes(12).toString('hex'), name, seat, team, connected: true, hand: [], character: sanitizeCharacter(character) };
     r.players.push(player);
     socket.join(r.code);
     return player;
