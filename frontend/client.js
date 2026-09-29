@@ -1113,6 +1113,15 @@ socket.on('trick_result', ({ winnerSeat, winnerTeam, tie }) => {
   setBanner(mine ? 'Vocês ganharam a rodada!' : 'Eles ganharam a rodada.');
 });
 
+socket.on('melou', () => {
+  setBanner('MELOU! Cada um mostra a maior carta da mão…', 1800);
+});
+
+socket.on('showdown_result', ({ winnerTeam }) => {
+  const mine = winnerTeam === myTeam;
+  setBanner(mine ? 'Vocês têm a maior carta!' : 'Eles têm a maior carta!', 2000);
+});
+
 socket.on('mao_result', ({ winnerTeam, points, teamName, ran }) => {
   const mine = winnerTeam === myTeam;
   setBanner(`${mine ? 'Vocês' : 'Eles'} ${ran ? 'ganharam por fuga' : 'venceram a mão'}: +${points} pontos!`);

@@ -112,6 +112,8 @@ function rankIndex(rank) {
 }
 
 function manilhaRankFromVira(viraRank) {
+  // Regra da casa: se a vira (carta que tombou) for 2 ou 3, a manilha é o 4.
+  if (viraRank === '2' || viraRank === '3') return '4';
   const idx = rankIndex(viraRank);
   return RANK_ORDER[(idx + 1) % RANK_ORDER.length];
 }
@@ -121,6 +123,18 @@ function cardStrength(card, manilhaRank) {
     return 100 + MANILHA_SUIT_STRENGTH[card.suit];
   }
   return rankIndex(card.rank);
+}
+
+// Recebe [{ seat, strength }] e diz quem venceu. Só é empate ("melou") quando
+// a carta mais forte aparece em times DIFERENTES — dois parceiros com cartas
+// iguais não empatam a vaza contra os adversários.
+function evaluateEntries(entries, seatTeam) {
+  let max = -1;
+  for (const e of entries) if (e.strength > max) max = e.strength;
+  const top = entries.filter(e => e.strength === max);
+  const teams = new Set(top.map(e => seatTeam(e.seat)));
+  if (teams.size > 1) return { tie: true, winnerSeat: null, winnerTeam: null };
+  return { tie: false, winnerSeat: top[0].seat, winnerTeam: seatTeam(top[0].seat) };
 }
 
 // ---------------------------------------------------------------------------
@@ -154,6 +168,7 @@ class Room {
     this.maoNumber = 0;
     this.gameOver = false;
     this.hiddenCardBySeat = {}; // seat -> true (jogou "escondida", visível só ao dono até revelar)
+    this.busy = false; // true durante o showdown de "melou" (bloqueia jogadas e trucos)
   }
 
   get teamsCount() {
@@ -245,6 +260,7 @@ class Room {
     this.lastRaiserTeam = null;
     this.pendingCall = null;
     this.hiddenCardBySeat = {};
+    this.busy = false;
 
     const n = this.players.length;
     for (const p of this.players) p.hand = [];
@@ -296,28 +312,46 @@ class Room {
     const startIdx = this.trickStartIndex();
     const plays = this.table.slice(startIdx, startIdx + n);
 
-    let best = null;
-    let bestStrength = -1;
-    let tie = false;
-    for (const play of plays) {
-      const s = cardStrength(play.card, this.manilhaRank);
-      if (s > bestStrength) {
-        bestStrength = s;
-        best = play;
-        tie = false;
-      } else if (s === bestStrength) {
-        tie = true;
-      }
-    }
-
-    const winnerTeam = tie ? null : this.seatTeam(best.seat);
-    const winnerSeat = tie ? null : best.seat;
+    const outcome = evaluateEntries(
+      plays.map(p => ({ seat: p.seat, strength: cardStrength(p.card, this.manilhaRank) })),
+      (seat) => this.seatTeam(seat)
+    );
+    const tie = outcome.tie;
+    const winnerTeam = outcome.winnerTeam;
+    const winnerSeat = outcome.winnerSeat;
     this.tricks.push({ winnerTeam, winnerSeat, tie, plays });
 
     // checa se time já fechou a mão (2 vazas ganhas)
     const wins = [0, 0];
     for (const t of this.tricks) {
       if (!t.tie && t.winnerTeam !== null) wins[t.winnerTeam]++;
+    }
+
+    // MELOU: se a vaza empatou e ninguém ganhou vaza ainda, cada jogador
+    // mostra a MAIOR carta que ainda tem na mão — quem tiver a maior leva a mão.
+    // Se o showdown também empatar (ou não sobrar carta), segue a regra normal.
+    if (tie && wins[0] === 0 && wins[1] === 0 && this.players.every(p => p.hand.length > 0)) {
+      const picks = this.players.map(p => {
+        let bestCard = null;
+        let bestS = -1;
+        for (const c of p.hand) {
+          const st = cardStrength(c, this.manilhaRank);
+          if (st > bestS) { bestS = st; bestCard = c; }
+        }
+        return { seat: p.seat, card: bestCard, strength: bestS };
+      });
+      const showdown = evaluateEntries(picks, (seat) => this.seatTeam(seat));
+      if (!showdown.tie) {
+        this.busy = true;
+        this.turnSeat = -1;
+        return {
+          ok: true,
+          trickResult: this.tricks[this.tricks.length - 1],
+          maoOver: true,
+          maoWinnerTeam: showdown.winnerTeam,
+          showdown: { picks, winnerSeat: showdown.winnerSeat, winnerTeam: showdown.winnerTeam }
+        };
+      }
     }
 
     let maoWinnerTeam = null;
@@ -587,6 +621,7 @@ io.on('connection', (socket) => {
     if (!r || !r.started || r.gameOver) return;
     const player = r.playerBySocket(socket.id);
     if (!player) return;
+    if (r.busy) return;
     if (r.turnSeat !== player.seat) return socket.emit('error_message', 'Não é sua vez.');
     if (r.pendingCall) return socket.emit('error_message', 'Responda o pedido de truco primeiro.');
 
@@ -608,6 +643,48 @@ io.on('connection', (socket) => {
     // ANTES de anunciar o fim da mão — senão a carta que decidiu o ponto
     // nunca chega a aparecer pra ninguém na mesa.
     r.broadcastState(io);
+
+    if (result.showdown) {
+      // Melou! Mostra a maior carta de cada um, revela e só então fecha a mão.
+      const sd = result.showdown;
+      io.to(r.code).emit('melou', {});
+      setTimeout(() => {
+        if (rooms.get(r.code) !== r) return;
+        for (const pick of sd.picks) {
+          const p = r.playerBySeat(pick.seat);
+          const hi = p.hand.findIndex(c => c.id === pick.card.id);
+          if (hi !== -1) p.hand.splice(hi, 1);
+          r.table.push({ seat: pick.seat, card: pick.card, hidden: false, revealed: true, showdown: true });
+        }
+        r.broadcastState(io);
+        io.to(r.code).emit('showdown_result', {
+          winnerSeat: sd.winnerSeat,
+          winnerTeam: sd.winnerTeam,
+          plays: sd.picks.map(pk => ({ seat: pk.seat, card: pk.card }))
+        });
+
+        setTimeout(() => {
+          if (rooms.get(r.code) !== r) return;
+          const points = r.stake;
+          const isGameOver = r.finishMao(sd.winnerTeam, points);
+          io.to(r.code).emit('mao_result', {
+            winnerTeam: sd.winnerTeam, points, score: r.score, teamName: r.teamName(sd.winnerTeam), showdown: true
+          });
+          setTimeout(() => {
+            if (rooms.get(r.code) !== r) return;
+            if (isGameOver) {
+              io.to(r.code).emit('game_over', { winnerTeam: sd.winnerTeam, score: r.score });
+              rooms.delete(r.code);
+            } else {
+              r.startMao();
+              r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
+              r.broadcastState(io);
+            }
+          }, 2200);
+        }, 2000);
+      }, 1800);
+      return;
+    }
 
     if (result.maoOver) {
       const winnerTeam = result.maoWinnerTeam;
@@ -633,6 +710,7 @@ io.on('connection', (socket) => {
   socket.on('call_truco', ({ level }) => {
     const r = room();
     if (!r || !r.started || r.gameOver) return;
+    if (r.busy) return;
     const player = r.playerBySocket(socket.id);
     if (!player) return;
     const result = r.requestCall(player.seat, level);
@@ -646,6 +724,7 @@ io.on('connection', (socket) => {
   socket.on('respond_truco', ({ action }) => {
     const r = room();
     if (!r || !r.started || r.gameOver) return;
+    if (r.busy) return;
     const player = r.playerBySocket(socket.id);
     if (!player) return;
     const result = r.respondCall(player.seat, action);
@@ -679,6 +758,7 @@ io.on('connection', (socket) => {
   socket.on('run_away', () => {
     const r = room();
     if (!r || !r.started || r.gameOver) return;
+    if (r.busy) return;
     const player = r.playerBySocket(socket.id);
     if (!player) return;
     if (r.pendingCall) return socket.emit('error_message', 'Há um pedido pendente — responda com Aceitar ou Fugir.');
