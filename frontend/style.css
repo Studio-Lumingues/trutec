@@ -1768,3 +1768,23 @@ body::after {
 @media (prefers-reduced-motion: reduce) {
   body::after { animation: none; }
 }
+
+
+/* Botão de mudo (audio.js) */
+.mute-btn {
+  position: fixed;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 9999;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.35);
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.mute-btn:hover { background: rgba(0,0,0,0.65); }

@@ -126,6 +126,7 @@ let optimisticPlay = null; // { cardId, hidden, mao, timer }
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  if (window.GameAudio) GameAudio.onScreen(id);
 }
 
 // ------------------------------------------------------------------
@@ -789,6 +790,7 @@ function renderCharacterReady(players) {
 // personagem por alguns segundos antes da mão ser distribuída de verdade.
 // Se todos salvarem antes do tempo, a partida começa na hora.
 socket.on('character_phase_start', ({ durationMs, players }) => {
+  if (window.GameAudio) GameAudio.setMatchStarted(true);
   showScreen('screen-character-editor');
 
   const backBtn = document.getElementById('btn-close-character-editor');
@@ -847,6 +849,8 @@ function playGameIntro() {
 }
 
 socket.on('game_start', (state) => {
+  if (window.GameAudio) GameAudio.setMatchStarted(true);
+  lastCallSoundKey = null;
   clearInterval(characterPhaseInterval);
   clearTimeout(phaseWatchdog);
   const timerEl = document.getElementById('character-phase-timer');
@@ -881,7 +885,20 @@ function setupSeatLabels(state) {
 // ------------------------------------------------------------------
 // ATUALIZAÇÃO DE ESTADO
 // ------------------------------------------------------------------
+// Toca a fala quando um pedido novo aparece (truco/seis/nove/doze), seja
+// pedido direto ou aumento — todos os jogadores ouvem.
+let lastCallSoundKey = null;
+function playCallSoundFromState(state) {
+  const pc = state.pendingCall;
+  if (!pc) { lastCallSoundKey = null; return; }
+  const key = pc.level + ':' + pc.callingTeam;
+  if (key === lastCallSoundKey) return;
+  lastCallSoundKey = key;
+  if (window.GameAudio) GameAudio.playCall(pc.level);
+}
+
 socket.on('state_update', (state) => {
+  playCallSoundFromState(state);
   renderState(state);
 });
 
