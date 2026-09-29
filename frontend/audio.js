@@ -15,10 +15,43 @@
   var muted = false;
   try { muted = localStorage.getItem('trutec-muted') === '1'; } catch (e) {}
 
-  var music = new Audio('assets/song.wav');
-  music.loop = true;
-  music.volume = MUSIC_VOLUME;
-  music.preload = 'auto';
+  // Música: Web Audio API (o <audio loop> do navegador deixa um vazinho na
+  // volta do loop; aqui o fim emenda direto no começo)
+  var ctx = null, gain = null, buffer = null, source = null, loading = false;
+  var TAIL_TRIM = 0.015; // corta ~15 ms de silêncio no fim do arquivo
+
+  function ensureCtx() {
+    if (ctx) return true;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    ctx = new AC();
+    gain = ctx.createGain();
+    gain.gain.value = MUSIC_VOLUME;
+    gain.connect(ctx.destination);
+    return true;
+  }
+
+  function loadMusic() {
+    if (loading || buffer || !ensureCtx()) return;
+    loading = true;
+    fetch('assets/song.wav')
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.arrayBuffer();
+      })
+      .then(function (data) {
+        return new Promise(function (ok, fail) { ctx.decodeAudioData(data, ok, fail); });
+      })
+      .then(function (buf) {
+        buffer = buf;
+        loading = false;
+        sync();
+      })
+      .catch(function (err) {
+        loading = false;
+        console.warn('[áudio] não consegui carregar assets/song.wav — confira se o arquivo está na pasta assets/ do site publicado.', err);
+      });
+  }
 
   var calls = {};
   ['truco', 'seis', 'nove', 'doze'].forEach(function (name) {
@@ -36,13 +69,24 @@
   }
 
   function startMusic() {
-    music.volume = MUSIC_VOLUME;
-    var p = music.play();
-    if (p && p.catch) p.catch(function () { /* bloqueado: espera a 1ª interação */ });
+    if (!ensureCtx()) return;
+    if (ctx.state === 'suspended') ctx.resume().catch(function () { /* espera a 1ª interação */ });
+    if (source) return;
+    if (!buffer) { loadMusic(); return; }
+    source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    source.loopStart = 0;
+    source.loopEnd = Math.max(0.1, buffer.duration - TAIL_TRIM);
+    source.connect(gain);
+    source.start(0);
   }
 
   function stopMusic() {
-    if (!music.paused) music.pause();
+    if (!source) return;
+    try { source.stop(); } catch (e) {}
+    source.disconnect();
+    source = null;
   }
 
   function sync() {
@@ -51,7 +95,7 @@
 
   // Autoplay: tenta de novo na primeira interação
   function unlock() {
-    if (wantsMusic() && music.paused) startMusic();
+    if (wantsMusic()) startMusic();
   }
   // só estes eventos contam como "interação" para liberar áudio nos navegadores
   ['click', 'touchend', 'pointerup', 'keydown'].forEach(function (ev) {
@@ -64,7 +108,6 @@
       console.warn('[áudio] não consegui carregar assets/' + name + ' — confira se o arquivo está na pasta assets/ do site publicado.');
     });
   }
-  watch(music, 'song.wav');
   Object.keys(calls).forEach(function (k) { watch(calls[k], k + '.wav'); });
 
   // ---- API usada pelo client.js ----
