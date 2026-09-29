@@ -6,16 +6,17 @@
 <title>Truco Paulista Online</title>
 <link rel="stylesheet" href="style.css" />
 <script>
-/* Escala universal: 1rem = 16px em 1920x1080 e cresce/diminui proporcionalmente
-   com a janela (o menor entre largura e altura). Celular em pe (<900px) mantem
-   o layout responsivo original. */
+/* Escala universal: 1rem cresce com a janela (o menor entre largura e altura).
+   Em 1366x768 (janela ~1366x650) fica ~19px; em 1920x1080 ~26px.
+   Celular em pe (<900px) mantem o layout responsivo original (16px).
+   Pra deixar tudo maior/menor, mude so os dois numeros abaixo. */
 (function () {
-  var REF_W = 1920, REF_H = 1080;
+  var K_W = 0.0145, K_H = 0.0295; // fracao da largura / altura da janela
   function fit() {
     var w = window.innerWidth, h = window.innerHeight;
-    var s = w >= 900 ? Math.min(w / REF_W, h / REF_H) : 1;
-    s = Math.max(0.4, Math.min(s, 3));
-    document.documentElement.style.fontSize = (16 * s) + 'px';
+    var px = w >= 900 ? Math.min(w * K_W, h * K_H) : 16;
+    px = Math.max(16, Math.min(px, 40));
+    document.documentElement.style.fontSize = px + 'px';
   }
   fit();
   window.addEventListener('resize', fit);
