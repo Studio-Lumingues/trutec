@@ -1,7 +1,8 @@
 // ============================================================================
 // ÁUDIO (música do lobby + falas de truco/seis/nove/doze)
 // - A música toca só nas telas de lobby (início, editor de personagem aberto
-//   pelo lobby, sala de espera e fase de desenhar). Some com fade quando a mesa abre.
+//   pelo lobby, sala de espera e fase de desenhar). Para de vez quando a mesa abre.
+// - Continua tocando mesmo com a aba em segundo plano (só o botão de mudo pausa).
 // - As falas tocam quando alguém pede (ou aumenta pra) truco, seis, nove, doze.
 // - Navegadores bloqueiam áudio antes do primeiro clique/toque; se a música
 //   for barrada, ela começa sozinha na primeira interação da pessoa.
@@ -9,7 +10,6 @@
 // ============================================================================
 (function () {
   var MUSIC_VOLUME = 0.2;
-  var FADE_MS = 600;
   var LOBBY_SCREENS = ['screen-lobby', 'screen-waiting', 'screen-character-editor'];
 
   var muted = false;
@@ -29,32 +29,20 @@
 
   var currentScreen = 'screen-lobby';
   var matchStarted = false;
-  var fadeTimer = null;
 
   function wantsMusic() {
     if (muted || matchStarted) return false;
     return LOBBY_SCREENS.indexOf(currentScreen) !== -1;
   }
 
-  function fadeTo(target, done) {
-    clearInterval(fadeTimer);
-    var steps = 12, i = 0, start = music.volume;
-    fadeTimer = setInterval(function () {
-      i++;
-      music.volume = Math.max(0, Math.min(1, start + (target - start) * (i / steps)));
-      if (i >= steps) { clearInterval(fadeTimer); if (done) done(); }
-    }, FADE_MS / steps);
-  }
-
   function startMusic() {
+    music.volume = MUSIC_VOLUME;
     var p = music.play();
     if (p && p.catch) p.catch(function () { /* bloqueado: espera a 1ª interação */ });
-    fadeTo(MUSIC_VOLUME);
   }
 
   function stopMusic() {
-    if (music.paused) return;
-    fadeTo(0, function () { music.pause(); });
+    if (!music.paused) music.pause();
   }
 
   function sync() {
@@ -78,11 +66,6 @@
   }
   watch(music, 'song.wav');
   Object.keys(calls).forEach(function (k) { watch(calls[k], k + '.wav'); });
-
-  // Pausa se a aba ficar em segundo plano
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) music.pause(); else sync();
-  });
 
   // ---- API usada pelo client.js ----
   window.GameAudio = {
