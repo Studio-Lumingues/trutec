@@ -5,6 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>Truco Paulista Online</title>
 <link rel="stylesheet" href="style.css" />
+<script>
+/* Escala universal: 1rem = 16px em 1920x1080 e cresce/diminui proporcionalmente
+   com a janela (o menor entre largura e altura). Celular em pe (<900px) mantem
+   o layout responsivo original. */
+(function () {
+  var REF_W = 1920, REF_H = 1080;
+  function fit() {
+    var w = window.innerWidth, h = window.innerHeight;
+    var s = w >= 900 ? Math.min(w / REF_W, h / REF_H) : 1;
+    s = Math.max(0.4, Math.min(s, 3));
+    document.documentElement.style.fontSize = (16 * s) + 'px';
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
+})();
+</script>
+
 </head>
 <body>
 

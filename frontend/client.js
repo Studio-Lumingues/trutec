@@ -1115,7 +1115,7 @@ function updateCallOverlay(state) {
     `Pediram ${state.pendingCall.level.toUpperCase()}! Valendo ${state.pendingCall.value} pontos. O que você faz?`;
 
   const nextValue = { 3: 6, 6: 9, 9: 12 }[state.pendingCall.value];
-  document.getElementById('btn-aumentar-resp').style.display = nextValue ? 'block' : 'none';
+  document.getElementById('btn-aumentar-resp').style.display = nextValue ? '' : 'none';
 }
 
 document.getElementById('btn-aceitar').addEventListener('click', () => {
