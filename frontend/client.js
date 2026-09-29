@@ -790,7 +790,6 @@ function renderCharacterReady(players) {
 // personagem por alguns segundos antes da mão ser distribuída de verdade.
 // Se todos salvarem antes do tempo, a partida começa na hora.
 socket.on('character_phase_start', ({ durationMs, players }) => {
-  if (window.GameAudio) GameAudio.setMatchStarted(true);
   showScreen('screen-character-editor');
 
   const backBtn = document.getElementById('btn-close-character-editor');

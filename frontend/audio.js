@@ -1,14 +1,14 @@
 // ============================================================================
 // ÁUDIO (música do lobby + falas de truco/seis/nove/doze)
 // - A música toca só nas telas de lobby (início, editor de personagem aberto
-//   pelo lobby e sala de espera). Some com fade quando a partida começa.
+//   pelo lobby, sala de espera e fase de desenhar). Some com fade quando a mesa abre.
 // - As falas tocam quando alguém pede (ou aumenta pra) truco, seis, nove, doze.
 // - Navegadores bloqueiam áudio antes do primeiro clique/toque; se a música
 //   for barrada, ela começa sozinha na primeira interação da pessoa.
 // - Botão de mudo (canto superior direito) guarda a escolha no localStorage.
 // ============================================================================
 (function () {
-  var MUSIC_VOLUME = 0.35;
+  var MUSIC_VOLUME = 0.2;
   var FADE_MS = 600;
   var LOBBY_SCREENS = ['screen-lobby', 'screen-waiting', 'screen-character-editor'];
 
