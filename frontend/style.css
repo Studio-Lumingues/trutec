@@ -1709,3 +1709,43 @@ button { font-family: inherit; cursor: pointer; }
   .seat .opp-hand,
   .seat .seat-name { transition: none !important; }
 }
+
+/* --------------------------------------------------------------------
+   TEXTURA DE NOISE (granulado sutil por cima de tudo).
+   Camada fixa, não intercepta cliques. Ajuste a intensidade em `opacity`
+   (0.05 = quase invisível, 0.12 = bem marcado) e o tamanho do grão em
+   `background-size` (menor = grão mais fino).
+   -------------------------------------------------------------------- */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 200px 200px;
+}
+
+/* Noise animado: o grão "pula" de posição ~8x por segundo (sincronizado com o boil.js).
+   Para mudar a velocidade, altere a duração (0.8s = 8 quadros/s; 0.5s = 16 quadros/s). */
+body::after {
+  inset: -200px;              /* sobra pra poder deslocar sem aparecer borda */
+  animation: noise-shift 0.8s steps(8) infinite;
+  will-change: transform;
+}
+@keyframes noise-shift {
+  0%   { transform: translate(0, 0); }
+  12.5% { transform: translate(-37px, 61px); }
+  25%  { transform: translate(83px, -29px); }
+  37.5% { transform: translate(-64px, -92px); }
+  50%  { transform: translate(41px, 108px); }
+  62.5% { transform: translate(-105px, 23px); }
+  75%  { transform: translate(72px, 74px); }
+  87.5% { transform: translate(-18px, -67px); }
+  100% { transform: translate(0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::after { animation: none; inset: 0; }
+}
