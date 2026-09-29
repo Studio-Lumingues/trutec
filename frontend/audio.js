@@ -65,9 +65,19 @@
   function unlock() {
     if (wantsMusic() && music.paused) startMusic();
   }
-  ['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) {
+  // só estes eventos contam como "interação" para liberar áudio nos navegadores
+  ['click', 'touchend', 'pointerup', 'keydown'].forEach(function (ev) {
     document.addEventListener(ev, unlock, { passive: true });
   });
+
+  // Avisa no console se algum arquivo de áudio não carregar (404, nome errado…)
+  function watch(a, name) {
+    a.addEventListener('error', function () {
+      console.warn('[áudio] não consegui carregar assets/' + name + ' — confira se o arquivo está na pasta assets/ do site publicado.');
+    });
+  }
+  watch(music, 'song.wav');
+  Object.keys(calls).forEach(function (k) { watch(calls[k], k + '.wav'); });
 
   // Pausa se a aba ficar em segundo plano
   document.addEventListener('visibilitychange', function () {
@@ -113,4 +123,8 @@
   }
   if (document.body) buildButton();
   else document.addEventListener('DOMContentLoaded', buildButton);
+
+  // Tenta tocar a música já ao abrir a página (se o navegador barrar, o
+  // primeiro clique/toque acima resolve)
+  sync();
 })();
