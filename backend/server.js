@@ -653,7 +653,7 @@ io.on('connection', (socket) => {
     if (!r || !r.started || r.gameOver) return;
     const player = r.playerBySocket(socket.id);
     if (!player) return;
-    if (r.busy) return;
+    if (r.busy) return socket.emit('play_rejected'); // avisa o cliente pra desfazer a jogada instantânea
     if (r.turnSeat !== player.seat) return socket.emit('error_message', 'Não é sua vez.');
     if (r.pendingCall) return socket.emit('error_message', 'Responda o pedido de truco primeiro.');
 

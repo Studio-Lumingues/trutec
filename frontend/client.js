@@ -98,6 +98,9 @@ let latestState = null;
 let pendingPlayOrigin = null; // { cardId, rect } — de onde a minha carta partiu, pra animar até a mesa
 let lastRenderedMao = null;
 let lastRenderedTableLen = 0;
+// Jogada otimista: quando EU jogo uma carta, ela aparece na mesa na hora
+// (sem esperar o servidor). O estado real do servidor só confirma depois.
+let optimisticPlay = null; // { cardId, hidden, mao, timer }
 
 // ------------------------------------------------------------------
 // Navegação de telas
@@ -819,6 +822,7 @@ socket.on('game_start', (state) => {
   myTeam = state.players.find(p => p.seat === mySeat).team;
   selectedCardId = null;
   esconderAtivo = false;
+  clearOptimistic();
   showScreen('screen-game');
   setupSeatLabels(state);
   renderState(state);
@@ -854,8 +858,9 @@ function seatOffsetLabel(seat, n) {
   if (rel === 3) return 'right';
 }
 
-function renderState(state) {
-  latestState = state;
+function renderState(realState) {
+  latestState = realState;               // sempre guarda o estado REAL do servidor
+  const state = withOptimistic(realState); // e desenha com a minha jogada já aplicada
   const n = state.players.length;
 
   // placar: score[0]/score[1] -> mapeia pro meu time
@@ -982,10 +987,12 @@ function renderState(state) {
 // (técnica FLIP: parte da posição de origem e transiciona até o destino real).
 function animatePlayedCard(holder, play, pos, finalTransform) {
   let originRect = null;
+  let fromMe = false;
 
   if (play.seat === mySeat && pendingPlayOrigin && play.card && pendingPlayOrigin.cardId === play.card.id) {
     originRect = pendingPlayOrigin.rect;
     pendingPlayOrigin = null;
+    fromMe = true;
   } else if (pos === 'bottom') {
     const myHandEl = document.getElementById('my-hand');
     if (myHandEl) originRect = myHandEl.getBoundingClientRect();
@@ -1005,7 +1012,10 @@ function animatePlayedCard(holder, play, pos, finalTransform) {
   holder.style.transform = `translate(${ox}px, ${oy}px) scale(0.62) ${finalTransform}`;
   // força o navegador a aplicar o estado inicial antes de animar até o final
   void holder.offsetWidth;
-  holder.style.transition = 'transform .32s cubic-bezier(.22,.75,.32,1), opacity .28s ease';
+  // minha carta voa rápido (sensação de instantâneo); a dos outros mantém a animação normal
+  holder.style.transition = fromMe
+    ? 'transform .15s cubic-bezier(.22,.75,.32,1), opacity .12s ease'
+    : 'transform .32s cubic-bezier(.22,.75,.32,1), opacity .28s ease';
   holder.style.transform = finalTransform;
   holder.style.opacity = '1';
 }
@@ -1034,7 +1044,7 @@ function buildCardEl(card, manilhaRank) {
 }
 
 function onCardClick(card, isMyTurn, el) {
-  if (!isMyTurn) return;
+  if (!isMyTurn || optimisticPlay) return; // já tem uma jogada minha aguardando o servidor
   // um clique já joga a carta
   selectedCardId = card.id;
   if (el) {
@@ -1043,9 +1053,58 @@ function onCardClick(card, isMyTurn, el) {
   playSelectedCard();
 }
 
+// ------------------------------------------------------------------
+// Jogada otimista (instantânea pra quem joga)
+// ------------------------------------------------------------------
+function startOptimisticPlay(cardId, hidden) {
+  if (!latestState) return;
+  clearOptimistic();
+  optimisticPlay = { cardId, hidden: !!hidden, mao: latestState.maoNumber, timer: null };
+  // segurança: se o servidor nunca responder, desfaz a jogada local
+  optimisticPlay.timer = setTimeout(rollbackOptimistic, 8000);
+  renderState(latestState); // redesenha já com a carta na mesa
+}
+
+function clearOptimistic() {
+  if (optimisticPlay && optimisticPlay.timer) clearTimeout(optimisticPlay.timer);
+  optimisticPlay = null;
+}
+
+// Servidor recusou (ou não respondeu): devolve a carta pra minha mão.
+function rollbackOptimistic() {
+  if (!optimisticPlay) return;
+  clearOptimistic();
+  pendingPlayOrigin = null;
+  if (latestState) renderState(latestState);
+}
+
+// Devolve uma cópia do estado com a minha jogada pendente já aplicada
+// (carta some da mão, aparece na mesa). Assim que o servidor confirma —
+// a carta some da mão no estado real — a jogada local é descartada.
+function withOptimistic(state) {
+  const op = optimisticPlay;
+  if (!op) return state;
+  const me = state.players.find(p => p.seat === mySeat);
+  const card = me && me.hand ? me.hand.find(c => c.id === op.cardId) : null;
+  if (state.maoNumber !== op.mao || !card) { // confirmada pelo servidor (ou mão mudou)
+    clearOptimistic();
+    return state;
+  }
+  return Object.assign({}, state, {
+    turnSeat: null, // enquanto aguarda: nada clicável e sem botões de ação
+    table: state.table.concat([{ seat: mySeat, card, hidden: op.hidden }]),
+    players: state.players.map(p => p.seat === mySeat
+      ? Object.assign({}, p, { hand: p.hand.filter(x => x.id !== op.cardId) })
+      : p)
+  });
+}
+
 function playSelectedCard() {
   if (!selectedCardId) return;
-  socket.emit('play_card', { cardId: selectedCardId, hidden: esconderAtivo });
+  const cardId = selectedCardId;
+  const hidden = esconderAtivo;
+  socket.emit('play_card', { cardId, hidden }); // manda pro servidor...
+  startOptimisticPlay(cardId, hidden);          // ...e já mostra na tela, sem esperar resposta
   selectedCardId = null;
   esconderAtivo = false;
   document.getElementById('btn-esconder').classList.remove('esconder-active');
@@ -1186,8 +1245,10 @@ socket.on('game_over', ({ winnerTeam, score }) => {
 document.getElementById('btn-play-again').addEventListener('click', () => location.reload());
 
 socket.on('error_message', (msg) => {
+  rollbackOptimistic();
   setBanner(msg);
 });
+socket.on('play_rejected', () => rollbackOptimistic());
 
 // ------------------------------------------------------------------
 // Chat + emojis
