@@ -867,6 +867,9 @@ socket.on('game_start', (state) => {
   showScreen('screen-game');
   setupSeatLabels(state);
   // cartas subindo + swoosh sincronizado (na 1ª mão espera a intro da logo sumir)
+  const handWrapEl = document.getElementById('my-hand');
+  handWrapEl.innerHTML = '';
+  handWrapEl.dataset.mao = '';
   const myHandCount = (state.players.find(p => p.seat === mySeat).hand || []).length;
   startDealAnimation(myHandCount, matchIntroPlayed ? 0 : 2100);
   renderState(state);
@@ -1063,20 +1066,36 @@ function renderState(realState) {
     const mySrc = (me && me.character) || getSavedCharacter() || 'assets/personagem.svg';
     if (myAvatarEl.getAttribute('src') !== mySrc) myAvatarEl.setAttribute('src', mySrc);
   }
+  // A mão NÃO é recriada a cada atualização: as cartas que continuam nela são
+  // reaproveitadas (só trocam de classe) e só a carta jogada sai. Assim nada
+  // pisca, o hover não reinicia e a animação de distribuir não é interrompida.
   const handWrap = document.getElementById('my-hand');
-  handWrap.innerHTML = '';
-  if (me && me.hand) {
-    let cardIndex = 0;
-    for (const card of me.hand) {
-      const el = buildCardEl(card, state.manilhaRank);
-      applyDealAnimation(el, cardIndex++);
-      if (card.id === selectedCardId) el.classList.add('selected');
-      const isMyTurn = state.turnSeat === mySeat && !state.pendingCall;
-      if (!isMyTurn) el.classList.add('disabled');
-      el.addEventListener('click', () => onCardClick(card, isMyTurn, el));
-      handWrap.appendChild(el);
-    }
+  const myCards = (me && me.hand) ? me.hand : [];
+  if (handWrap.dataset.mao !== String(state.maoNumber)) { // mão nova: recomeça do zero
+    handWrap.innerHTML = '';
+    handWrap.dataset.mao = String(state.maoNumber);
   }
+  const keepIds = new Set(myCards.map(c => String(c.id)));
+  const existing = new Map();
+  Array.from(handWrap.children).forEach(el => {
+    if (keepIds.has(el.dataset.cardId)) existing.set(el.dataset.cardId, el);
+    else el.remove();
+  });
+  const myTurnNow = state.turnSeat === mySeat && !state.pendingCall;
+  myCards.forEach((card, i) => {
+    let el = existing.get(String(card.id));
+    if (!el) {
+      el = buildCardEl(card, state.manilhaRank);
+      applyDealAnimation(el, i);
+      el.addEventListener('click', () => onCardClick(el._card, el._myTurn, el));
+    }
+    el._card = card;
+    el._myTurn = myTurnNow;
+    el.classList.toggle('manilha', card.rank === state.manilhaRank);
+    el.classList.toggle('selected', card.id === selectedCardId);
+    el.classList.toggle('disabled', !myTurnNow);
+    if (handWrap.children[i] !== el) handWrap.insertBefore(el, handWrap.children[i] || null);
+  });
 
   // botões de ação
   updateActionButtons(state);
