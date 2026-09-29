@@ -28,6 +28,22 @@
 
 </head>
 <body>
+  <!-- Filtros do efeito "hand drawn animado" (ver boil.js). Ficam escondidos; o CSS usa via url(#boil-...). -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <!-- pequeno: avatares na mesa, sala de espera, lista de prontos -->
+      <filter id="boil-sm" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+        <feTurbulence data-boil type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="1" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <!-- grande: editor de personagem (boneco + desenho do jogador) -->
+      <filter id="boil-lg" x="-3%" y="-3%" width="106%" height="106%" color-interpolation-filters="sRGB">
+        <feTurbulence data-boil type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="1" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
 
   <div id="screen-lobby" class="screen active">
     <div class="lobby-row">
@@ -385,6 +401,7 @@
 
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="config.js"></script>
+  <script src="boil.js"></script>
   <script src="client.js"></script>
 </body>
 </html>

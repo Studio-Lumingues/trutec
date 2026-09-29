@@ -214,7 +214,7 @@ function getSavedCharacter() {
   function setSkinHue(deg) {
     skinHue = deg;
     skinHueSlider.value = deg;
-    characterBase.style.filter = deg ? `hue-rotate(${deg}deg)` : 'none';
+    characterBase.style.filter = (deg ? `hue-rotate(${deg}deg) ` : '') + 'url(#boil-lg)'; // boil-lg = tremida animada (boil.js)
     skinPresetsWrap.querySelectorAll('.skin-preset').forEach(b => {
       b.classList.toggle('active', Number(b.dataset.hue) === deg);
     });
