@@ -1711,41 +1711,33 @@ button { font-family: inherit; cursor: pointer; }
 }
 
 /* --------------------------------------------------------------------
-   TEXTURA DE NOISE (granulado sutil por cima de tudo).
-   Camada fixa, não intercepta cliques. Ajuste a intensidade em `opacity`
-   (0.05 = quase invisível, 0.12 = bem marcado) e o tamanho do grão em
-   `background-size` (menor = grão mais fino).
+   TEXTURA DE NOISE ANIMADO (granulado sobre a tela inteira).
+   Grãos pretos e brancos semitransparentes (aparecem no fundo claro e no
+   feltro escuro). Não intercepta cliques.
+   Intensidade: `opacity`. Velocidade: duração da animação (0.8s = 8 fps).
    -------------------------------------------------------------------- */
 body::after {
   content: "";
   position: fixed;
-  inset: 0;
-  z-index: 99999;
+  inset: -220px;
+  z-index: 2147483647;
   pointer-events: none;
-  opacity: 0.07;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-  background-size: 200px 200px;
-}
-
-/* Noise animado: o grão "pula" de posição ~8x por segundo (sincronizado com o boil.js).
-   Para mudar a velocidade, altere a duração (0.8s = 8 quadros/s; 0.5s = 16 quadros/s). */
-body::after {
-  inset: -200px;              /* sobra pra poder deslocar sem aparecer borda */
+  opacity: 0.16;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='220'%20height='220'%3E%3Cfilter%20id='a'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.85'%20numOctaves='2'%20seed='3'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20values='0%200%200%200%200%20%200%200%200%200%200%20%200%200%200%200%200%20%204%200%200%200%20-2.1'/%3E%3C/filter%3E%3Cfilter%20id='b'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.85'%20numOctaves='2'%20seed='11'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20values='0%200%200%200%201%20%200%200%200%200%201%20%200%200%200%200%201%20%204%200%200%200%20-2.1'/%3E%3C/filter%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url%28%23a%29'/%3E%3Crect%20width='100%25'%20height='100%25'%20filter='url%28%23b%29'%20opacity='0.6'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
   animation: noise-shift 0.8s steps(8) infinite;
-  will-change: transform;
 }
 @keyframes noise-shift {
-  0%   { transform: translate(0, 0); }
+  0%    { transform: translate(0, 0); }
   12.5% { transform: translate(-37px, 61px); }
-  25%  { transform: translate(83px, -29px); }
+  25%   { transform: translate(83px, -29px); }
   37.5% { transform: translate(-64px, -92px); }
-  50%  { transform: translate(41px, 108px); }
+  50%   { transform: translate(41px, 108px); }
   62.5% { transform: translate(-105px, 23px); }
-  75%  { transform: translate(72px, 74px); }
+  75%   { transform: translate(72px, 74px); }
   87.5% { transform: translate(-18px, -67px); }
-  100% { transform: translate(0, 0); }
+  100%  { transform: translate(0, 0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  body::after { animation: none; inset: 0; }
+  body::after { animation: none; }
 }
