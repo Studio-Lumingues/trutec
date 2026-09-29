@@ -1188,11 +1188,18 @@ document.getElementById('btn-correr').addEventListener('click', () => {
 // ------------------------------------------------------------------
 // Sair da sala
 // ------------------------------------------------------------------
-document.getElementById('btn-exit-room').addEventListener('click', () => {
-  if (confirm('Tem certeza que deseja sair da sala?')) {
-    location.reload();
-  }
-});
+(function () {
+  const modal = document.getElementById('exit-modal');
+  const open = () => { modal.classList.remove('hidden'); document.getElementById('exit-modal-stay').focus(); };
+  const close = () => modal.classList.add('hidden');
+
+  document.getElementById('btn-exit-room').addEventListener('click', open);
+  document.getElementById('exit-modal-stay').addEventListener('click', close);
+  document.getElementById('exit-modal-leave').addEventListener('click', () => location.reload());
+  // clicar fora da caixinha ou apertar Esc também cancela
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
+})();
 
 // ------------------------------------------------------------------
 // Overlay de pedido pendente (truco/aceitar/fugir/aumentar)
