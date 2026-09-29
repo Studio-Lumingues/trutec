@@ -722,7 +722,43 @@ let characterPhaseInterval = null;
 
 // Depois que o host aperta "Iniciar partida", todo mundo cai na tela de
 // personagem por alguns segundos antes da mão ser distribuída de verdade.
-socket.on('character_phase_start', ({ durationMs }) => {
+function renderCharacterReady(players) {
+  const panel = document.getElementById('character-ready-panel');
+  const list = document.getElementById('ready-list');
+  const count = document.getElementById('ready-count');
+  if (!panel || !list) return;
+  panel.classList.remove('hidden');
+  list.innerHTML = '';
+  let readyN = 0;
+  for (const p of players) {
+    if (p.ready) readyN++;
+    const li = document.createElement('li');
+    li.className = 'ready-item' + (p.ready ? ' is-ready' : '');
+    const img = document.createElement('img');
+    img.className = 'ready-avatar';
+    img.alt = p.name;
+    img.src = p.character || 'assets/personagem.svg';
+    const info = document.createElement('div');
+    info.className = 'ready-info';
+    const nm = document.createElement('span');
+    nm.className = 'ready-name';
+    nm.textContent = p.name + (p.seat === (mySeat !== null ? mySeat : myWaitingSeat) ? ' (você)' : '');
+    const st = document.createElement('span');
+    st.className = 'ready-status';
+    st.textContent = !p.connected ? 'desconectou' : (p.ready ? '✅ Pronto' : '✏️ Desenhando…');
+    info.appendChild(nm);
+    info.appendChild(st);
+    li.appendChild(img);
+    li.appendChild(info);
+    list.appendChild(li);
+  }
+  if (count) count.textContent = `${readyN}/${players.length}`;
+}
+
+// Depois que o host aperta "Iniciar partida", todo mundo cai na tela de
+// personagem por alguns segundos antes da mão ser distribuída de verdade.
+// Se todos salvarem antes do tempo, a partida começa na hora.
+socket.on('character_phase_start', ({ durationMs, players }) => {
   showScreen('screen-character-editor');
 
   const backBtn = document.getElementById('btn-close-character-editor');
@@ -731,15 +767,27 @@ socket.on('character_phase_start', ({ durationMs }) => {
   const timerEl = document.getElementById('character-phase-timer');
   if (timerEl) timerEl.classList.add('active');
 
+  if (players) renderCharacterReady(players);
+
   const endsAt = Date.now() + durationMs;
   clearInterval(characterPhaseInterval);
   const tick = () => {
     const secsLeft = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
-    if (timerEl) timerEl.textContent = `A partida começa em ${secsLeft}s — desenhe seu personagem!`;
+    if (timerEl) timerEl.textContent = `A partida começa em ${secsLeft}s — ou assim que todos salvarem o personagem!`;
     if (secsLeft <= 0) clearInterval(characterPhaseInterval);
   };
   tick();
   characterPhaseInterval = setInterval(tick, 250);
+});
+
+socket.on('character_ready_update', ({ players }) => {
+  renderCharacterReady(players);
+});
+
+socket.on('character_all_ready', () => {
+  clearInterval(characterPhaseInterval);
+  const timerEl = document.getElementById('character-phase-timer');
+  if (timerEl) timerEl.textContent = 'Todos prontos! Começando a partida…';
 });
 
 function playGameIntro() {
@@ -764,6 +812,8 @@ socket.on('game_start', (state) => {
   if (timerEl) { timerEl.classList.remove('active'); timerEl.textContent = ''; }
   const backBtn = document.getElementById('btn-close-character-editor');
   if (backBtn) backBtn.classList.remove('hidden');
+  const readyPanel = document.getElementById('character-ready-panel');
+  if (readyPanel) readyPanel.classList.add('hidden');
 
   mySeat = state.players.find(p => p.hand !== undefined).seat;
   myTeam = state.players.find(p => p.seat === mySeat).team;
@@ -780,11 +830,10 @@ socket.on('game_start', (state) => {
 });
 
 function setupSeatLabels(state) {
-  const n = state.players.length;
-  const labelA = myTeam === 0 ? 'Nós' : 'Eles';
-  const labelB = myTeam === 0 ? 'Eles' : 'Nós';
-  document.getElementById('label-team-a').textContent = labelA;
-  document.getElementById('label-team-b').textContent = labelB;
+  // score-a mostra SEMPRE o placar do meu time e score-b o do adversário
+  // (ver renderState), então o rótulo tem que acompanhar: A = Nós, B = Eles.
+  document.getElementById('label-team-a').textContent = 'Nós';
+  document.getElementById('label-team-b').textContent = 'Eles';
 }
 
 // ------------------------------------------------------------------

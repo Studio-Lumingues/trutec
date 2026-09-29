@@ -740,23 +740,36 @@ button { font-family: inherit; cursor: pointer; }
 .game-layout .chat-panel { order: 3; }
 
 .hud-top {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
+  min-height: 78px;
   padding: 10px 18px 10px 82px;
   background: linear-gradient(rgba(45,26,13,0.55), rgba(45,26,13,0.4));
   border-bottom: 1px solid rgba(255,255,255,0.25);
   z-index: 5;
 }
-.score-box { display: flex; align-items: center; gap: 10px; font-weight: 700; }
-.score-team { display: flex; flex-direction: column; align-items: center; min-width: 46px; }
-.score-label { font-size: 0.6rem; color: #fff8f0; text-transform: uppercase; letter-spacing: 0.5px; }
+/* Placar centralizado no meio superior da tela */
+.score-box {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-weight: 700;
+}
+.score-team { display: flex; flex-direction: column; align-items: center; min-width: 72px; }
+.score-label { font-size: 0.95rem; color: #fff8f0; text-transform: uppercase; letter-spacing: 1px; font-weight: 800; }
 .score-value {
-  font-size: 1.6rem;
+  font-size: 2.6rem;
+  line-height: 1.05;
   color: var(--gold-bright);
   text-shadow: 0 2px 4px rgba(0,0,0,0.6);
 }
-.score-vs { color: #2541b2; font-size: 0.8rem; }
+.score-vs { color: #2541b2; font-size: 1.3rem; font-weight: 800; }
 
 .stake-box {
   background: var(--gold);
@@ -1326,7 +1339,12 @@ button { font-family: inherit; cursor: pointer; }
 @media (max-width: 480px) {
   .my-hand .card { margin-left: -34px; }
   .action-btn { padding: 9px 10px; font-size: 0.72rem; }
-  .score-value { font-size: 1.2rem; }
+  .hud-top { min-height: 64px; padding-right: 10px; }
+  .score-box { gap: 8px; }
+  .score-team { min-width: 48px; }
+  .score-label { font-size: 0.75rem; }
+  .score-value { font-size: 1.9rem; }
+  .score-vs { font-size: 1rem; }
   .table-cards { transform: scale(0.7); }
   .vira-display { top: 10px; left: 10px; }
   .mini-card, .vira-stack-back, .vira-stack-back2 { width: 44px; height: 62px; font-size: 0.95rem; }
@@ -1374,4 +1392,56 @@ button { font-family: inherit; cursor: pointer; }
     box-shadow: none;
   }
   #btn-toggle-chat { display: none; }
+}
+
+
+/* ---------------------------------------------------------------- */
+/* Fase de personagem: quem já está pronto                            */
+/* ---------------------------------------------------------------- */
+.character-ready-panel {
+  flex: 0 0 200px;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 16px;
+  padding: 14px 12px;
+}
+.character-ready-panel.hidden { display: none; }
+.ready-title { margin: 0; font-size: 1rem; color: var(--cream); text-align: center; }
+.ready-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.ready-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid transparent;
+  transition: background .25s, border-color .25s;
+}
+.ready-item.is-ready { background: rgba(80,200,120,0.18); border-color: #50c878; }
+.ready-avatar {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  border-radius: 10px;
+  background: #fff8f0;
+  object-fit: contain;
+  opacity: 0.35;
+  filter: grayscale(1);
+  transition: opacity .25s, filter .25s;
+}
+.ready-item.is-ready .ready-avatar { opacity: 1; filter: none; }
+.ready-info { display: flex; flex-direction: column; min-width: 0; text-align: left; }
+.ready-name { font-weight: 800; font-size: 0.85rem; color: #fff8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ready-status { font-size: 0.75rem; color: #fff8f0; opacity: 0.8; }
+.ready-item.is-ready .ready-status { color: #7dffa6; opacity: 1; font-weight: 700; }
+
+@media (max-width: 900px) {
+  .character-ready-panel { flex: none; width: 100%; align-self: auto; }
+  .ready-list { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .ready-item { flex: 1 1 150px; }
 }

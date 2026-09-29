@@ -168,6 +168,7 @@ class Room {
     this.maoNumber = 0;
     this.gameOver = false;
     this.hiddenCardBySeat = {}; // seat -> true (jogou "escondida", visível só ao dono até revelar)
+    this.readySeats = new Set(); // assentos que salvaram o personagem na fase de desenho
     this.busy = false; // true durante o showdown de "melou" (bloqueia jogadas e trucos)
   }
 
@@ -196,6 +197,15 @@ class Room {
     if (this.mode !== '2v2') return true;
     const [a, b] = this.teamCounts();
     return a === 2 && b === 2;
+  }
+
+  // Quem já salvou o personagem durante a fase de desenho (pra mostrar ao lado).
+  characterReadyState() {
+    return this.players.map(p => ({
+      seat: p.seat, name: p.name, team: p.team, connected: p.connected,
+      character: p.character || null,
+      ready: this.readySeats.has(p.seat)
+    }));
   }
 
   publicSummary() {
@@ -489,6 +499,27 @@ class Room {
   }
 }
 
+// Sai da fase de desenho e distribui a primeira mão.
+function beginMatch(r) {
+  if (r.characterPhaseTimer) { clearTimeout(r.characterPhaseTimer); r.characterPhaseTimer = null; }
+  if (rooms.get(r.code) !== r || r.started) return; // sala removida ou já começou
+  r.startGame();
+  r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
+  r.broadcastState(io);
+}
+
+// Se todo mundo (conectado) já salvou o personagem, não precisa esperar os 45s.
+function checkAllReady(r) {
+  if (!r.characterPhaseTimer || r.started) return;
+  const connected = r.players.filter(p => p.connected);
+  if (connected.length === 0) return;
+  if (!connected.every(p => r.readySeats.has(p.seat))) return;
+  clearTimeout(r.characterPhaseTimer);
+  io.to(r.code).emit('character_all_ready', {});
+  // pequena pausa pra todo mundo ver que está tudo pronto
+  r.characterPhaseTimer = setTimeout(() => beginMatch(r), 1200);
+}
+
 // ---------------------------------------------------------------------------
 // Socket.io
 // ---------------------------------------------------------------------------
@@ -537,6 +568,12 @@ io.on('connection', (socket) => {
     if (!player) return;
     player.character = sanitizeCharacter(character);
     io.to(r.code).emit('lobby_update', r.lobbyState());
+    // Durante a fase de desenho, salvar = "estou pronto".
+    if (r.characterPhaseTimer && !r.started && player.character) {
+      r.readySeats.add(player.seat);
+      io.to(r.code).emit('character_ready_update', { players: r.characterReadyState() });
+      checkAllReady(r);
+    }
   });
 
   socket.on('list_public_rooms', (cb) => {
@@ -577,14 +614,9 @@ io.on('connection', (socket) => {
     // Antes de começar a valer, todo mundo tem alguns segundos pra desenhar
     // (ou ajustar) o personagem. Só depois desse tempo a mão é distribuída.
     const CHARACTER_PHASE_MS = 45000;
-    io.to(r.code).emit('character_phase_start', { durationMs: CHARACTER_PHASE_MS });
-    r.characterPhaseTimer = setTimeout(() => {
-      r.characterPhaseTimer = null;
-      if (rooms.get(r.code) !== r) return; // sala foi removida nesse meio tempo
-      r.startGame();
-      r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
-      r.broadcastState(io);
-    }, CHARACTER_PHASE_MS);
+    r.readySeats = new Set();
+    io.to(r.code).emit('character_phase_start', { durationMs: CHARACTER_PHASE_MS, players: r.characterReadyState() });
+    r.characterPhaseTimer = setTimeout(() => beginMatch(r), CHARACTER_PHASE_MS);
 
     cb && cb({ ok: true });
   });
@@ -806,6 +838,10 @@ io.on('connection', (socket) => {
     if (!player) return;
     player.connected = false;
     io.to(r.code).emit('lobby_update', r.lobbyState());
+    if (r.characterPhaseTimer) {
+      io.to(r.code).emit('character_ready_update', { players: r.characterReadyState() });
+      checkAllReady(r);
+    }
     io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${player.name} desconectou.`, ts: Date.now() });
 
     // limpa salas vazias/abandonadas
