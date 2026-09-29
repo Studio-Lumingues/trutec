@@ -947,6 +947,15 @@ function applyDealAnimation(el, index) {
   if (delay + DEAL_DUR_MS <= 0) return;      // essa carta já terminou de subir
   el.classList.add('dealing');
   el.style.animationDelay = delay.toFixed(0) + 'ms';
+  // ao terminar, a carta volta a ser clicável. Dois caminhos pra garantir:
+  // o evento animationend e um timer de segurança (caso a animação nem rode,
+  // ex.: "reduzir movimento" ligado ou aba em segundo plano).
+  const finish = () => {
+    el.classList.remove('dealing');
+    el.style.animationDelay = '';
+  };
+  el.addEventListener('animationend', finish, { once: true });
+  setTimeout(finish, Math.max(0, delay) + DEAL_DUR_MS + 80);
 }
 
 function renderState(realState) {

@@ -1804,5 +1804,5 @@ body::after {
   pointer-events: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .my-hand .card.dealing { animation: none; }
+  .my-hand .card.dealing { animation: none; pointer-events: auto; }
 }
