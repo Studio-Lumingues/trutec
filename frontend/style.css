@@ -39,11 +39,11 @@
    ESCALA GLOBAL. Todo o layout já está em rem, então basta mexer aqui
    pra aumentar/diminuir o site inteiro de forma proporcional.
    O tamanho acompanha a menor entre largura e altura da janela, então
-   nunca estoura a tela: 1280x720 ≈ 16px (como antes), 1920x1080 ≈ 22.7px
-   (+42%), 2560x1440 ≈ 30px. Celulares ficam em 16px (sem mudança).
-   Pra deixar maior: aumente 1.2vw / 2.1vh. Menor: diminua.
+   nunca estoura a tela: 1280x720 ≈ 16.5px, 1366x768 ≈ 17.7px, 1920x1080 ≈
+   24.8px (+55%), 2560x1440 ≈ 33px. Celulares ficam em 16px.
+   Pra deixar maior: aumente 1.4vw / 2.3vh. Menor: diminua.
    -------------------------------------------------------------------- */
-html { font-size: clamp(16px, min(1.2vw, 2.1vh), 34px); }
+html { font-size: clamp(16px, min(1.4vw, 2.3vh), 36px); }
 
 /* --------------------------------------------------------------------
    Bloqueia seleção de texto no site inteiro (o jogo não é um site de
@@ -1544,3 +1544,34 @@ button { font-family: inherit; cursor: pointer; }
   .waiting-players .wp-row { font-size: 1.05rem; }
   .team-card .wp-name, .team-column-title { font-size: 0.9rem; }
 }
+
+
+/* ---------------------------------------------------------------- */
+/* Painel "Prontos": sem barra horizontal, nomes com espaço           */
+/* Causa da barra: .ready-list tinha overflow-y:auto, o que força     */
+/* overflow-x:auto também, e o conteúdo (avatar + nome) era mais      */
+/* largo que a coluna de 11rem.                                       */
+/* ---------------------------------------------------------------- */
+.ready-list { overflow-x: hidden; overflow-y: auto; min-width: 0; }
+.ready-item { min-width: 0; }
+.ready-avatar { width: 3rem; height: 3rem; flex: 0 0 3rem; }
+.ready-name { max-width: 100%; }
+@media (min-width: 901px) {
+  #screen-character-editor .character-ready-panel { flex: 0 0 14rem; }
+}
+
+/* ---------------------------------------------------------------- */
+/* Telas altas (lobby / sala de espera / fim de jogo): se o conteúdo  */
+/* ficar maior que a janela, a tela rola em vez de cortar.            */
+/* ---------------------------------------------------------------- */
+#screen-lobby.screen,
+#screen-waiting.screen,
+#screen-gameover.screen {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#screen-waiting.screen,
+#screen-gameover.screen { align-items: flex-start; }
+#screen-waiting .lobby-card,
+#screen-gameover .lobby-card { margin: auto; }
+#screen-lobby .lobby-row { height: auto; min-height: 100%; }
