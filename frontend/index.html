@@ -7,11 +7,11 @@
 <link rel="stylesheet" href="style.css" />
 <script>
 /* Escala universal: 1rem cresce com a janela (o menor entre largura e altura).
-   ESCALA = 0.8 reduz todo o site em 20% (antes era 1.0).
+   ESCALA = 0.72 reduz todo o site em 28% (20% + mais 10%; original era 1.0).
    Pra deixar tudo maior/menor, mude só o número ESCALA abaixo
-   (ex.: 0.7 = 30% menor, 0.9 = 10% menor, 1 = tamanho antigo). */
+   (ex.: 0.6 = 40% menor, 0.9 = 10% menor, 1 = tamanho original). */
 (function () {
-  var ESCALA = 0.8;
+  var ESCALA = 0.72;
   var K_W = 0.0145 * ESCALA, K_H = 0.0295 * ESCALA; // fração da largura / altura da janela
   var MIN_PX = 16 * ESCALA, MAX_PX = 40 * ESCALA;
   function fit() {
