@@ -372,7 +372,14 @@ class Room {
     }
 
     let maoWinnerTeam = null;
-    if (wins[0] >= 2) maoWinnerTeam = 0;
+    const t1 = this.tricks[0], t2 = this.tricks[1];
+    if (this.tricks.length === 2 && t2.tie && !t1.tie) {
+      // 1a vaza ganha e a 2a melou (empatou): quem ganhou a 1a leva a mão na hora
+      maoWinnerTeam = t1.winnerTeam;
+    } else if (this.tricks.length === 2 && t1.tie && !t2.tie) {
+      // 1a melou e a 2a teve vencedor: quem ganhou a 2a leva a mão na hora
+      maoWinnerTeam = t2.winnerTeam;
+    } else if (wins[0] >= 2) maoWinnerTeam = 0;
     else if (wins[1] >= 2) maoWinnerTeam = 1;
     else if (this.tricks.length >= 3) {
       // 3 vazas jogadas, decide por regra de empates
