@@ -173,6 +173,8 @@ class Room {
     this.hiddenCardBySeat = {}; // seat -> true (jogou "escondida", visível só ao dono até revelar)
     this.readySeats = new Set(); // assentos que salvaram o personagem na fase de desenho
     this.busy = false; // true durante o showdown de "melou" (bloqueia jogadas e trucos)
+    this.nextPlayAt = 0; // timestamp (ms) a partir do qual a próxima carta pode entrar na mesa
+    this.queuedPlay = false; // já existe uma jogada adiantada aguardando o intervalo
   }
 
   get teamsCount() {
@@ -274,6 +276,8 @@ class Room {
     this.pendingCall = null;
     this.hiddenCardBySeat = {};
     this.busy = false;
+    this.nextPlayAt = 0;
+    this.queuedPlay = false;
 
     const n = this.players.length;
     for (const p of this.players) p.hand = [];
@@ -688,17 +692,40 @@ io.on('connection', (socket) => {
     return player;
   }
 
-  socket.on('play_card', ({ cardId, hidden }) => {
+  // Intervalo mínimo entre cartas na mesa (ms). Ajuste aqui se ainda achar rápido/lento.
+  const PLAY_GAP_MS = 1100;   // entre uma carta e a próxima da mesma vaza
+  const TRICK_GAP_MS = 2400;  // depois que a vaza fecha (dá tempo de ver o resultado)
+
+  socket.on('play_card', (payload) => {
     const r = room();
+    if (!r || !r.started || r.gameOver) return;
+    const wait = r.nextPlayAt - Date.now();
+    if (wait > 0) {
+      // Jogada adiantada: em vez de descartar, segura até o intervalo acabar.
+      if (r.queuedPlay) return socket.emit('play_rejected');
+      r.queuedPlay = true;
+      setTimeout(() => {
+        r.queuedPlay = false;
+        if (rooms.get(r.code) !== r) return;
+        handlePlayCard(r, payload || {});
+      }, wait);
+      return;
+    }
+    handlePlayCard(r, payload || {});
+  });
+
+  function handlePlayCard(r, { cardId, hidden }) {
     if (!r || !r.started || r.gameOver) return;
     const player = r.playerBySocket(socket.id);
     if (!player) return;
     if (r.busy) return socket.emit('play_rejected'); // avisa o cliente pra desfazer a jogada instantânea
-    if (r.turnSeat !== player.seat) return socket.emit('error_message', 'Não é sua vez.');
-    if (r.pendingCall) return socket.emit('error_message', 'Responda o pedido de truco primeiro.');
+    if (r.turnSeat !== player.seat) return socket.emit('play_rejected');
+    if (r.pendingCall) return socket.emit('play_rejected');
 
     const result = r.playCard(player.seat, cardId, hidden);
     if (result.error) return socket.emit('error_message', result.error);
+
+    r.nextPlayAt = Date.now() + (result.trickResult ? TRICK_GAP_MS : PLAY_GAP_MS);
 
     if (result.trickResult) {
       // revela cartas escondidas ao fim da vaza
@@ -777,7 +804,7 @@ io.on('connection', (socket) => {
       }, 2200);
       return;
     }
-  });
+  }
 
   socket.on('call_truco', ({ level }) => {
     const r = room();
