@@ -36,6 +36,16 @@
 * { box-sizing: border-box; }
 
 /* --------------------------------------------------------------------
+   ESCALA GLOBAL. Todo o layout já está em rem, então basta mexer aqui
+   pra aumentar/diminuir o site inteiro de forma proporcional.
+   O tamanho acompanha a menor entre largura e altura da janela, então
+   nunca estoura a tela: 1280x720 ≈ 16px (como antes), 1920x1080 ≈ 22.7px
+   (+42%), 2560x1440 ≈ 30px. Celulares ficam em 16px (sem mudança).
+   Pra deixar maior: aumente 1.2vw / 2.1vh. Menor: diminua.
+   -------------------------------------------------------------------- */
+html { font-size: clamp(16px, min(1.2vw, 2.1vh), 34px); }
+
+/* --------------------------------------------------------------------
    Bloqueia seleção de texto no site inteiro (o jogo não é um site de
    texto, então selecionar nomes/cartas/etc só atrapalha). Inputs e
    textareas ficam de fora da regra pra continuar editáveis normalmente.
@@ -1510,3 +1520,27 @@ button { font-family: inherit; cursor: pointer; }
   max-width: 100%;
 }
 #screen-character-editor .brush-row label { flex-shrink: 0; }
+
+
+/* ---------------------------------------------------------------- */
+/* Ajuste fino de legibilidade em telas grandes: textos que estavam   */
+/* pequenos demais em relação ao resto (nomes, rótulos, chat, HUD).   */
+/* ---------------------------------------------------------------- */
+@media (min-width: 900px) {
+  .seat-name { font-size: 0.95rem; padding: 0.3125rem 0.875rem; }
+  .vira-label { font-size: 0.8rem; }
+  .stake-box { font-size: 0.95rem; }
+  .action-btn { font-size: 1.05rem; }
+  .exit-room-btn { font-size: 0.95rem; }
+  .chat-header { font-size: 0.95rem; }
+  .chat-messages { font-size: 0.95rem; }
+  .chat-input-row input { font-size: 1rem; }
+  .emoji-btn { font-size: 1.5rem; }
+  .character-hint, .waiting-hint, .wp-team { font-size: 0.95rem; }
+  .ready-name { font-size: 1rem; }
+  .ready-status { font-size: 0.9rem; }
+  .tool-btn { font-size: 1.05rem; }
+  .editor-tab-btn { font-size: 1rem; }
+  .waiting-players .wp-row { font-size: 1.05rem; }
+  .team-card .wp-name, .team-column-title { font-size: 0.9rem; }
+}
