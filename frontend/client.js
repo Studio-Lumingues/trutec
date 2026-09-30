@@ -484,6 +484,12 @@ socket.on('lobby_update', (lobby) => {
     wrap.appendChild(renderClassicList(lobby));
   }
 
+  if (pendingLandSeat !== null) {
+    const landed = wrap.querySelector('.team-card[data-seat="' + pendingLandSeat + '"]');
+    pendingLandSeat = null;
+    landTeamCard(landed);
+  }
+
   updateStartButton(lobby);
 });
 
@@ -570,6 +576,9 @@ function renderClassicList(lobby) {
 // Usa Pointer Events pra funcionar igual com mouse e touch.
 // ------------------------------------------------------------------
 let teamDrag = null;
+let pendingLandSeat = null; // jogador que acabou de ser movido: o card novo "cai" com efeito elástico
+
+const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 function startTeamCardDrag(e, cardEl) {
   if (e.button !== undefined && e.button !== 0) return;
@@ -582,6 +591,10 @@ function startTeamCardDrag(e, cardEl) {
   ghost.style.width = rect.width + 'px';
   ghost.style.left = rect.left + 'px';
   ghost.style.top = rect.top + 'px';
+  const offsetX = e.clientX - rect.left;
+  const offsetY = e.clientY - rect.top;
+  // o card balança pendurado no ponto onde o host pegou
+  ghost.style.transformOrigin = offsetX + 'px ' + offsetY + 'px';
   document.body.appendChild(ghost);
 
   cardEl.classList.add('team-card-source-dragging');
@@ -592,13 +605,47 @@ function startTeamCardDrag(e, cardEl) {
     sourceEl: cardEl,
     startX: e.clientX,
     startY: e.clientY,
-    offsetX: e.clientX - rect.left,
-    offsetY: e.clientY - rect.top,
-    moved: false
+    offsetX,
+    offsetY,
+    moved: false,
+    tx: e.clientX,      // posição mais recente do ponteiro
+    lastTx: e.clientX,  // posição no quadro anterior
+    angle: 0,
+    angVel: (Math.random() < 0.5 ? -1 : 1) * 4, // "chacoalhada" ao pegar
+    scale: 0.88,        // começa menor e estica passando do ponto = elástico
+    scaleVel: 0,
+    raf: 0
   };
+
+  if (!REDUCED_MOTION) teamDrag.raf = requestAnimationFrame(animateTeamGhost);
+  else teamDrag.ghost.style.transform = 'scale(1.04)';
 
   document.addEventListener('pointermove', onTeamDragMove);
   document.addEventListener('pointerup', onTeamDragEnd, { once: true });
+}
+
+// Balanço elástico do card arrastado: duas molas sub-amortecidas.
+//  - ângulo: acompanha a velocidade horizontal do mouse e continua
+//    oscilando (balangando) até assentar quando o mouse para;
+//  - escala: "pop" ao pegar, passa de 1.07 e volta quicando.
+function animateTeamGhost() {
+  const d = teamDrag;
+  if (!d) return;
+
+  const vx = d.tx - d.lastTx;
+  d.lastTx = d.tx;
+
+  const targetAngle = Math.max(-24, Math.min(24, vx * 1.6));
+  d.angVel += (targetAngle - d.angle) * 0.14;
+  d.angVel *= 0.84;
+  d.angle += d.angVel;
+
+  d.scaleVel += (1.07 - d.scale) * 0.22;
+  d.scaleVel *= 0.78;
+  d.scale += d.scaleVel;
+
+  d.ghost.style.transform = 'rotate(' + d.angle.toFixed(2) + 'deg) scale(' + d.scale.toFixed(3) + ')';
+  d.raf = requestAnimationFrame(animateTeamGhost);
 }
 
 function onTeamDragMove(e) {
@@ -607,6 +654,7 @@ function onTeamDragMove(e) {
   const dy = e.clientY - teamDrag.startY;
   if (Math.abs(dx) > 4 || Math.abs(dy) > 4) teamDrag.moved = true;
 
+  teamDrag.tx = e.clientX;
   teamDrag.ghost.style.left = (e.clientX - teamDrag.offsetX) + 'px';
   teamDrag.ghost.style.top = (e.clientY - teamDrag.offsetY) + 'px';
 
@@ -619,6 +667,7 @@ function onTeamDragMove(e) {
 function onTeamDragEnd(e) {
   document.removeEventListener('pointermove', onTeamDragMove);
   if (!teamDrag) return;
+  cancelAnimationFrame(teamDrag.raf);
 
   const el = document.elementFromPoint(e.clientX, e.clientY);
   const col = el && el.closest('.team-column');
@@ -629,25 +678,39 @@ function onTeamDragEnd(e) {
 
   // Toque rápido sem arrastar: alterna o jogador pra outra dupla direto.
   const seat = teamDrag.seat;
+  const sourceEl = teamDrag.sourceEl;
+  const sourceCol = sourceEl.closest('.team-column');
+  const currentTeam = sourceCol ? parseInt(sourceCol.dataset.team, 10) : null;
   let targetTeam = null;
   if (col) {
     targetTeam = parseInt(col.dataset.team, 10);
   } else if (!teamDrag.moved) {
-    const sourceCol = teamDrag.sourceEl.closest('.team-column');
-    const currentTeam = sourceCol ? parseInt(sourceCol.dataset.team, 10) : null;
     if (currentTeam !== null) targetTeam = currentTeam === 0 ? 1 : 0;
   }
 
   teamDrag = null;
 
-  if (targetTeam !== null) {
+  if (targetTeam !== null && targetTeam !== currentTeam) {
+    pendingLandSeat = seat;
     socket.emit('set_player_team', { seat, team: targetTeam }, (res) => {
       if (res && !res.ok) {
+        pendingLandSeat = null;
         const errEl = document.getElementById('waiting-error');
         if (errEl) errEl.textContent = res.error || 'Não foi possível mudar a dupla.';
       }
     });
+  } else {
+    // soltou no mesmo lugar: o card só assenta quicando
+    landTeamCard(sourceEl);
   }
+}
+
+function landTeamCard(cardEl) {
+  if (!cardEl || REDUCED_MOTION) return;
+  cardEl.classList.remove('team-card-land');
+  void cardEl.offsetWidth; // reinicia a animação
+  cardEl.classList.add('team-card-land');
+  cardEl.addEventListener('animationend', () => cardEl.classList.remove('team-card-land'), { once: true });
 }
 
 // ------------------------------------------------------------------
