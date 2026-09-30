@@ -2016,3 +2016,30 @@ body::after {
   background: linear-gradient(rgba(10,6,18,0.7), rgba(10,6,18,0.55));
   border-bottom: none;
 }
+
+/* --------------------------------------------------------------------
+   CARD DE VITÓRIAS/DERROTAS (aparece só no zoom do boneco do adversário
+   e acompanha o mouse — ver stats.js). Não intercepta cliques.
+   -------------------------------------------------------------------- */
+.stats-card {
+  position: fixed;
+  left: 0; top: 0;
+  z-index: 9999;
+  min-width: 9rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.75rem;
+  background: rgba(10, 6, 18, 0.92);
+  border: 1px solid rgba(255, 248, 240, 0.28);
+  box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.55);
+  color: var(--cream);
+  font-size: 0.95rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease;
+  will-change: transform;
+}
+.stats-card.show { opacity: 1; }
+.stats-card .stats-row { display: flex; justify-content: space-between; gap: 1rem; }
+.stats-card .stats-row + .stats-row { margin-top: 0.25rem; }
+.stats-card b { color: var(--gold-bright); font-weight: 800; }
+@media (prefers-reduced-motion: reduce) { .stats-card { transition: none; } }

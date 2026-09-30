@@ -107,6 +107,7 @@ let myMode = '1v1';
 let myRoomCode = null;
 let mySeat = null;
 let myTeam = null;
+let statsCounted = false; // já contei vitória/derrota desta partida?
 let myWaitingSeat = null; // meu assento na sala de espera (antes do jogo começar)
 let myToken = null; // credencial pra retomar meu lugar na sala se a conexão cair
 let currentRoomCodeForCopy = null;
@@ -441,7 +442,7 @@ function joinByCode() {
   const code = codeInput.value.trim().toUpperCase();
   if (!code) return lobbyError('Digite o código da sala.');
   myName = currentName();
-  socket.emit('join_room', { code, name: myName, character: getSavedCharacter() }, enterRoom);
+  socket.emit('join_room', { code, name: myName, character: getSavedCharacter(), stats: window.TruStats ? TruStats.get() : null }, enterRoom);
 }
 document.getElementById('btn-join').addEventListener('click', joinByCode);
 codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinByCode(); });
@@ -451,7 +452,7 @@ document.querySelectorAll('.create-modes .btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     myMode = btn.dataset.mode;
     myName = currentName();
-    socket.emit('create_room', { name: myName, mode: myMode, isPublic: false, character: getSavedCharacter() }, enterRoom);
+    socket.emit('create_room', { name: myName, mode: myMode, isPublic: false, character: getSavedCharacter(), stats: window.TruStats ? TruStats.get() : null }, enterRoom);
   });
 });
 
@@ -857,6 +858,7 @@ function playGameIntro() {
 
 socket.on('game_start', (state) => {
   if (window.GameAudio) GameAudio.setMatchStarted(true);
+  statsCounted = false;
   lastCallSoundKey = null;
   clearInterval(characterPhaseInterval);
   clearTimeout(phaseWatchdog);
@@ -1004,6 +1006,12 @@ function renderState(realState) {
     if (avatarEl) {
       const src = p.character || 'assets/personagem.svg';
       if (avatarEl.getAttribute('src') !== src) avatarEl.setAttribute('src', src);
+    }
+    // vitórias/derrotas do jogador (mostradas no card ao dar zoom no boneco)
+    const figEl = document.getElementById(`figure-${pos}`);
+    if (figEl) {
+      if (p.stats) { figEl.dataset.wins = p.stats.wins; figEl.dataset.losses = p.stats.losses; }
+      else { delete figEl.dataset.wins; delete figEl.dataset.losses; }
     }
     if (nameEl) {
       let label = p.name;
@@ -1406,6 +1414,10 @@ socket.on('mao_result', ({ winnerTeam, points, teamName, ran }) => {
 
 socket.on('game_over', ({ winnerTeam, score }) => {
   const mine = winnerTeam === myTeam;
+  if (window.TruStats && !statsCounted) {
+    statsCounted = true; // garante que a partida só conta uma vez
+    if (mine) TruStats.addWin(); else TruStats.addLoss();
+  }
   document.getElementById('gameover-title').textContent = mine ? '🏆 Vocês venceram!' : 'Vocês perderam';
   document.getElementById('gameover-sub').textContent = `Placar final: ${score[0]} x ${score[1]}`;
   setTimeout(() => showScreen('screen-gameover'), 400);
