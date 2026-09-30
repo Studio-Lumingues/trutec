@@ -91,7 +91,7 @@ function tryRejoin() {
 socket.on('connect', tryRejoin);
 socket.on('disconnect', () => {
   const t = document.getElementById('character-phase-timer');
-  if (t && t.classList.contains('active')) t.textContent = 'Conexão perdida — reconectando…';
+  if (t && t.classList.contains('active')) { /* sem mensagem: só o tempo */ }
 });
 
 function lobbyErrorSafe(msg) {
@@ -814,7 +814,7 @@ socket.on('character_phase_start', ({ durationMs, players }) => {
   clearInterval(characterPhaseInterval);
   const tick = () => {
     const secsLeft = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
-    if (timerEl) timerEl.textContent = `A partida começa em ${secsLeft}s — ou assim que todos salvarem o personagem!`;
+    if (timerEl) timerEl.textContent = `${secsLeft}s`;
     if (secsLeft <= 0) {
       clearInterval(characterPhaseInterval);
       // Tempo acabou e a partida não veio? Pede ao servidor pra ressincronizar.
@@ -822,8 +822,7 @@ socket.on('character_phase_start', ({ durationMs, players }) => {
       phaseWatchdog = setTimeout(() => {
         const onEditor = document.getElementById('screen-character-editor').classList.contains('active');
         if (!onEditor) return;
-        if (timerEl) timerEl.textContent = 'Aguardando o servidor iniciar a partida…';
-        if (socket.connected) tryRejoin(); else socket.connect();
+                if (socket.connected) tryRejoin(); else socket.connect();
       }, 4000);
     }
   };
@@ -838,8 +837,7 @@ socket.on('character_ready_update', ({ players }) => {
 socket.on('character_all_ready', () => {
   clearInterval(characterPhaseInterval);
   const timerEl = document.getElementById('character-phase-timer');
-  if (timerEl) timerEl.textContent = 'Todos prontos! Começando a partida…';
-});
+  });
 
 function playGameIntro() {
   const overlay = document.getElementById('game-intro');

@@ -187,8 +187,8 @@ button { font-family: inherit; cursor: pointer; }
 .character-phase-timer {
   display: none;
   margin: -0.625rem 0 1rem;
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-size: 1.6rem;
+  font-weight: 800;
   color: var(--gold-bright);
 }
 .character-phase-timer.active { display: block; }
@@ -737,16 +737,12 @@ button { font-family: inherit; cursor: pointer; }
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  /* moldura de "madeira" ao redor do feltro, pra dar sensação de
-     ambiente real (uma mesinha de verdade) em vez de tela lisa */
-  background:
-    linear-gradient(rgba(0,0,0,0.12), rgba(0,0,0,0.12)),
-    repeating-linear-gradient(90deg,
-      var(--wood-brown-light) 0px, var(--wood-brown) 1.375rem,
-      var(--wood-brown-dark) 1.625rem, var(--wood-brown) 1.875rem,
-      var(--wood-brown-light) 3.25rem);
+  /* moldura lisa (sem listras) ao redor do feltro; cor sólida pra não
+     aparecer nenhum canto mais claro. Raio externo = raio do feltro
+     (1.125rem) + padding (0.75rem) pra as curvas ficarem concêntricas. */
+  background: var(--wood-brown);
   padding: 0.75rem;
-  border-radius: 1.625rem;
+  border-radius: 1.875rem;
   overflow: hidden;
 }
 .game-layout .actions-bar { order: 2; }
