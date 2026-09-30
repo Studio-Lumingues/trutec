@@ -259,7 +259,27 @@ class Room {
   }
 
   // -------------------------------------------------------------------
+  // No 2v2 as jogadas seguem a ordem dos assentos (0 -> 1 -> 2 -> 3), então os
+  // parceiros TÊM que ficar em assentos opostos (0 e 2 / 1 e 3): é o que faz as
+  // jogadas alternarem entre as duplas e o parceiro aparecer de frente na mesa.
+  // Como o host escolhe as duplas livremente na sala de espera (só muda
+  // player.team), aqui os assentos são reorganizados pelas duplas escolhidas:
+  //   assento 0 = host | 1 = adversário | 2 = parceiro do host | 3 = adversário
+  // O host continua no assento 0. A ordem original é mantida dentro de cada dupla.
+  reseatByTeams() {
+    if (this.mode !== '2v2' || this.players.length !== 4 || !this.teamsReady()) return;
+    const bySeat = [...this.players].sort((a, b) => a.seat - b.seat);
+    const host = bySeat[0];
+    const mates = bySeat.filter(p => p !== host && p.team === host.team);
+    const foes = bySeat.filter(p => p.team !== host.team);
+    if (mates.length !== 1 || foes.length !== 2) return;
+    const order = [host, foes[0], mates[0], foes[1]];
+    order.forEach((p, i) => { p.seat = i; });
+    this.players = order;
+  }
+
   startGame() {
+    this.reseatByTeams();
     this.started = true;
     this.score = [0, 0];
     this.dealerSeat = 0;
@@ -728,6 +748,9 @@ io.on('connection', (socket) => {
     if (r.busy) return socket.emit('play_rejected'); // avisa o cliente pra desfazer a jogada instantânea
     if (r.turnSeat !== player.seat) return socket.emit('play_rejected');
     if (r.pendingCall) return socket.emit('play_rejected');
+
+    // Não pode esconder a carta na primeira rodada (vaza) da mão.
+    if (r.tricks.length === 0) hidden = false;
 
     const result = r.playCard(player.seat, cardId, hidden);
     if (result.error) return socket.emit('error_message', result.error);
