@@ -1385,17 +1385,27 @@ button { font-family: inherit; cursor: pointer; }
   line-height: 1.25;
   font-weight: 600;
   word-break: break-word;
-  box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.45);
+  filter: drop-shadow(0 0.2rem 0.4rem rgba(0,0,0,0.45));   /* a sombra acompanha a perninha */
   animation: bubbleIn .22s cubic-bezier(.3,1.6,.5,1) both;
 }
 .speech-bubble.out { animation: bubbleOut .25s ease forwards; }
-.speech-bubble::after {          /* rabinho do balão */
-  content: ""; position: absolute; width: 0.75rem; height: 0.75rem;
-  background: #fff8f0; transform: rotate(45deg);
+.speech-bubble::after {          /* perninha: triângulo limpo, encostado na borda */
+  content: ""; position: absolute; background: #fff8f0;
 }
-.speech-bubble.above::after { bottom: -0.3rem; left: 50%; margin-left: -0.375rem; }
-.speech-bubble.side::after  { top: 0.9rem; left: -0.3rem; }
-.speech-bubble.side.tail-right::after { left: auto; right: -0.3rem; }
+.speech-bubble.above::after {    /* aponta pra baixo, pro boneco */
+  left: 50%; bottom: calc(-0.55rem + 1px);
+  width: 0.9rem; height: 0.55rem; margin-left: -0.45rem;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.speech-bubble.side::after {     /* aponta pra esquerda, pro boneco */
+  top: 50%; left: calc(-0.55rem + 1px);
+  width: 0.55rem; height: 0.9rem; margin-top: -0.45rem;
+  clip-path: polygon(100% 0, 100% 100%, 0 50%);
+}
+.speech-bubble.side.tail-right::after {   /* boneco fica à direita do balão */
+  left: auto; right: calc(-0.55rem + 1px);
+  clip-path: polygon(0 0, 0 100%, 100% 50%);
+}
 @keyframes bubbleIn  { from { opacity: 0; transform: scale(.6) translateY(0.5rem); } to { opacity: 1; transform: none; } }
 @keyframes bubbleOut { to { opacity: 0; transform: translateY(-0.4rem) scale(.95); } }
 
