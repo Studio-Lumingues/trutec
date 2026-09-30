@@ -1241,7 +1241,23 @@ button { font-family: inherit; cursor: pointer; }
   -webkit-tap-highlight-color: transparent;
   transition: filter .15s, transform .1s;
 }
-.logo-menu-trigger img { display: block; height: 2.25rem; width: auto; pointer-events: none; }
+/* O logo.png tem muita margem transparente/branca em volta (o texto ocupa só
+   1134x297 dos 1400x519). Aqui a caixa recorta só o texto, então a largura
+   abaixo (--logo-w) é a largura REAL do "TruTEC" na tela. Pra mudar o tamanho,
+   mexa só em --logo-w. */
+.logo-menu { --logo-w: 13rem; }
+.logo-menu-trigger {
+  width: var(--logo-w);
+  aspect-ratio: 1134 / 297;
+  overflow: hidden;
+}
+.logo-menu-trigger img {
+  display: block; pointer-events: none;
+  width: 123.46%;        /* 1400 / 1134 */
+  max-width: none; height: auto;
+  margin-left: -12.61%;  /* 143 / 1134 */
+  margin-top: -10.58%;   /* 120 / 1134 (margem % é sobre a largura) */
+}
 .logo-menu-trigger:hover { filter: brightness(1.12); }
 .logo-menu-trigger:active { transform: translateY(1px); }
 .logo-menu-trigger:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 4px; border-radius: 0.25rem; }
@@ -1582,7 +1598,7 @@ button { font-family: inherit; cursor: pointer; }
   .vira-label { font-size: 0.8rem; }
   .stake-box { font-size: 0.95rem; }
   .action-btn { font-size: 1.05rem; }
-  .logo-menu-trigger img { height: 1.875rem; }
+  .logo-menu { --logo-w: 10rem; }
   .chat-header { font-size: 0.95rem; }
   .chat-messages { font-size: 0.95rem; }
   .chat-input-row input { font-size: 1rem; }
