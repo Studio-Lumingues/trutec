@@ -489,12 +489,32 @@ function handleLobbyUpdate(lobby) {
   if (lobby.mode === '2v2') {
     wrap.appendChild(renderTeamsBoard(lobby, canEditTeams));
   } else {
-    wrap.appendChild(renderClassicList(lobby));
+    wrap.appendChild(renderClassicList(lobby, isHost && !lobby.started));
   }
 
   updateStartButton(lobby);
 }
 socket.on('lobby_update', handleLobbyUpdate);
+
+// Adicionar / remover bot na sala de espera (só o host vê os botões).
+// O botão lê a dupla na hora do clique, então continua certo depois de arrastar cards.
+document.getElementById('waiting-players').addEventListener('click', (e) => {
+  const addBtn = e.target.closest('.bot-add-btn');
+  const rmBtn = e.target.closest('.bot-remove-btn');
+  if (!addBtn && !rmBtn) return;
+  const errEl = document.getElementById('waiting-error');
+  const done = (res) => { if (errEl) errEl.textContent = res && !res.ok ? (res.error || 'Não foi possível.') : ''; };
+  if (addBtn) {
+    const col = addBtn.closest('.team-column');
+    const payload = col ? { team: parseInt(col.dataset.team, 10) } : {};
+    addBtn.disabled = true;
+    socket.emit('add_bot', payload, (res) => { addBtn.disabled = false; done(res); });
+  } else {
+    const card = rmBtn.closest('[data-seat]');
+    if (!card) return;
+    socket.emit('remove_bot', { seat: parseInt(card.dataset.seat, 10) }, done);
+  }
+});
 
 const pendingBalance = new Set();
 function autoBalanceTeams(lobby) {
@@ -524,6 +544,7 @@ function playerCardHtml(p, draggable) {
     <div class="team-card${draggable ? ' team-card-draggable' : ''}" data-seat="${p.seat}">
       <div class="wp-avatar"><img src="${avatarSrc}" alt="" draggable="false" /></div>
       <span class="wp-name">${escapeHtml(p.name)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
+      ${p.isBot && draggable ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}
     </div>
   `;
 }
@@ -545,7 +566,9 @@ function renderTeamsBoard(lobby, canEdit) {
 
     let bodyHtml = teamPlayers.map(p => playerCardHtml(p, canEdit)).join('');
     for (let i = 0; i < missing; i++) {
-      bodyHtml += `<div class="team-slot-empty">Aguardando…</div>`;
+      bodyHtml += canEdit
+        ? `<div class="team-slot-empty has-bot-btn"><span class="slot-wait">Aguardando…</span><button type="button" class="bot-add-btn">+ Adicionar bot</button></div>`
+        : `<div class="team-slot-empty">Aguardando…</div>`;
     }
 
     col.innerHTML = `
@@ -557,7 +580,7 @@ function renderTeamsBoard(lobby, canEdit) {
 
   if (canEdit) {
     board.querySelectorAll('.team-card-draggable').forEach(card => {
-      card.addEventListener('pointerdown', (e) => startTeamCardDrag(e, card));
+      card.addEventListener('pointerdown', (e) => { if (e.target.closest('.bot-remove-btn')) return; startTeamCardDrag(e, card); });
     });
   }
 
@@ -566,7 +589,7 @@ function renderTeamsBoard(lobby, canEdit) {
 
 // Sala de espera do 1v1: lista simples, sem edição de time (não há o que
 // escolher com 2 jogadores e 2 times fixos).
-function renderClassicList(lobby) {
+function renderClassicList(lobby, canEdit) {
   const list = document.createElement('div');
   for (let i = 0; i < lobby.maxPlayers; i++) {
     const p = lobby.players.find(pl => pl.seat === i);
@@ -580,15 +603,17 @@ function renderClassicList(lobby) {
           <span class="wp-name">${escapeHtml(p.name)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
           <span class="wp-team">Time ${p.team + 1}</span>
         </div>
+        ${p.isBot && canEdit ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}
       `;
     } else {
-      row.className += ' wp-row-empty';
+      row.className += ' wp-row-empty' + (canEdit ? ' has-bot-btn' : '');
       row.innerHTML = `
         <div class="wp-avatar wp-avatar-empty"><img src="assets/personagem.svg" alt="" draggable="false" /></div>
         <div class="wp-info">
           <span class="wp-name" style="opacity:.5">Aguardando…</span>
           <span class="wp-team">—</span>
         </div>
+        ${canEdit ? '<button type="button" class="bot-add-btn">+ Adicionar bot</button>' : ''}
       `;
     }
     list.appendChild(row);

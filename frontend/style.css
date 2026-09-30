@@ -2166,3 +2166,41 @@ html.bgfx-js .game-bg { display: none; }
   box-shadow: 0 0.75rem 1.5rem rgba(0,0,0,0.55);
   background: #16130f;
 }
+
+
+/* ==================================================================== */
+/* BOT NA SALA DE ESPERA: "+ Adicionar bot" aparece ao passar o mouse    */
+/* no slot "Aguardando…" (no celular fica sempre visível); "×" no card   */
+/* do bot remove. Só o host vê.                                          */
+/* ==================================================================== */
+.team-slot-empty.has-bot-btn,
+.wp-row-empty.has-bot-btn { position: relative; cursor: pointer; transition: opacity .15s ease, border-color .15s ease, background .15s ease; }
+.bot-add-btn {
+  position: absolute; inset: 0; width: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 0; border-radius: inherit;
+  color: #fff8f0; font: inherit; font-weight: 700; font-size: 0.8rem;
+  cursor: pointer; opacity: 0; transition: opacity .15s ease;
+}
+.bot-add-btn:disabled { cursor: wait; }
+@media (hover: hover) {
+  .has-bot-btn:hover { opacity: 1; border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.08); }
+  .has-bot-btn:hover .slot-wait,
+  .has-bot-btn:hover .wp-info { opacity: 0; }
+  .has-bot-btn:hover .bot-add-btn { opacity: 1; }
+}
+@media (hover: none) {
+  .bot-add-btn { opacity: 1; }
+  .has-bot-btn .slot-wait, .has-bot-btn .wp-info { opacity: 0; }
+  .has-bot-btn { opacity: 0.8; }
+}
+.bot-remove-btn {
+  margin-left: auto; flex-shrink: 0;
+  width: 1.5rem; height: 1.5rem; padding: 0; line-height: 1;
+  border-radius: 50%; border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.35); color: #fff8f0; font-size: 1rem; cursor: pointer;
+  opacity: 0; transition: opacity .15s ease, background .15s ease;
+}
+.team-card:hover .bot-remove-btn, .wp-row:hover .bot-remove-btn { opacity: 1; }
+.bot-remove-btn:hover { background: #c0392b; }
+@media (hover: none) { .bot-remove-btn { opacity: 1; } }
