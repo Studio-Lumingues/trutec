@@ -484,12 +484,6 @@ socket.on('lobby_update', (lobby) => {
     wrap.appendChild(renderClassicList(lobby));
   }
 
-  if (pendingLandSeat !== null) {
-    const landed = wrap.querySelector('.team-card[data-seat="' + pendingLandSeat + '"]');
-    pendingLandSeat = null;
-    landTeamCard(landed);
-  }
-
   updateStartButton(lobby);
 });
 
@@ -576,7 +570,6 @@ function renderClassicList(lobby) {
 // Usa Pointer Events pra funcionar igual com mouse e touch.
 // ------------------------------------------------------------------
 let teamDrag = null;
-let pendingLandSeat = null; // jogador que acabou de ser movido: o card novo "cai" com efeito elástico
 
 const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
@@ -691,26 +684,32 @@ function onTeamDragEnd(e) {
   teamDrag = null;
 
   if (targetTeam !== null && targetTeam !== currentTeam) {
-    pendingLandSeat = seat;
+    // Troca INSTANTÂNEA pro host: move o card na tela na hora (se houver vaga)
+    // e só depois confirma com o servidor. Os outros jogadores recebem pelo
+    // lobby_update, com o delay normal da rede.
+    const targetCol = document.querySelector('.team-column[data-team="' + targetTeam + '"]');
+    const moved = moveCardToColumn(sourceEl, targetCol);
     socket.emit('set_player_team', { seat, team: targetTeam }, (res) => {
       if (res && !res.ok) {
-        pendingLandSeat = null;
+        if (moved && sourceCol && sourceEl.isConnected) moveCardToColumn(sourceEl, sourceCol); // desfaz
         const errEl = document.getElementById('waiting-error');
         if (errEl) errEl.textContent = res.error || 'Não foi possível mudar a dupla.';
       }
     });
-  } else {
-    // soltou no mesmo lugar: o card só assenta quicando
-    landTeamCard(sourceEl);
   }
 }
 
-function landTeamCard(cardEl) {
-  if (!cardEl || REDUCED_MOTION) return;
-  cardEl.classList.remove('team-card-land');
-  void cardEl.offsetWidth; // reinicia a animação
-  cardEl.classList.add('team-card-land');
-  cardEl.addEventListener('animationend', () => cardEl.classList.remove('team-card-land'), { once: true });
+// Troca o card de coluna trocando de lugar com um slot "Aguardando…" vazio
+// da coluna de destino (o slot vai pra coluna de origem). Retorna false se
+// não houver vaga (nesse caso nada muda na tela e o servidor decide).
+function moveCardToColumn(cardEl, col) {
+  if (!cardEl || !col) return false;
+  const slot = col.querySelector('.team-slot-empty');
+  const fromBody = cardEl.parentElement;
+  if (!slot || !fromBody) return false;
+  slot.replaceWith(cardEl);
+  fromBody.appendChild(slot);
+  return true;
 }
 
 // ------------------------------------------------------------------
