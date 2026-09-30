@@ -86,6 +86,25 @@
         ['Fundo', '#0b4a75'], ['Onda', '#106da0'], ['Espuma', '#bfe9f5'],
         ['Feltro', '#0a5478'], ['Realce', '#7fd8ff'], ['Creme', '#fff8f0']
       ]
+    },
+    {
+      id: 'carro',
+      name: 'Carro',
+      tagline: 'Sucata largada no mato',
+      vars: {
+        '--felt-dark': '#0a1409', '--felt': '#17301a', '--felt-light': '#2c5230',
+        '--wood-light': '#cfe0b0', '--wood-brown': '#0d1a0e',
+        '--wood-brown-light': '#1e3a21', '--wood-brown-dark': '#050b05',
+        '--ui-dark': '6,12,7', '--ui-chat': '10,18,11', '--ui-felt-dark': '10,20,11'
+      },
+      // fundo = foto (assets/carro.png), parada, cobrindo a tela toda (kind 'image').
+      // A mesa desse tema é translúcida/desfocada: ver "html[data-theme=carro]" no style.css
+      bg: { kind: 'image', src: 'assets/carro.png', base: '#1d3a1a', tileW: 0, tileH: 12 },
+      preview: { bga: '#1d3a1a', bgb: '#1d3a1a', accent: '#cfe0b0', cream: '#fff8f0' },
+      palette: [
+        ['Mato', '#3f7a2a'], ['Sombra', '#0a1409'], ['Ferrugem', '#b5432f'],
+        ['Feltro', '#17301a'], ['Realce', '#cfe0b0'], ['Creme', '#fff8f0']
+      ]
     }
   ];
 
@@ -227,7 +246,9 @@
   // Fundo do tema: losangos (Drácula) ou estampa própria (`bg`).
   function bgImage(t, frame) {
     var svg;
-    if (t.bg) {
+    if (t.bg && t.bg.kind === 'image') {
+      return 'url("' + t.bg.src + '")';                 // foto: um quadro só, sem tremido
+    } else if (t.bg) {
       frame = (frame || 0) % SEEDS.length;
       t._svg = t._svg || [];
       svg = t._svg[frame] || (t._svg[frame] = (t.bg.kind === 'binary' ? binarySvg : t.bg.kind === 'sea' ? seaSvg : leopardSvg)(t.bg, frame));
@@ -254,6 +275,7 @@
   }
   function startBoil(t) {
     stopBoil();
+    if (t.bg && t.bg.kind === 'image') return;
     for (var i = 0; i < SEEDS.length; i++) { var im = new Image(); im.src = bgImage(t, i).slice(5, -2); }
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     boilTimer = setInterval(function () {
@@ -279,6 +301,7 @@
       setVar('--theme-bg-color', t.bg.base);
       setVar('--theme-tile-w', t.bg.tileW + 'rem');
       setVar('--theme-tile-h', t.bg.tileH + 'rem');
+      if (t.bg.kind === 'image') { setVar('--theme-bg-size', 'cover'); setVar('--theme-bg-pos', 'center'); }
     }
     root.classList.toggle('theme-bg', !!t.bg);
     if (t.bg) startBoil(t); else stopBoil();
@@ -299,15 +322,17 @@
     unmountThumb(box);
     var t = byId(id);
     if (!t || !box) return false;
-    var tw = (t.bg ? t.bg.tileW : 7) * THUMB_SCALE, th = (t.bg ? t.bg.tileH : 12) * THUMB_SCALE;
+    var photo = t.bg && t.bg.kind === 'image';
+    var tw = photo ? 0 : (t.bg ? t.bg.tileW : 7) * THUMB_SCALE, th = (t.bg ? t.bg.tileH : 12) * THUMB_SCALE;
     var slide = document.createElement('div');
     slide.className = 'tb-slide';
     slide.style.setProperty('--tile-w', tw + 'rem');
-    slide.style.backgroundSize = tw + 'rem ' + th + 'rem';
+    slide.style.backgroundSize = photo ? 'cover' : tw + 'rem ' + th + 'rem';
+    if (photo) slide.style.backgroundPosition = 'center';
     slide.style.backgroundImage = bgImage(t, 0);
     box.style.background = t.preview.bga;
     box.appendChild(slide);
-    if (t.bg && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+    if (t.bg && !photo && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
       var n = 0;
       box._thumbTimer = setInterval(function () {
         if (document.hidden) return;
@@ -322,6 +347,7 @@
   function bgSpec(id) {
     var t = byId(id);
     if (!t || !t.bg) return null;
+    if (t.bg.kind === 'image') return { kind: 'image', src: t.bg.src };
     var urls = [];
     for (var i = 0; i < SEEDS.length; i++) urls.push(bgImage(t, i).slice(5, -2));
     return { tileW: t.bg.tileW, tileH: t.bg.tileH, urls: urls };
@@ -344,9 +370,11 @@
 
   function previewHtml(t) {
     var p = t.preview;
-    var size = t.bg ? ';--tile-w:' + t.bg.tileW + 'rem;background-size:' + t.bg.tileW + 'rem ' + t.bg.tileH + 'rem' : '';
+    var photo = t.bg && t.bg.kind === 'image';
+    var size = photo ? ';--tile-w:0rem;background-size:cover;background-position:center'
+      : t.bg ? ';--tile-w:' + t.bg.tileW + 'rem;background-size:' + t.bg.tileW + 'rem ' + t.bg.tileH + 'rem' : '';
     return '<div class="tb" style="background:' + p.bga + '">' +
-      '<div class="tb-slide"' + (t.bg ? ' data-boil="1"' : '') + ' style="background-image:' + bgImage(t).replace(/"/g, '&quot;') + size + '"></div>' +
+      '<div class="tb-slide"' + (t.bg && !photo ? ' data-boil="1"' : '') + ' style="background-image:' + bgImage(t).replace(/"/g, '&quot;') + size + '"></div>' +
     '</div>';
   }
 

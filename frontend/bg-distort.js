@@ -27,7 +27,8 @@
     'uniform vec2 uRes, uMouse, uVel;',
     'uniform float uTime, uMode, uRem, uDpr, uEnergy, uRadius, uStrength, uSplit;',
     'uniform sampler2D uTex;',
-    'uniform vec2 uTile;',
+    'uniform vec2 uTile, uImg;',
+    'uniform float uStatic;',
     'const vec3 CREAM = vec3(1.0, 0.9725, 0.9412);',
 
     // listras diagonais (120deg) que andam devagar — igual ao CSS do body
@@ -58,6 +59,11 @@
 
     // fundo do tema (textura que se repete), deslizando como o .game-bg do CSS
     'vec3 themeTex(vec2 p){',
+    '  if (uStatic > 0.5) {',                       // foto: cobre a tela inteira (tipo background-size: cover)
+    '    float sc = max(uRes.x / uImg.x, uRes.y / uImg.y);',
+    '    vec2 sz = uImg * sc;',
+    '    return texture2D(uTex, clamp((p - 0.5 * (uRes - sz)) / sz, 0.0, 1.0)).rgb;',
+    '  }',
     '  float ox = -uTile.x + uTile.x * (mod(uTime, 8.0) / 8.0);',
     '  return texture2D(uTex, vec2((p.x - ox) / uTile.x, p.y / uTile.y)).rgb;',
     '}',
@@ -108,7 +114,7 @@
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     var U = {};
-    ['uRes', 'uMouse', 'uVel', 'uTime', 'uMode', 'uRem', 'uDpr', 'uEnergy', 'uRadius', 'uStrength', 'uSplit', 'uTex', 'uTile']
+    ['uRes', 'uMouse', 'uVel', 'uTime', 'uMode', 'uRem', 'uDpr', 'uEnergy', 'uRadius', 'uStrength', 'uSplit', 'uTex', 'uTile', 'uImg', 'uStatic']
       .forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
 
     var dpr = 1, gameScreen = document.getElementById('screen-game');
@@ -129,6 +135,34 @@
       tex.frames = []; tex.ready = false;
       root.classList.remove('bgfx-tex');
     }
+    // tema com foto: uma textura só, sem repetir (CLAMP funciona com qualquer tamanho)
+    function loadPhoto(spec, token) {
+      tex.key = tex.id + ':photo';
+      var img = new Image();
+      img.onload = function () {
+        if (token !== tex.token || dead) return;
+        var max = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE) || 2048, 4096);
+        var w = img.naturalWidth, h = img.naturalHeight, src = img;
+        if (w > max || h > max) {                    // foto grande demais pra GPU: reduz
+          var k = max / Math.max(w, h);
+          w = Math.round(w * k); h = Math.round(h * k);
+          src = document.createElement('canvas'); src.width = w; src.height = h;
+          src.getContext('2d').drawImage(img, 0, 0, w, h);
+        }
+        var t = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, t);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.uniform2f(U.uImg, w, h);
+        tex.frames = [t]; tex.ready = true;
+        root.classList.add('bgfx-tex');
+      };
+      img.src = spec.src;                            // se falhar, fica o fundo em CSS do tema
+    }
     function loadTheme(id) {
       var token = ++tex.token;
       tex.id = id;
@@ -136,6 +170,8 @@
       tex.spec = (id && window.TruThemes && TruThemes.bgSpec) ? TruThemes.bgSpec(id) : null;
       var spec = tex.spec;
       if (!spec) { tex.key = ''; return; }           // sem `bg`: losangos do shader
+      gl.uniform1f(U.uStatic, spec.kind === 'image' ? 1 : 0);
+      if (spec.kind === 'image') { loadPhoto(spec, token); return; }
       var rem = parseFloat(getComputedStyle(root).fontSize) || 16;
       var tw = spec.tileW * rem * dpr, th = spec.tileH * rem * dpr;
       var pw = pot(tw), ph = pot(th);
@@ -179,7 +215,7 @@
       gl.uniform1f(U.uRadius, RADIUS * dpr);
       gl.uniform1f(U.uStrength, STRENGTH * dpr);
       gl.uniform1f(U.uSplit, SPLIT);
-      if (tex.spec) {                                 // rem/dpr mudou: refaz a textura se o tamanho mudar
+      if (tex.spec && tex.spec.kind !== 'image') {    // rem/dpr mudou: refaz a textura se o tamanho mudar
         var tw = tex.spec.tileW * rem * dpr, th = tex.spec.tileH * rem * dpr;
         if (tex.key !== tex.id + ':' + pot(tw) + 'x' + pot(th)) loadTheme(tex.id);
         else gl.uniform2f(U.uTile, tw, th);
