@@ -467,7 +467,10 @@ document.getElementById('btn-leave-waiting').addEventListener('click', () => {
 // ------------------------------------------------------------------
 // SALA DE ESPERA
 // ------------------------------------------------------------------
-socket.on('lobby_update', (lobby) => {
+let teamSwapBusy = 0;          // >0 enquanto uma substituição (2 pedidos ao servidor) está em andamento
+let deferredLobby = null;      // lobby_update recebido nesse meio tempo
+function handleLobbyUpdate(lobby) {
+  if (teamSwapBusy > 0) { deferredLobby = lobby; return; }
   document.getElementById('waiting-code').textContent = lobby.code;
   currentRoomCodeForCopy = lobby.code;
   const wrap = document.getElementById('waiting-players');
@@ -490,10 +493,12 @@ socket.on('lobby_update', (lobby) => {
   }
 
   updateStartButton(lobby);
-});
+}
+socket.on('lobby_update', handleLobbyUpdate);
 
 const pendingBalance = new Set();
 function autoBalanceTeams(lobby) {
+  if (teamSwapBusy > 0) return;
   const count = [0, 1].map(t => lobby.players.filter(p => p.team === t).length);
   for (const from of [0, 1]) {
     const to = 1 - from;
@@ -690,6 +695,7 @@ function onTeamDragEnd(e) {
 
   const el = document.elementFromPoint(e.clientX, e.clientY);
   const col = el && el.closest('.team-column');
+  const dropEl = el, dropY = e.clientY;
   document.querySelectorAll('.team-column').forEach(c => c.classList.remove('team-column-hover'));
 
   teamDrag.sourceEl.classList.remove('team-card-source-dragging');
@@ -715,9 +721,23 @@ function onTeamDragEnd(e) {
     // lobby_update, com o delay normal da rede.
     const targetCol = document.querySelector('.team-column[data-team="' + targetTeam + '"]');
     if (targetCol && !targetCol.querySelector('.team-slot-empty')) {
-      // dupla cheia (2 jogadores): não troca
-      const errEl = document.getElementById('waiting-error');
-      if (errEl) errEl.textContent = 'Essa dupla já está cheia.';
+      if (!col) { // toque rápido (sem arrastar): não dá pra saber quem substituir
+        const errEl = document.getElementById('waiting-error');
+        if (errEl) errEl.textContent = 'Dupla cheia: arraste o jogador em cima de quem você quer substituir.';
+        return;
+      }
+      // dupla cheia: solta em cima de alguém pra substituir (ele vai pra dupla de quem foi arrastado)
+      if (!dropEl) return;
+      const cards = Array.from(targetCol.querySelectorAll('.team-card'));
+      let victim = dropEl.closest && dropEl.closest('.team-card');
+      if (!victim || !targetCol.contains(victim)) {
+        // não caiu exatamente em cima de um card: pega o mais próximo na vertical
+        victim = cards.sort((a, b) => {
+          const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+          return Math.abs(ra.top + ra.height / 2 - dropY) - Math.abs(rb.top + rb.height / 2 - dropY);
+        })[0];
+      }
+      if (victim) swapPlayers(sourceEl, victim, seat, parseInt(victim.dataset.seat, 10), currentTeam, targetTeam);
       return;
     }
     const errEl0 = document.getElementById('waiting-error');
@@ -731,6 +751,45 @@ function onTeamDragEnd(e) {
       }
     });
   }
+}
+
+// Substitui: A (arrastado) vai pra dupla de B e B vai pra dupla de A.
+// A tela do host troca na hora; o servidor recebe dois pedidos em sequência
+// (A -> dupla de B, depois B -> dupla de A). Enquanto isso o auto-balanceamento
+// e os lobby_update ficam em espera pra não brigar com a troca.
+function swapPlayers(cardA, cardB, seatA, seatB, teamA, teamB) {
+  const errEl = document.getElementById('waiting-error');
+  if (errEl) errEl.textContent = '';
+
+  function swapDom() {
+    const mark = document.createComment('');
+    cardA.replaceWith(mark);
+    cardB.replaceWith(cardA);
+    mark.replaceWith(cardB);
+  }
+  function finish() {
+    teamSwapBusy = Math.max(0, teamSwapBusy - 1);
+    if (teamSwapBusy === 0 && deferredLobby) { const l = deferredLobby; deferredLobby = null; handleLobbyUpdate(l); }
+  }
+  function fail(res) {
+    if (cardA.isConnected && cardB.isConnected) swapDom(); // desfaz na tela
+    if (errEl) errEl.textContent = (res && res.error) || 'Não foi possível substituir o jogador.';
+    finish();
+  }
+
+  teamSwapBusy++;
+  swapDom(); // instantâneo
+  socket.emit('set_player_team', { seat: seatA, team: teamB }, (r1) => {
+    if (r1 && !r1.ok) return fail(r1);
+    socket.emit('set_player_team', { seat: seatB, team: teamA }, (r2) => {
+      if (r2 && !r2.ok) {
+        // segunda parte falhou: devolve o A pra dupla dele também
+        socket.emit('set_player_team', { seat: seatA, team: teamA }, () => {});
+        return fail(r2);
+      }
+      finish();
+    });
+  });
 }
 
 // Troca o card de coluna trocando de lugar com um slot "Aguardando…" vazio
