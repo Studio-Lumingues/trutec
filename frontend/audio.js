@@ -13,7 +13,7 @@
 // ============================================================================
 (function () {
   // Volume máximo (100% no controle). A música começa em 20% => 0.04. O jogador ajusta em Configurações.
-  var MUSIC_MAX = 0.2;
+  var MUSIC_MAX = 1;   // a faixa nova é bem mais baixa que a antiga (≈ -7 dB), então 20% aqui ≈ o volume que a antiga tinha
   var SFX_BASE = 0.5;
   var DEFAULT_MUSIC_LEVEL = 0.2; // 0..1 (começa em 20%)
   var DEFAULT_SFX_LEVEL = 1;     // 0..1
@@ -218,6 +218,7 @@
     fadeGain.gain.setValueAtTime(0.0001, t);
     fadeGain.gain.linearRampToValueAtTime(1, t + FADE_IN);
     source.start(0);
+    console.info('[áudio] música do editor iniciada');
   }
 
   function killSource() {
