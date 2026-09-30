@@ -73,31 +73,22 @@
   var btnPrev = document.getElementById('theme-prev');
   var btnNext = document.getElementById('theme-next');
 
-  function card(rank, suit, color, cls) {
-    return '<div class="tp-card ' + color + (cls ? ' ' + cls : '') + '"><b>' + rank + '</b><span>' + suit + '</span></div>';
-  }
-  function seat(pos, name) {
-    return '<div class="tp-seat tp-' + pos + '"><div class="tp-av"><img src="assets/personagem.svg" alt="" draggable="false" /></div>' +
-      '<span class="tp-name">' + name + '</span></div>';
+  // Fundo do tema: o mesmo desenho do fundo da partida (losangos), com as
+  // cores do tema. `bga` = losango, `bgb` = fundo entre os losangos.
+  function bgImage(p) {
+    var A = encodeURIComponent(p.bga), B = encodeURIComponent(p.bgb);
+    var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='70' height='120' viewBox='0 0 70 120'>" +
+      "<rect width='70' height='120' fill='" + decodeURIComponent(B) + "'/>" +
+      "<g fill='" + decodeURIComponent(A) + "'>" +
+      "<polygon points='0,-60 35,0 0,60 -35,0'/><polygon points='70,-60 105,0 70,60 35,0'/>" +
+      "<polygon points='0,60 35,120 0,180 -35,120'/><polygon points='70,60 105,120 70,180 35,120'/></g></svg>";
+    return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
   }
 
   function previewHtml(t) {
     var p = t.preview;
-    var vars = '--tp-bga:' + p.bga + ';--tp-bgb:' + p.bgb + ';--tp-felt:' + p.felt + ';--tp-feltd:' + p.feltd +
-      ';--tp-feltl:' + p.feltl + ';--tp-rim:' + p.rim + ';--tp-accent:' + p.accent + ';--tp-cream:' + p.cream +
-      ';--tp-back:' + p.back + ';--tp-ink:' + p.ink;
-    return '<div class="tp" style="' + vars + '">' +
-      '<span class="tp-ribbon">Exemplo</span>' +
-      '<div class="tp-score"><span>NÓS</span><b>4</b><i>x</i><b>2</b><span>ELES</span></div>' +
-      seat('top', 'Parceiro') + seat('left', 'Bot Tião') + seat('right', 'Bot Zezé') +
-      '<div class="tp-table">' +
-        '<div class="tp-vira"><span class="tp-label">Vira</span>' + card('J', '♣', 'black') + '</div>' +
-        '<div class="tp-deck"><div class="tp-card back"></div></div>' +
-        '<div class="tp-played">' + card('K', '♦', 'red', 'r1') + card('2', '♠', 'black', 'r2') + card('7', '♥', 'red', 'r3') + '</div>' +
-      '</div>' +
-      '<div class="tp-hand">' + card('3', '♣', 'black', 'lg h1') + card('7', '♦', 'red', 'lg h2') + card('A', '♠', 'black', 'lg h3') + '</div>' +
-      '<div class="tp-btn tp-btn-2">Correr</div>' +
-      '<div class="tp-btn tp-btn-1">TRUCO!</div>' +
+    return '<div class="tb" style="background:' + p.bga + '">' +
+      '<div class="tb-slide" style="background-image:' + bgImage(p).replace(/"/g, '&quot;') + '"></div>' +
     '</div>';
   }
 
