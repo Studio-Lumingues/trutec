@@ -17,7 +17,7 @@
   var SFX_BASE = 0.5;
   var DEFAULT_MUSIC_LEVEL = 0.2; // 0..1 (começa em 20%)
   var DEFAULT_SFX_LEVEL = 1;     // 0..1
-  var MUSIC_SRC = 'assets/jungle-d-b-drums_174bpm_A__minor.wav';
+  var MUSIC_SRC = 'assets/jungle.wav';
   var MUSIC_SCREENS = ['screen-character-editor']; // só na hora de desenhar
   var FADE_IN = 0.3;   // s
   var FADE_OUT = 2;    // s
@@ -55,9 +55,9 @@
     return true;
   }
 
-  // Tenta o arquivo novo primeiro; se não achar (nome errado / fora da pasta
-  // assets/), tenta alternativas e avisa no console qual foi usado.
-  var MUSIC_CANDIDATES = [MUSIC_SRC, 'assets/desenho.wav', 'assets/song.wav'];
+  // Carrega a música do editor; se não achar (nome errado / fora da pasta
+  // assets/), avisa no console.
+  var MUSIC_CANDIDATES = [MUSIC_SRC];
   var loadFailed = false;
 
   function tryLoad(i) {
