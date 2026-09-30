@@ -2084,3 +2084,7 @@ html.noise-js body::after { display: none; }
   #screen-character-editor.active .character-panel,
   #screen-character-editor.active { animation: none; }
 }
+
+/* ---- Saindo da partida: a tela de carregamento já nasce cobrindo tudo depois
+   do reload (classe posta pelo <head>), e o client.js faz o fade out. ---- */
+html.leaving-intro .game-intro { display: flex; opacity: 1; }

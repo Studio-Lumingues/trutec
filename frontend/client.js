@@ -863,6 +863,34 @@ function playGameIntro() {
   }, INTRO_FADE_IN_MS + INTRO_HOLD_MS);
 }
 
+// Saindo da partida: a mesma tela de carregamento da entrada (escurece, círculo
+// girando) cobre a tela, a página recarrega e, já de volta ao lobby, a tela
+// preta faz o fade out. O html ganha a classe `leaving-intro` bem cedo (script
+// no <head> do index.html) pra o lobby não piscar entre uma coisa e outra.
+const LEAVE_HOLD_MS = 700;      // tempo na tela preta antes de recarregar
+const LEAVE_AFTER_MS = 500;     // tempo na tela preta depois de recarregar
+function leaveToLobby() {
+  const overlay = document.getElementById('game-intro');
+  try { sessionStorage.setItem('trutec-leave-intro', '1'); } catch (e) {}
+  if (!overlay) return location.reload();
+  overlay.classList.remove('fade-out');
+  overlay.classList.add('active');
+  setTimeout(() => location.reload(), INTRO_FADE_IN_MS + LEAVE_HOLD_MS);
+}
+(function finishLeaveIntro() {
+  let flag = null;
+  try { flag = sessionStorage.getItem('trutec-leave-intro'); sessionStorage.removeItem('trutec-leave-intro'); } catch (e) {}
+  const overlay = document.getElementById('game-intro');
+  if (flag !== '1' || !overlay) { document.documentElement.classList.remove('leaving-intro'); return; }
+  setTimeout(() => {
+    overlay.classList.add('fade-out');
+    setTimeout(() => {
+      overlay.classList.remove('fade-out');
+      document.documentElement.classList.remove('leaving-intro');
+    }, INTRO_FADE_OUT_MS + 50);
+  }, LEAVE_AFTER_MS);
+})();
+
 let gameStartPending = false;   // esperando a tela ficar preta pra montar a mesa
 let pendingStateUpdate = null;  // state_update que chegou nesse meio-tempo
 
@@ -1349,7 +1377,7 @@ document.getElementById('btn-correr').addEventListener('click', () => {
 
   document.getElementById('btn-exit-room').addEventListener('click', () => { setMenu(false); open(); });
   document.getElementById('exit-modal-stay').addEventListener('click', close);
-  document.getElementById('exit-modal-leave').addEventListener('click', () => location.reload());
+  document.getElementById('exit-modal-leave').addEventListener('click', () => { close(); leaveToLobby(); });
   // clicar fora da caixinha ou apertar Esc também cancela
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
@@ -1445,7 +1473,7 @@ socket.on('game_over', ({ winnerTeam, score }) => {
   setTimeout(() => showScreen('screen-gameover'), 400);
 });
 
-document.getElementById('btn-play-again').addEventListener('click', () => location.reload());
+document.getElementById('btn-play-again').addEventListener('click', () => leaveToLobby());
 
 socket.on('error_message', (msg) => {
   rollbackOptimistic();

@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="style.css" />
 <script>
 try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentElement.classList.add('colorblind'); } catch (e) {}
+try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documentElement.classList.add('leaving-intro'); } catch (e) {}
 </script>
 <script>
 /* Escala universal: 1rem cresce com a janela (o menor entre largura e altura).
@@ -504,9 +505,9 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
   <script src="noise.js"></script>
   <script src="seat-zoom.js"></script>
   <script src="stats.js"></script>
-  <script src="audio.js?v=3"></script>
+  <script src="audio.js?v=4"></script>
   <script src="settings.js"></script>
   <script src="favicon.js"></script>
-  <script src="client.js?v=3"></script>
+  <script src="client.js?v=4"></script>
 </body>
 </html>
