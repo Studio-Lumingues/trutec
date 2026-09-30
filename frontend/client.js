@@ -868,9 +868,9 @@ let pendingStateUpdate = null;  // state_update que chegou nesse meio-tempo
 
 socket.on('game_start', (state) => {
   if (window.GameAudio) GameAudio.endMusic(); // (caso o tempo acabe sem o all_ready)
-  if (window.GameAudio) GameAudio.playStart(); // sfx de início de partida
-  if (matchIntroPlayed) return beginMatch(state, 0);
+  if (matchIntroPlayed) return beginMatch(state, 0); // partidas seguintes: sem sfx de início
   matchIntroPlayed = true;
+  if (window.GameAudio) GameAudio.playStart(); // sfx de início: só na 1ª partida
   gameStartPending = true;
   playGameIntro();
   // só troca de tela quando estiver tudo preto, sem mostrar a mesa piscando
