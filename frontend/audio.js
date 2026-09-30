@@ -10,11 +10,26 @@
 // - Botão de mudo (canto superior direito) guarda a escolha no localStorage.
 // ============================================================================
 (function () {
-  var MUSIC_VOLUME = 0.2;
+  // Volume máximo (100% no controle). A música agora começa em 50% => 0.10
+  // (antes era fixa em 0.20). O jogador ajusta em Configurações.
+  var MUSIC_MAX = 0.2;
+  var SFX_BASE = 0.5;
+  var DEFAULT_MUSIC_LEVEL = 0.5; // 0..1
+  var DEFAULT_SFX_LEVEL = 1;     // 0..1
   var LOBBY_SCREENS = ['screen-lobby', 'screen-waiting', 'screen-character-editor'];
 
   var muted = false;
   try { muted = localStorage.getItem('trutec-muted') === '1'; } catch (e) {}
+
+  function readLevel(key, def) {
+    try {
+      var v = parseFloat(localStorage.getItem(key));
+      if (isFinite(v)) return Math.min(1, Math.max(0, v));
+    } catch (e) {}
+    return def;
+  }
+  var musicLevel = readLevel('trutec-vol-music', DEFAULT_MUSIC_LEVEL);
+  var sfxLevel = readLevel('trutec-vol-sfx', DEFAULT_SFX_LEVEL);
 
   // Música: Web Audio API (o <audio loop> do navegador deixa um vazinho na
   // volta do loop; aqui o fim emenda direto no começo)
@@ -27,7 +42,7 @@
     if (!AC) return false;
     ctx = new AC();
     gain = ctx.createGain();
-    gain.gain.value = MUSIC_VOLUME;
+    gain.gain.value = musicLevel * MUSIC_MAX;
     gain.connect(ctx.destination);
     return true;
   }
@@ -58,6 +73,7 @@
   ['truco', 'seis', 'nove', 'doze'].forEach(function (name) {
     var a = new Audio('assets/' + name + '.wav');
     a.preload = 'auto';
+    a.volume = sfxLevel;
     calls[name] = a;
   });
 
@@ -71,11 +87,12 @@
 
   // ---- Efeitos sonoros gerados por código (clique e carta) ----
   // Não usam arquivo: são sintetizados na hora pela Web Audio API.
-  var SFX_VOLUME = 0.5;
+  var SFX_VOLUME = SFX_BASE * sfxLevel;
   var noiseBuf = null;
 
   function sfxReady() {
-    if (muted || !ensureCtx()) return false;
+    // volume 0 => não sintetiza (rampas exponenciais não aceitam alvo 0)
+    if (muted || SFX_VOLUME <= 0.001 || !ensureCtx()) return false;
     if (ctx.state === 'suspended') ctx.resume().catch(function () {});
     return true;
   }
@@ -209,7 +226,7 @@
     onScreen: function (id) { currentScreen = id; sync(); },
     setMatchStarted: function (v) { matchStarted = !!v; sync(); },
     playCall: function (level) {
-      if (muted) return;
+      if (muted || sfxLevel <= 0) return;
       var a = calls[level];
       if (!a) return;
       try { a.currentTime = 0; } catch (e) {}
@@ -222,6 +239,19 @@
       if (muted) { Object.keys(calls).forEach(function (k) { calls[k].pause(); }); }
       sync();
       return muted;
+    },
+    getMusicLevel: function () { return musicLevel; },
+    getSfxLevel: function () { return sfxLevel; },
+    setMusicLevel: function (v) {
+      musicLevel = Math.min(1, Math.max(0, +v || 0));
+      try { localStorage.setItem('trutec-vol-music', String(musicLevel)); } catch (e) {}
+      if (gain) gain.gain.value = musicLevel * MUSIC_MAX;
+    },
+    setSfxLevel: function (v) {
+      sfxLevel = Math.min(1, Math.max(0, +v || 0));
+      SFX_VOLUME = SFX_BASE * sfxLevel;
+      try { localStorage.setItem('trutec-vol-sfx', String(sfxLevel)); } catch (e) {}
+      Object.keys(calls).forEach(function (k) { calls[k].volume = sfxLevel; });
     },
     click: sfxClick,
     cardPlay: sfxCardPlay,

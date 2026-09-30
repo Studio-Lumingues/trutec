@@ -10,6 +10,9 @@
 <link rel="apple-touch-icon" href="assets/personagem.png" />
 <link rel="stylesheet" href="style.css" />
 <script>
+try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentElement.classList.add('colorblind'); } catch (e) {}
+</script>
+<script>
 /* Escala universal: 1rem cresce com a janela (o menor entre largura e altura).
    ESCALA = 0.72 reduz todo o site em 28% (20% + mais 10%; original era 1.0).
    Pra deixar tudo maior/menor, mude só o número ESCALA abaixo
@@ -148,9 +151,49 @@
       </div>
 
       <p id="lobby-error" class="error-text"></p>
+
+      <button id="btn-settings" type="button" class="btn btn-ghost settings-open-btn">⚙️ Configurações</button>
     </div>
     </div>
 
+    </div>
+  </div>
+
+  <!-- ===================== CONFIGURAÇÕES (abre pela tela inicial) ===================== -->
+  <div id="settings-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="settings-card">
+      <h2 id="settings-title">⚙️ Configurações</h2>
+
+      <div class="settings-row">
+        <div class="settings-label"><label for="set-music">🎵 Música</label><span id="set-music-val">50%</span></div>
+        <input type="range" id="set-music" class="settings-slider" min="0" max="100" step="1" value="50" />
+      </div>
+
+      <div class="settings-row">
+        <div class="settings-label"><label for="set-sfx">🔊 Efeitos sonoros (SFX)</label><span id="set-sfx-val">100%</span></div>
+        <input type="range" id="set-sfx" class="settings-slider" min="0" max="100" step="1" value="100" />
+      </div>
+
+      <div class="settings-row settings-row-toggle">
+        <div class="settings-label-col">
+          <label for="set-colorblind">🎨 Modo daltonismo</label>
+          <small>Cores de naipes e times mais fáceis de distinguir.</small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="set-colorblind" />
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </label>
+      </div>
+
+      <!-- prévia dos naipes: muda de cor com o modo daltonismo -->
+      <div class="settings-preview" aria-hidden="true">
+        <span class="pv-suit suit-ouros">♦</span>
+        <span class="pv-suit suit-espadas">♠</span>
+        <span class="pv-suit suit-copas">♥</span>
+        <span class="pv-suit suit-paus">♣</span>
+      </div>
+
+      <button id="settings-close" type="button" class="btn btn-primary settings-close-btn">Fechar</button>
     </div>
   </div>
 
@@ -423,6 +466,7 @@
   <script src="boil.js"></script>
   <script src="seat-zoom.js"></script>
   <script src="audio.js"></script>
+  <script src="settings.js"></script>
   <script src="favicon.js"></script>
   <script src="client.js"></script>
 </body>

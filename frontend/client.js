@@ -1145,13 +1145,13 @@ function animatePlayedCard(holder, play, pos, finalTransform) {
 
 function renderMiniCard(el, card) {
   if (!card) { el.textContent = ''; return; }
-  el.className = 'mini-card ' + (SUIT_COLOR[card.suit] || '');
+  el.className = 'mini-card ' + (SUIT_COLOR[card.suit] || '') + ' suit-' + card.suit;
   el.innerHTML = `${card.rank}<span style="font-size:.9em">${SUIT_SYMBOLS[card.suit]}</span>`;
 }
 
 function buildCardEl(card, manilhaRank) {
   const el = document.createElement('div');
-  el.className = 'card ' + (SUIT_COLOR[card.suit] || '');
+  el.className = 'card ' + (SUIT_COLOR[card.suit] || '') + ' suit-' + card.suit;
   if (card.rank === manilhaRank) el.classList.add('manilha');
   const symbol = SUIT_SYMBOLS[card.suit];
   el.innerHTML = `
