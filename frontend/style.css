@@ -2130,7 +2130,8 @@ html.bgfx-js .game-bg { display: none; }
 /* temas com fundo próprio (ex.: Onça Cinza): o fundo em CSS cobre o canvas WebGL na partida */
 html.bgfx-js.theme-bg .game-bg { display: block; }
 /* tema cinza: o granulado também fica sem cor */
-html[data-theme="onca"] .noise-layer { filter: grayscale(1); }
+html[data-theme="onca"] .noise-layer,
+html[data-theme="binario"] .noise-layer { filter: grayscale(1); }
 
 
 /* ==================================================================== */

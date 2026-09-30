@@ -5,7 +5,7 @@
 //   automaticamente (não precisa confirmar).
 // - Pra criar outro tema, copie um objeto de THEMES e troque:
 //     vars    -> variáveis CSS que o tema sobrescreve no :root
-//     bg      -> (opcional) fundo próprio da partida. Hoje: { kind:'leopard', ... }
+//     bg      -> (opcional) fundo próprio da partida: { kind:'leopard' | 'binary', ... }
 //                Sem `bg`, o tema usa o fundo de losangos (cores em preview.bga/bgb)
 //     preview -> cores usadas só no desenho de exemplo
 //     palette -> as bolinhas de cor do tema
@@ -49,6 +49,24 @@
       palette: [
         ['Fundo', '#474747'], ['Miolo', '#333333'], ['Mancha', '#0a0a0a'],
         ['Feltro', '#4a4a4a'], ['Realce', '#c2c2c2'], ['Creme', '#fff8f0']
+      ]
+    },
+    {
+      id: 'binario',
+      name: '?????',
+      tagline: '11101010',
+      vars: {
+        '--felt-dark': '#000000', '--felt': '#0b100c', '--felt-light': '#1b2c1f',
+        '--wood-light': '#00ff41', '--wood-brown': '#0a1a0e',
+        '--wood-brown-light': '#14301b', '--wood-brown-dark': '#000000',
+        '--ui-dark': '0,0,0', '--ui-chat': '3,9,5', '--ui-felt-dark': '0,0,0'
+      },
+      // fundo preto cheio de octetos (8 bits) verdes que ficam trocando
+      bg: { kind: 'binary', base: '#000000', fg: '#00ff41', tileW: 32, tileH: 24 },
+      preview: { bga: '#000000', bgb: '#000000', accent: '#00ff41', cream: '#fff8f0' },
+      palette: [
+        ['Fundo', '#000000'], ['Números', '#00ff41'], ['Feltro', '#0b100c'],
+        ['Realce', '#1b2c1f'], ['Detalhe', '#00ff41'], ['Creme', '#fff8f0']
       ]
     }
   ];
@@ -131,13 +149,40 @@
       "<g fill='" + bg.dark + "'>" + darks.join('') + "</g></svg>";
   }
 
+
+  // Fundo "matrix": grade de octetos (8 bits) verdes sobre preto. A cada quadro
+  // alguns octetos mudam de valor e de brilho (o mesmo ritmo do boil.js), então
+  // os números ficam piscando/trocando. Repete sem emenda.
+  function binarySvg(bg, frame) {
+    var W = 480, H = 360, r = rng(21), jr = rng(SEEDS[frame % SEEDS.length] * 131 + 7);
+    var rows = 16, cols = 6, out = [];
+    function oct(rr) { var t = ''; for (var i = 0; i < 8; i++) t += rr() < 0.5 ? '0' : '1'; return t; }
+    function put(x, y, t, op) {
+      out.push("<text x='" + f(x) + "' y='" + f(y) + "' fill-opacity='" + op.toFixed(2) + "'>" + t + "</text>");
+    }
+    for (var row = 0; row < rows; row++) {
+      for (var col = 0; col < cols; col++) {
+        var t = oct(r), op = r() < 0.1 ? 0.95 : 0.16 + r() * 0.5;
+        if (jr() < 0.22) t = oct(jr);                    // troca os bits
+        if (jr() < 0.2) op = Math.min(1, op + 0.4);      // pisca mais forte
+        var x = col * 80 + (row % 2 ? 40 : 0) + 4, y = 12 + row * 22.5;
+        put(x, y, t, op);
+        if (x + 64 > W) put(x - W, y, t, op);            // dá a volta na borda do tile
+      }
+    }
+    return "<svg xmlns='http://www.w3.org/2000/svg' width='" + W + "' height='" + H + "' viewBox='0 0 " + W + " " + H + "'>" +
+      "<rect width='" + W + "' height='" + H + "' fill='" + bg.base + "'/>" +
+      "<g font-family='Courier New,Consolas,Menlo,monospace' font-size='13' font-weight='bold' fill='" + bg.fg + "'>" +
+      out.join('') + "</g></svg>";
+  }
+
   // Fundo do tema: losangos (Drácula) ou estampa própria (`bg`).
   function bgImage(t, frame) {
     var svg;
-    if (t.bg && t.bg.kind === 'leopard') {
+    if (t.bg) {
       frame = (frame || 0) % SEEDS.length;
       t._svg = t._svg || [];
-      svg = t._svg[frame] || (t._svg[frame] = leopardSvg(t.bg, frame));
+      svg = t._svg[frame] || (t._svg[frame] = (t.bg.kind === 'binary' ? binarySvg : leopardSvg)(t.bg, frame));
     } else {
       var p = t.preview;
       svg = "<svg xmlns='http://www.w3.org/2000/svg' width='70' height='120' viewBox='0 0 70 120'>" +
