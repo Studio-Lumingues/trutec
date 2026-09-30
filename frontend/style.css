@@ -1359,9 +1359,6 @@ button { font-family: inherit; cursor: pointer; }
   word-break: break-word;
 }
 .chat-messages b { color: var(--gold-bright); }
-.emoji-row { display: flex; justify-content: space-around; padding: 0.375rem; border-top: none; background: rgba(0,0,0,0.15); }
-.emoji-btn { background: none; border: none; font-size: 1.2rem; transition: transform .1s; }
-.emoji-btn:hover { transform: scale(1.25); }
 .chat-input-row { display: flex; border-top: none; }
 .chat-input-row input {
   font-size: 0.85rem;
@@ -1375,20 +1372,32 @@ button { font-family: inherit; cursor: pointer; }
   border: none; padding: 0 0.875rem; font-weight: 700; color: #040303;
 }
 
-#emoji-layer {
-  position: fixed; inset: 0; pointer-events: none; z-index: 25;
-}
-.floating-emoji {
+/* balões de fala do chat */
+#bubble-layer { position: fixed; inset: 0; pointer-events: none; z-index: 40; }
+.speech-bubble {
   position: absolute;
-  font-size: 2rem;
-  animation: floatUp 1.6s ease-out forwards;
-  filter: drop-shadow(0 0.1875rem 0.375rem rgba(0,0,0,0.5));
+  max-width: min(14rem, 60vw);
+  padding: 0.5rem 0.75rem;
+  background: #fff8f0;
+  color: #1b1030;
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  line-height: 1.25;
+  font-weight: 600;
+  word-break: break-word;
+  box-shadow: 0 0.25rem 0.75rem rgba(0,0,0,0.45);
+  animation: bubbleIn .22s cubic-bezier(.3,1.6,.5,1) both;
 }
-@keyframes floatUp {
-  0% { opacity: 0; transform: translateY(0) scale(0.5); }
-  15% { opacity: 1; transform: translateY(-0.625rem) scale(1.1); }
-  100% { opacity: 0; transform: translateY(-5.625rem) scale(1); }
+.speech-bubble.out { animation: bubbleOut .25s ease forwards; }
+.speech-bubble::after {          /* rabinho do balão */
+  content: ""; position: absolute; width: 0.75rem; height: 0.75rem;
+  background: #fff8f0; transform: rotate(45deg);
 }
+.speech-bubble.above::after { bottom: -0.3rem; left: 50%; margin-left: -0.375rem; }
+.speech-bubble.side::after  { top: 0.9rem; left: -0.3rem; }
+.speech-bubble.side.tail-right::after { left: auto; right: -0.3rem; }
+@keyframes bubbleIn  { from { opacity: 0; transform: scale(.6) translateY(0.5rem); } to { opacity: 1; transform: none; } }
+@keyframes bubbleOut { to { opacity: 0; transform: translateY(-0.4rem) scale(.95); } }
 
 /* a animação da carta jogada agora é feita via JS (animatePlayedCard),
    que faz a carta "voar" da mão de quem jogou até a posição real na mesa */
@@ -1582,7 +1591,6 @@ button { font-family: inherit; cursor: pointer; }
   .chat-header { font-size: 0.95rem; }
   .chat-messages { font-size: 0.95rem; }
   .chat-input-row input { font-size: 1rem; }
-  .emoji-btn { font-size: 1.5rem; }
   .character-hint, .waiting-hint, .wp-team { font-size: 0.95rem; }
   .ready-name { font-size: 1rem; }
   .ready-status { font-size: 0.9rem; }
@@ -1668,8 +1676,6 @@ button { font-family: inherit; cursor: pointer; }
   .waiting-players .wp-row { padding: 0.4rem 0.75rem; }
 }
 @media (min-width: 901px) {
-  .emoji-btn { font-size: 1.25rem; padding: 0.25rem; }
-  .emoji-row { padding: 0.375rem 0.25rem; gap: 0; }
   .chat-input-row button { font-size: 1rem; }
 }
 
@@ -2055,10 +2061,6 @@ html.noise-js body::after { display: none; }
 }
 .ic-only { margin-right: 0; }
 
-.emoji-btn { color: var(--cream); line-height: 0; }
-.emoji-btn .ic { width: 1.6em; height: 1.6em; vertical-align: middle; }
-.floating-emoji { color: #fff8f0; line-height: 0; }
-.floating-emoji .ic { width: 2.6rem; height: 2.6rem; stroke-width: 1.8; }
 #btn-toggle-chat .ic { width: 1.5em; height: 1.5em; vertical-align: middle; }
 #gameover-title .ic { width: 1.1em; height: 1.1em; stroke-width: 2.2; }
 .wp-name .ic { margin-left: 0.15em; vertical-align: -0.2em; }

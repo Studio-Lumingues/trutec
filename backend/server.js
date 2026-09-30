@@ -1217,17 +1217,10 @@ io.on('connection', (socket) => {
     if (!r) return;
     const player = r.playerBySocket(socket.id);
     if (!player || !text) return;
-    const msg = { name: player.name, text: String(text).slice(0, 200), ts: Date.now() };
+    const msg = { name: player.name, seat: player.seat, text: String(text).slice(0, 200), ts: Date.now() };
     io.to(r.code).emit('chat_message', msg);
   });
 
-  socket.on('send_emoji', ({ emoji }) => {
-    const r = room();
-    if (!r) return;
-    const player = r.playerBySocket(socket.id);
-    if (!player) return;
-    io.to(r.code).emit('emoji', { seat: player.seat, name: player.name, emoji });
-  });
 
   socket.on('disconnect', () => {
     const r = room();

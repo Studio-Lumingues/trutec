@@ -101,8 +101,6 @@ function lobbyErrorSafe(msg) {
 
 // Ícones hand drawn (sprite no index.html). Sempre brancos/da cor do texto.
 const ICON = (name, only) => '<svg class="ic' + (only ? ' ic-only' : '') + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
-// reações: o servidor continua trocando o emoji como texto; aqui só trocamos o desenho
-const EMOJI_ICON = { '👍': 'thumb', '😂': 'laugh', '😮': 'wow', '😡': 'angry', '🔥': 'fire', '🤫': 'shush' };
 const SUIT_SYMBOLS = { ouros: '♦', espadas: '♠', copas: '♥', paus: '♣' };
 const SUIT_COLOR = { ouros: 'red', espadas: 'black', copas: 'red', paus: 'black' };
 
@@ -1738,7 +1736,7 @@ socket.on('error_message', (msg) => {
 socket.on('play_rejected', () => rollbackOptimistic());
 
 // ------------------------------------------------------------------
-// Chat + emojis
+// Chat
 // ------------------------------------------------------------------
 document.getElementById('btn-toggle-chat').addEventListener('click', () => {
   document.getElementById('chat-panel').classList.toggle('hidden');
@@ -1756,38 +1754,60 @@ function sendChat() {
   input.value = '';
 }
 
-socket.on('chat_message', ({ name, text }) => {
+socket.on('chat_message', ({ name, text, seat }) => {
   const wrap = document.getElementById('chat-messages');
   const row = document.createElement('div');
-  row.innerHTML = `<b>${name}:</b> ${escapeHtml(text)}`;
+  row.innerHTML = `<b>${escapeHtml(name)}:</b> ${escapeHtml(text)}`;
   wrap.appendChild(row);
   wrap.scrollTop = wrap.scrollHeight;
+  if (seat !== undefined && seat !== null) showBubble(seat, text);
 });
 
-document.querySelectorAll('.emoji-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    socket.emit('send_emoji', { emoji: btn.dataset.emoji });
-  });
-});
+// ------------------------------------------------------------------
+// Balão de fala sobre a cabeça de quem escreveu no chat
+// ------------------------------------------------------------------
+const bubbles = {}; // pos -> { el, timer } (um balão por jogador; o novo substitui o antigo)
 
-socket.on('emoji', ({ seat, emoji }) => {
-  const layer = document.getElementById('emoji-layer');
+function showBubble(seat, text) {
+  const layer = document.getElementById('bubble-layer');
+  if (!layer || mySeat === null || !latestState) return;
+  const n = latestState.players.length;
+  const pos = seatOffsetLabel(seat, n);
+  if (!pos) return;
+
+  if (bubbles[pos]) { clearTimeout(bubbles[pos].timer); bubbles[pos].el.remove(); }
+
   const el = document.createElement('div');
-  el.className = 'floating-emoji';
-  if (EMOJI_ICON[emoji]) el.innerHTML = ICON(EMOJI_ICON[emoji], true); else el.textContent = emoji;
-  const n = latestState ? latestState.players.length : 2;
-  const pos = seat !== null && mySeat !== null ? seatOffsetLabel(seat, n) : 'bottom';
-  const coords = {
-    bottom: { left: '50%', top: '75%' },
-    top: { left: '50%', top: '15%' },
-    left: { left: '15%', top: '45%' },
-    right: { left: '80%', top: '45%' }
-  }[pos] || { left: '50%', top: '50%' };
-  el.style.left = coords.left;
-  el.style.top = coords.top;
+  el.className = 'speech-bubble';
+  el.textContent = text;
   layer.appendChild(el);
-  setTimeout(() => el.remove(), 1700);
-});
+
+  // âncora: o boneco (top/left/right) ou o topo da minha mão (bottom)
+  const anchor = document.getElementById(pos === 'bottom' ? 'my-hand' : `figure-${pos}`);
+  const r = anchor ? anchor.getBoundingClientRect() : { left: innerWidth / 2, right: innerWidth / 2, top: innerHeight / 2, bottom: innerHeight / 2, width: 0 };
+  const bw = el.offsetWidth, bh = el.offsetHeight, m = 8;
+  let x, y, side = 'above';
+  if (pos === 'top') {                 // pouco espaço acima: balão ao lado da cabeça
+    side = 'side';
+    x = r.right + 12; y = r.top + 4;
+    if (x + bw > innerWidth - m) { x = r.left - 12 - bw; el.classList.add('tail-right'); }
+  } else {
+    x = (r.left + r.right) / 2 - bw / 2;
+    y = r.top - bh - 14;
+  }
+  x = Math.max(m, Math.min(x, innerWidth - bw - m));
+  y = Math.max(m, Math.min(y, innerHeight - bh - m));
+  el.classList.add(side);
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+
+  const ms = Math.min(9000, 3200 + text.length * 60);
+  const timer = setTimeout(() => {
+    el.classList.add('out');
+    setTimeout(() => { el.remove(); if (bubbles[pos] && bubbles[pos].el === el) delete bubbles[pos]; }, 250);
+  }, ms);
+  bubbles[pos] = { el, timer };
+}
 
 function escapeHtml(str) {
   const div = document.createElement('div');

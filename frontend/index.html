@@ -473,14 +473,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
         <div id="chat-panel" class="chat-panel hidden">
           <div class="chat-header"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg> Chat da mesa</div>
           <div class="chat-messages" id="chat-messages"></div>
-          <div class="emoji-row">
-            <button class="emoji-btn" data-emoji="👍" aria-label="Joinha"><svg class="ic ic-only" aria-hidden="true"><use href="#i-thumb"/></svg></button>
-            <button class="emoji-btn" data-emoji="😂" aria-label="Rindo"><svg class="ic ic-only" aria-hidden="true"><use href="#i-laugh"/></svg></button>
-            <button class="emoji-btn" data-emoji="😮" aria-label="Surpreso"><svg class="ic ic-only" aria-hidden="true"><use href="#i-wow"/></svg></button>
-            <button class="emoji-btn" data-emoji="😡" aria-label="Bravo"><svg class="ic ic-only" aria-hidden="true"><use href="#i-angry"/></svg></button>
-            <button class="emoji-btn" data-emoji="🔥" aria-label="Fogo"><svg class="ic ic-only" aria-hidden="true"><use href="#i-fire"/></svg></button>
-            <button class="emoji-btn" data-emoji="🤫" aria-label="Silêncio"><svg class="ic ic-only" aria-hidden="true"><use href="#i-shush"/></svg></button>
-          </div>
           <div class="chat-input-row">
             <input id="chat-input" maxlength="120" placeholder="Manda a mensagem…" />
             <button id="btn-send-chat">Enviar</button>
@@ -529,8 +521,8 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
     </div>
   </div>
 
-  <!-- toasts de emoji flutuante -->
-  <div id="emoji-layer"></div>
+  <!-- balões de fala (chat) sobre a cabeça dos jogadores -->
+  <div id="bubble-layer"></div>
 
   <!-- ===================== TRANSIÇÃO: ENTRANDO NA PARTIDA ===================== -->
   <div id="game-intro" class="game-intro">
