@@ -94,6 +94,18 @@ function buildDeck() {
 
 // Personagem é um PNG (dataURL) desenhado no cliente. Validação simples pra
 // evitar lixo/abuso: só aceita dataURL de PNG e limita o tamanho.
+// Tema visual e vitórias/derrotas que cada jogador informa ao entrar (só pra
+// exibir no card ao passar o mouse no boneco). Tudo validado: nada disso afeta o jogo.
+function sanitizeTheme(theme) {
+  if (typeof theme !== 'string') return null;
+  return /^[a-z0-9_-]{1,24}$/i.test(theme) ? theme : null;
+}
+function sanitizeStats(stats) {
+  if (!stats || typeof stats !== 'object') return null;
+  const n = (v) => { v = parseInt(v, 10); return isFinite(v) && v > 0 ? Math.min(v, 999999) : 0; };
+  return { wins: n(stats.wins), losses: n(stats.losses) };
+}
+
 function sanitizeCharacter(character) {
   if (typeof character !== 'string') return null;
   if (!character.startsWith('data:image/png;base64,')) return null;
@@ -240,7 +252,8 @@ class Room {
       canStart: !this.started && this.players.length === this.maxPlayers && this.teamsReady(),
       teamsReady: this.teamsReady(),
       players: this.players.map(p => ({
-        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: p.character || null, isBot: !!p.isBot
+        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: p.character || null, isBot: !!p.isBot,
+        theme: p.theme || null, stats: p.stats || null
       }))
     };
   }
@@ -533,6 +546,8 @@ class Room {
         connected: p.connected,
         isBot: !!p.isBot,
         character: p.character || null,
+        theme: p.theme || null,
+        stats: p.stats || null,
         cardsLeft: p.hand.length,
         hand: p.seat === viewerSeat ? p.hand : undefined
       })),
@@ -900,13 +915,13 @@ io.on('connection', (socket) => {
     return currentRoomCode ? rooms.get(currentRoomCode) : null;
   }
 
-  socket.on('create_room', ({ name, mode, isPublic, character }, cb) => {
+  socket.on('create_room', ({ name, mode, isPublic, character, theme, stats }, cb) => {
     try {
       mode = mode === '2v2' ? '2v2' : '1v1';
       const code = genRoomCode();
       const r = new Room(code, mode, !!isPublic, name);
       rooms.set(code, r);
-      const player = joinRoomInternal(r, socket, name || 'Jogador', character);
+      const player = joinRoomInternal(r, socket, name || 'Jogador', character, { theme, stats });
       currentRoomCode = code;
       cb && cb({ ok: true, code, seat: player.seat, token: player.token });
       io.to(code).emit('lobby_update', r.lobbyState());
@@ -915,14 +930,14 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('join_room', ({ code, name, character }, cb) => {
+  socket.on('join_room', ({ code, name, character, theme, stats }, cb) => {
     code = (code || '').toUpperCase().trim();
     const r = rooms.get(code);
     if (!r) return cb && cb({ ok: false, error: 'Sala não encontrada.' });
     if (r.players.length >= r.maxPlayers) return cb && cb({ ok: false, error: 'Sala cheia.' });
     if (r.started) return cb && cb({ ok: false, error: 'Partida já começou.' });
 
-    const player = joinRoomInternal(r, socket, name || 'Jogador', character);
+    const player = joinRoomInternal(r, socket, name || 'Jogador', character, { theme, stats });
     currentRoomCode = code;
     cb && cb({ ok: true, code, seat: player.seat, token: player.token });
     io.to(code).emit('lobby_update', r.lobbyState());
@@ -989,7 +1004,7 @@ io.on('connection', (socket) => {
     cb && cb(list);
   });
 
-  socket.on('quick_join', ({ name, mode, character }, cb) => {
+  socket.on('quick_join', ({ name, mode, character, theme, stats }, cb) => {
     mode = mode === '2v2' ? '2v2' : '1v1';
     let r = Array.from(rooms.values()).find(
       x => x.isPublic && !x.started && x.mode === mode && x.players.length < x.maxPlayers
@@ -999,7 +1014,7 @@ io.on('connection', (socket) => {
       r = new Room(code, mode, true, name);
       rooms.set(code, r);
     }
-    const player = joinRoomInternal(r, socket, name || 'Jogador', character);
+    const player = joinRoomInternal(r, socket, name || 'Jogador', character, { theme, stats });
     currentRoomCode = r.code;
     cb && cb({ ok: true, code: r.code, seat: player.seat, token: player.token });
     io.to(r.code).emit('lobby_update', r.lobbyState());
@@ -1112,10 +1127,11 @@ io.on('connection', (socket) => {
     reply({ ok: true });
   });
 
-  function joinRoomInternal(r, socket, name, character) {
+  function joinRoomInternal(r, socket, name, character, extra) {
+    extra = extra || {};
     const seat = freeSeat(r);
     const team = pickTeam(r, seat);
-    const player = { id: socket.id, token: crypto.randomBytes(12).toString('hex'), name, seat, team, connected: true, hand: [], character: sanitizeCharacter(character) };
+    const player = { id: socket.id, token: crypto.randomBytes(12).toString('hex'), name, seat, team, connected: true, hand: [], character: sanitizeCharacter(character), theme: sanitizeTheme(extra.theme), stats: sanitizeStats(extra.stats) };
     r.players.push(player);
     socket.join(r.code);
     return player;

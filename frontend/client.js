@@ -446,7 +446,7 @@ function joinByCode() {
   const code = codeInput.value.trim().toUpperCase();
   if (!code) return lobbyError('Digite o código da sala.');
   myName = currentName();
-  socket.emit('join_room', { code, name: myName, character: getSavedCharacter(), stats: window.TruStats ? TruStats.get() : null }, enterRoom);
+  socket.emit('join_room', { code, name: myName, character: getSavedCharacter(), stats: window.TruStats ? TruStats.get() : null, theme: window.TruThemes ? TruThemes.current() : null }, enterRoom);
 }
 document.getElementById('btn-join').addEventListener('click', joinByCode);
 codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinByCode(); });
@@ -456,7 +456,7 @@ document.querySelectorAll('.create-modes .btn').forEach((btn) => {
   btn.addEventListener('click', () => {
     myMode = btn.dataset.mode;
     myName = currentName();
-    socket.emit('create_room', { name: myName, mode: myMode, isPublic: false, character: getSavedCharacter(), stats: window.TruStats ? TruStats.get() : null }, enterRoom);
+    socket.emit('create_room', { name: myName, mode: myMode, isPublic: false, character: getSavedCharacter(), stats: window.TruStats ? TruStats.get() : null, theme: window.TruThemes ? TruThemes.current() : null }, enterRoom);
   });
 });
 
@@ -1249,6 +1249,8 @@ function renderState(realState) {
     if (figEl) {
       if (p.stats) { figEl.dataset.wins = p.stats.wins; figEl.dataset.losses = p.stats.losses; }
       else { delete figEl.dataset.wins; delete figEl.dataset.losses; }
+      // tema que o jogador está usando (o card mostra nome + miniatura)
+      if (p.theme) figEl.dataset.theme = p.theme; else delete figEl.dataset.theme;
     }
     if (nameEl) {
       let label = p.name;

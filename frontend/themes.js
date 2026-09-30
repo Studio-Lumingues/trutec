@@ -286,7 +286,38 @@
     try { localStorage.setItem(KEY, t.id); } catch (e) {}
     return t;
   }
-  window.TruThemes = { list: THEMES, apply: apply, current: currentId };
+  // ---- miniatura (usada no card de vitórias/derrotas do adversário) ----
+  // Mesmo fundo animado da aba Temas, só que pequeno e independente do tema
+  // que EU estou usando: tem o próprio timer de "hand drawn".
+  var THUMB_SCALE = 0.3;
+  function nameOf(id) { var t = byId(id); return t ? t.name : null; }
+  function unmountThumb(box) {
+    if (box && box._thumbTimer) { clearInterval(box._thumbTimer); box._thumbTimer = null; }
+    if (box) box.innerHTML = '';
+  }
+  function mountThumb(box, id) {
+    unmountThumb(box);
+    var t = byId(id);
+    if (!t || !box) return false;
+    var tw = (t.bg ? t.bg.tileW : 7) * THUMB_SCALE, th = (t.bg ? t.bg.tileH : 12) * THUMB_SCALE;
+    var slide = document.createElement('div');
+    slide.className = 'tb-slide';
+    slide.style.setProperty('--tile-w', tw + 'rem');
+    slide.style.backgroundSize = tw + 'rem ' + th + 'rem';
+    slide.style.backgroundImage = bgImage(t, 0);
+    box.style.background = t.preview.bga;
+    box.appendChild(slide);
+    if (t.bg && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      var n = 0;
+      box._thumbTimer = setInterval(function () {
+        if (document.hidden) return;
+        slide.style.backgroundImage = bgImage(t, ++n);
+      }, 1000 / FPS);
+    }
+    return true;
+  }
+
+  window.TruThemes = { list: THEMES, apply: apply, current: currentId, nameOf: nameOf, mountThumb: mountThumb, unmountThumb: unmountThumb };
   apply(currentId());
 
   // ---------------------------------------------------------------- tela
