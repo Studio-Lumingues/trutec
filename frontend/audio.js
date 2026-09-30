@@ -81,7 +81,7 @@
 
   // Volume relativo de cada arquivo (multiplica o volume geral de efeitos).
   // O som de início de partida é bem baixinho de propósito.
-  var CALL_GAIN = { sfx01: 0.12 };
+  var CALL_GAIN = { sfx01: 0.03 };
   function callVol(name) { return Math.min(1, sfxLevel * (CALL_GAIN[name] === undefined ? 1 : CALL_GAIN[name])); }
   Object.keys(calls).forEach(function (k) { calls[k].volume = callVol(k); });
 
