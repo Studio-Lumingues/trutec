@@ -1793,6 +1793,18 @@ body::after {
   body::after { animation: none; }
 }
 
+/* Noise novo (noise.js): camada real, com quadros aleatórios. Quando o JS
+   está ativo, o body::after antigo (loop fixo de 8 posições) é desligado. */
+html.noise-js body::after { display: none; }
+.noise-layer {
+  position: fixed;
+  inset: -200px;
+  z-index: 2147483647;
+  pointer-events: none;
+  background-size: 200px 200px;
+  background-repeat: repeat;
+}
+
 
 /* Botão de mudo (audio.js) */
 .mute-btn {
