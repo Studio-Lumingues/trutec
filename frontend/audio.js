@@ -1,7 +1,8 @@
 // ============================================================================
-// ÁUDIO (música do lobby + falas de truco/seis/nove/doze)
-// - A música toca só nas telas de lobby (início, editor de personagem aberto
-//   pelo lobby, sala de espera e fase de desenhar). Para de vez quando a mesa abre.
+// ÁUDIO (música do editor de personagem + falas de truco/seis/nove/doze)
+// - A música (drum & bass) toca SÓ enquanto o personagem está sendo desenhado
+//   (tela do editor). Quando o desenho termina (todo mundo pronto / a partida
+//   começa / a pessoa sai do editor), ela some em fade out.
 // - Continua tocando mesmo com a aba em segundo plano (só o botão de mudo pausa).
 // - Cliques em botões e sons de carta (bater na mesa / distribuir) são sintetizados aqui, sem arquivos.
 // - As falas tocam quando alguém pede (ou aumenta pra) truco, seis, nove, doze.
@@ -16,7 +17,10 @@
   var SFX_BASE = 0.5;
   var DEFAULT_MUSIC_LEVEL = 0.2; // 0..1 (começa em 20%)
   var DEFAULT_SFX_LEVEL = 1;     // 0..1
-  var LOBBY_SCREENS = ['screen-lobby', 'screen-waiting', 'screen-character-editor'];
+  var MUSIC_SRC = 'assets/jungle-d-b-drums_174bpm_A__minor.wav';
+  var MUSIC_SCREENS = ['screen-character-editor']; // só na hora de desenhar
+  var FADE_IN = 0.3;   // s
+  var FADE_OUT = 2;    // s
 
   // Não existe mais botão de mudo na tela: o volume se ajusta em Configurações.
   // Se alguém tinha deixado no mudo antes, limpamos pra não ficar sem som e sem botão pra religar.
@@ -35,7 +39,7 @@
 
   // Música: Web Audio API (o <audio loop> do navegador deixa um vazinho na
   // volta do loop; aqui o fim emenda direto no começo)
-  var ctx = null, gain = null, buffer = null, source = null, loading = false;
+  var ctx = null, gain = null, fadeGain = null, buffer = null, source = null, loading = false, fadeTimer = null;
   var TAIL_TRIM = 0.015; // corta ~15 ms de silêncio no fim do arquivo
 
   function ensureCtx() {
@@ -46,13 +50,15 @@
     gain = ctx.createGain();
     gain.gain.value = musicLevel * MUSIC_MAX;
     gain.connect(ctx.destination);
+    fadeGain = ctx.createGain(); // controla só o fade in/out (o volume da pessoa fica em `gain`)
+    fadeGain.connect(gain);
     return true;
   }
 
   function loadMusic() {
     if (loading || buffer || !ensureCtx()) return;
     loading = true;
-    fetch('assets/song.wav')
+    fetch(MUSIC_SRC)
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.arrayBuffer();
@@ -67,7 +73,7 @@
       })
       .catch(function (err) {
         loading = false;
-        console.warn('[áudio] não consegui carregar assets/song.wav — confira se o arquivo está na pasta assets/ do site publicado.', err);
+        console.warn('[áudio] não consegui carregar ' + MUSIC_SRC + ' — confira se o arquivo está na pasta assets/ do site publicado.', err);
       });
   }
 
@@ -90,7 +96,7 @@
 
   function wantsMusic() {
     if (muted || matchStarted) return false;
-    return LOBBY_SCREENS.indexOf(currentScreen) !== -1;
+    return MUSIC_SCREENS.indexOf(currentScreen) !== -1;
   }
 
   // ---- Efeitos sonoros gerados por código (clique e carta) ----
@@ -190,22 +196,47 @@
   function startMusic() {
     if (!ensureCtx()) return;
     if (ctx.state === 'suspended') ctx.resume().catch(function () { /* espera a 1ª interação */ });
-    if (source) return;
+    // cancela um fade out em andamento
+    if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+    if (source) {
+      var n = ctx.currentTime;
+      fadeGain.gain.cancelScheduledValues(n);
+      fadeGain.gain.setValueAtTime(fadeGain.gain.value, n);
+      fadeGain.gain.linearRampToValueAtTime(1, n + FADE_IN);
+      return;
+    }
     if (!buffer) { loadMusic(); return; }
     source = ctx.createBufferSource();
     source.buffer = buffer;
     source.loop = true;
     source.loopStart = 0;
     source.loopEnd = Math.max(0.1, buffer.duration - TAIL_TRIM);
-    source.connect(gain);
+    source.connect(fadeGain);
+    var t = ctx.currentTime;
+    fadeGain.gain.cancelScheduledValues(t);
+    fadeGain.gain.setValueAtTime(0.0001, t);
+    fadeGain.gain.linearRampToValueAtTime(1, t + FADE_IN);
     source.start(0);
   }
 
-  function stopMusic() {
+  function killSource() {
     if (!source) return;
     try { source.stop(); } catch (e) {}
     source.disconnect();
     source = null;
+  }
+
+  // fade out suave e depois para de vez
+  function stopMusic() {
+    if (!source || fadeTimer) return;
+    var t = ctx.currentTime;
+    fadeGain.gain.cancelScheduledValues(t);
+    fadeGain.gain.setValueAtTime(fadeGain.gain.value, t);
+    fadeGain.gain.linearRampToValueAtTime(0, t + FADE_OUT);
+    fadeTimer = setTimeout(function () {
+      fadeTimer = null;
+      if (!wantsMusic()) killSource();
+    }, FADE_OUT * 1000 + 80);
   }
 
   function sync() {
