@@ -1806,24 +1806,6 @@ html.noise-js body::after { display: none; }
 }
 
 
-/* Botão de mudo (audio.js) */
-.mute-btn {
-  position: fixed;
-  top: 0.6rem;
-  right: 0.6rem;
-  z-index: 9999;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.35);
-  background: rgba(0,0,0,0.45);
-  color: #fff;
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-}
-.mute-btn:hover { background: rgba(0,0,0,0.65); }
 
 
 /* Cartas da mão subindo de baixo ao começar a rodada (ver startDealAnimation no client.js).
@@ -2067,8 +2049,6 @@ html.noise-js body::after { display: none; }
 .emoji-btn .ic { width: 1.6em; height: 1.6em; vertical-align: middle; }
 .floating-emoji { color: #fff8f0; line-height: 0; }
 .floating-emoji .ic { width: 2.6rem; height: 2.6rem; stroke-width: 1.8; }
-.mute-btn { display: flex; align-items: center; justify-content: center; }
-.mute-btn .ic { width: 1.35rem; height: 1.35rem; vertical-align: middle; }
 #btn-toggle-chat .ic { width: 1.5em; height: 1.5em; vertical-align: middle; }
 #gameover-title .ic { width: 1.1em; height: 1.1em; stroke-width: 2.2; }
 .wp-name .ic { margin-left: 0.15em; vertical-align: -0.2em; }

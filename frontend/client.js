@@ -866,6 +866,7 @@ let gameStartPending = false;   // esperando a tela ficar preta pra montar a mes
 let pendingStateUpdate = null;  // state_update que chegou nesse meio-tempo
 
 socket.on('game_start', (state) => {
+  if (window.GameAudio) GameAudio.playStart(); // sfx de início de partida
   if (matchIntroPlayed) return beginMatch(state, 0);
   matchIntroPlayed = true;
   gameStartPending = true;

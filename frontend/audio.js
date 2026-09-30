@@ -5,9 +5,10 @@
 // - Continua tocando mesmo com a aba em segundo plano (só o botão de mudo pausa).
 // - Cliques em botões e sons de carta (bater na mesa / distribuir) são sintetizados aqui, sem arquivos.
 // - As falas tocam quando alguém pede (ou aumenta pra) truco, seis, nove, doze.
+// - O sfx01 toca quando a partida começa (início da transição pra mesa).
 // - Navegadores bloqueiam áudio antes do primeiro clique/toque; se a música
 //   for barrada, ela começa sozinha na primeira interação da pessoa.
-// - Botão de mudo (canto superior direito) guarda a escolha no localStorage.
+// - O volume da música e dos efeitos é ajustado em Configurações (não há botão de mudo).
 // ============================================================================
 (function () {
   // Volume máximo (100% no controle). A música agora começa em 50% => 0.10
@@ -18,8 +19,10 @@
   var DEFAULT_SFX_LEVEL = 1;     // 0..1
   var LOBBY_SCREENS = ['screen-lobby', 'screen-waiting', 'screen-character-editor'];
 
+  // Não existe mais botão de mudo na tela: o volume se ajusta em Configurações.
+  // Se alguém tinha deixado no mudo antes, limpamos pra não ficar sem som e sem botão pra religar.
   var muted = false;
-  try { muted = localStorage.getItem('trutec-muted') === '1'; } catch (e) {}
+  try { localStorage.removeItem('trutec-muted'); } catch (e) {}
 
   function readLevel(key, def) {
     try {
@@ -70,7 +73,7 @@
   }
 
   var calls = {};
-  ['truco', 'seis', 'nove', 'doze'].forEach(function (name) {
+  ['truco', 'seis', 'nove', 'doze', 'sfx01'].forEach(function (name) { // sfx01 = som de início de partida
     var a = new Audio('assets/' + name + '.wav');
     a.preload = 'auto';
     a.volume = sfxLevel;
@@ -175,7 +178,7 @@
   // clique em qualquer botão da página
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest ? e.target.closest('button') : null;
-    if (!b || b.disabled || b.id === 'btn-mute') return;
+    if (!b || b.disabled) return;
     sfxClick();
   }, true);
 
@@ -233,6 +236,8 @@
       var p = a.play();
       if (p && p.catch) p.catch(function () {});
     },
+    // som de início de partida (assets/sfx01.wav): toca quando a partida começa
+    playStart: function () { GameAudio.playCall('sfx01'); },
     toggleMute: function () {
       muted = !muted;
       try { localStorage.setItem('trutec-muted', muted ? '1' : '0'); } catch (e) {}
@@ -258,24 +263,6 @@
     cardDeal: sfxCardDeal,
     isMuted: function () { return muted; }
   };
-
-  // ---- Botão de mudo ----
-  function buildButton() {
-    var btn = document.createElement('button');
-    btn.id = 'btn-mute';
-    btn.type = 'button';
-    btn.className = 'mute-btn';
-    function paint() {
-      btn.innerHTML = '<svg class="ic ic-only" aria-hidden="true"><use href="#i-' + (muted ? 'volume-off' : 'volume') + '"/></svg>';
-      btn.title = muted ? 'Ativar som' : 'Silenciar';
-      btn.setAttribute('aria-label', btn.title);
-    }
-    btn.addEventListener('click', function () { GameAudio.toggleMute(); paint(); });
-    paint();
-    document.body.appendChild(btn);
-  }
-  if (document.body) buildButton();
-  else document.addEventListener('DOMContentLoaded', buildButton);
 
   // Tenta tocar a música já ao abrir a página (se o navegador barrar, o
   // primeiro clique/toque acima resolve)
