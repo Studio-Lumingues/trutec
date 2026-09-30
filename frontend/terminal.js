@@ -172,7 +172,8 @@
   var ANSI = ['#3b3b40', '#ff5f57', '#28c840', '#febc2e', '#57c7ff', '#ff6ac1', '#9aedfe', '#e8e8ec'];
   var ANSI_B = ['#6b6b74', '#ff8a84', '#5af78e', '#f4f99d', '#8fd8ff', '#ff9bd7', '#c4f5ff', '#ffffff'];
 
-  function themeList() { return window.TruThemes ? TruThemes.list : []; }
+  // só os temas que já aparecem na aba Temas (os secretos ficam de fora até desbloquear)
+  function themeList() { return window.TruThemes ? TruThemes.available() : []; }
   function backendUrl() {
     return typeof RESOLVED_BACKEND_URL !== 'undefined' ? RESOLVED_BACKEND_URL : '';
   }
@@ -258,8 +259,13 @@
         return;
       }
       var id = args[0].toLowerCase(), found = null;
-      list.forEach(function (t) { if (t.id === id) found = t; });
+      TruThemes.list.forEach(function (t) { if (t.id === id) found = t; });   // inclui os secretos
       if (!found) return out(c('r', 'tema não encontrado: ') + esc(id));
+      if (!TruThemes.isAvailable(found.id)) {
+        TruThemes.unlock(found.id);
+        out(c('y b', '🔓 Tema secreto desbloqueado: ') + c('m b', found.name));
+        out(c('d', 'Agora ele também aparece na aba Temas das configurações.'));
+      }
       TruThemes.apply(found.id);
       out(c('g', '✔ ') + 'Tema alterado para ' + c('m b', found.name));
     },

@@ -13,6 +13,7 @@
 // ============================================================================
 (function () {
   var KEY = 'trutec-theme';
+  var UNLOCK_KEY = 'trutec-unlocked';   // temas secretos já desbloqueados pelo terminal
   var FPS = 8;                        // igual ao boil.js
   var SEEDS = [1, 4, 7, 2, 9, 5];     // igual ao boil.js
 
@@ -89,6 +90,7 @@
     },
     {
       id: 'carro',
+      locked: true,            // secreto: só aparece na aba Temas depois de `theme carro` no terminal
       name: 'Carro',
       tagline: 'Sucata largada no mato',
       vars: {
@@ -116,12 +118,41 @@
     for (var i = 0; i < THEMES.length; i++) if (THEMES[i].id === id) return THEMES[i];
     return null;
   }
+  // ---------------------------------------------------------------- temas secretos
+  // Tema com `locked: true` fica escondido da aba Temas até ser desbloqueado
+  // (o terminal.js chama TruThemes.unlock('id')). O desbloqueio fica no localStorage.
+  var memUnlocked = [];
+  function unlockedIds() {
+    var a = [];
+    try { a = JSON.parse(localStorage.getItem(UNLOCK_KEY)) || []; } catch (e) {}
+    return Array.isArray(a) ? a.concat(memUnlocked) : memUnlocked.slice();
+  }
+  function isAvailable(id) {
+    var t = byId(id);
+    return !!t && (!t.locked || unlockedIds().indexOf(t.id) !== -1);
+  }
+  function available() {
+    return THEMES.filter(function (t) { return isAvailable(t.id); });
+  }
+  function unlock(id) {
+    var t = byId(id);
+    if (!t || !t.locked) return false;
+    if (unlockedIds().indexOf(id) === -1) {
+      memUnlocked.push(id);
+      var a = [];
+      try { a = JSON.parse(localStorage.getItem(UNLOCK_KEY)) || []; } catch (e) {}
+      if (Array.isArray(a) && a.indexOf(id) === -1) a.push(id);
+      try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(a)); } catch (e) {}
+    }
+    return true;
+  }
+
   function saved() {
     try { return localStorage.getItem(KEY); } catch (e) { return null; }
   }
   function currentId() {
     var t = byId(saved());
-    return (t || THEMES[0]).id;
+    return (t && isAvailable(t.id) ? t : THEMES[0]).id;
   }
 
   // ---------------------------------------------------------------- fundos
@@ -291,7 +322,8 @@
   function setVar(k, v) { root.style.setProperty(k, v); appliedVars.push(k); }
 
   function apply(id) {
-    var t = byId(id) || THEMES[0];
+    var t = byId(id);
+    if (!t || !isAvailable(t.id)) t = THEMES[0];   // tema secreto ainda bloqueado = Drácula
     appliedVars.forEach(function (k) { root.style.removeProperty(k); });
     appliedVars = [];
     Object.keys(t.vars || {}).forEach(function (k) { setVar(k, t.vars[k]); });
@@ -353,7 +385,7 @@
     return { tileW: t.bg.tileW, tileH: t.bg.tileH, urls: urls };
   }
 
-  window.TruThemes = { bgSpec: bgSpec, list: THEMES, apply: apply, current: currentId, nameOf: nameOf, mountThumb: mountThumb, unmountThumb: unmountThumb };
+  window.TruThemes = { bgSpec: bgSpec, list: THEMES, available: available, isAvailable: isAvailable, unlock: unlock, apply: apply, current: currentId, nameOf: nameOf, mountThumb: mountThumb, unmountThumb: unmountThumb };
   apply(currentId());
 
   // ---------------------------------------------------------------- tela
@@ -379,15 +411,16 @@
   }
 
   function render() {
-    var t = THEMES[index];
+    var t = available()[index] || THEMES[0];
     elTitle.textContent = t.name;
     elTag.textContent = t.tagline;
     elPreview.innerHTML = previewHtml(t);
   }
 
   function open() {
-    var cur = currentId();
-    for (var i = 0; i < THEMES.length; i++) if (THEMES[i].id === cur) index = i;
+    var cur = currentId(), list = available();
+    index = 0;
+    for (var i = 0; i < list.length; i++) if (list[i].id === cur) index = i;
     render();
     if (settingsModal) settingsModal.classList.add('hidden');
     modal.classList.remove('hidden');
@@ -405,9 +438,10 @@
   });
   // trocar de seta já aplica o tema mostrado
   function go(step) {
-    index = (index + step + THEMES.length) % THEMES.length;
+    var list = available();
+    index = (index + step + list.length) % list.length;
     render();
-    apply(THEMES[index].id);
+    apply(list[index].id);
   }
   btnPrev.addEventListener('click', function () { go(-1); });
   btnNext.addEventListener('click', function () { go(1); });
