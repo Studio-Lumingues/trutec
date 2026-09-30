@@ -1,6 +1,8 @@
 // ============================================================================
 // ÁUDIO (músicas + falas de truco/seis/nove/doze)
 // - assets/song.wav toca no lobby principal e na sala de espera.
+// - A jungle acende uma luz colorida nos cantos da tela no ritmo da música
+//   (bumbo = rosa embaixo, caixa/chimbal = roxo em cima).
 // - assets/jungle.wav toca SÓ na tela de fazer o personagem (editor). Quando o
 //   desenho termina (todo mundo pronto / a partida começa / a pessoa sai do
 //   editor), ela some em fade out. Ao trocar de tela, uma faixa some enquanto
@@ -45,7 +47,7 @@
     song:   { src: 'assets/song.wav',   max: 0.2, fadeOut: 1, buffer: null, source: null, fade: null, timer: null, loading: false, failed: false },
     jungle: { src: 'assets/jungle.wav', max: 1,   fadeOut: 2, buffer: null, source: null, fade: null, timer: null, loading: false, failed: false }
   };
-  var ctx = null, gain = null;
+  var ctx = null, gain = null, analyser = null;
   var TAIL_TRIM = 0.015; // corta ~15 ms de silêncio no fim do arquivo
 
   function ensureCtx() {
@@ -61,6 +63,12 @@
       tracks[k].fade.gain.value = 0.0001;
       tracks[k].fade.connect(gain);
     });
+    // analisador do ritmo (só ouve a jungle; fica ANTES do volume da pessoa,
+    // então a luz funciona igual mesmo com a música baixinha)
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.2;
+    tracks.jungle.fade.connect(analyser);
     return true;
   }
 
@@ -209,6 +217,76 @@
     sfxClick();
   }, true);
 
+
+  // ---- Efeito de luz no ritmo da jungle ----
+  // Um AnalyserNode mede o grave (bumbo) e o médio/agudo (caixa/chimbal) da
+  // música em tempo real; isso vira duas variáveis CSS (--kick e --snare, de 0
+  // a 1) que acendem luzes coloridas nos cantos da tela do editor.
+  // Ajustes: BEAT_KICK_COLOR / BEAT_SNARE_COLOR (cor), BEAT_STRENGTH (força).
+  var BEAT_KICK_COLOR = '255,0,64';    // rosa-vermelho (bumbo, cantos de baixo)
+  var BEAT_SNARE_COLOR = '122,60,255'; // roxo (caixa/chimbal, cantos de cima)
+  var BEAT_STRENGTH = 0.6;             // 0..1
+  var lightEl = null, lightRaf = 0, lightData = null;
+  var peakLow = 60, peakHigh = 60, curKick = 0, curSnare = 0;
+
+  function ensureLight() {
+    if (lightEl) return lightEl;
+    var st = document.createElement('style');
+    st.textContent =
+      '#beat-light{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .4s;' +
+      'mix-blend-mode:multiply;--kick:0;--snare:0;--str:' + BEAT_STRENGTH + ';' +
+      'background:' +
+      'radial-gradient(ellipse 65% 75% at 0% 100%,rgba(' + BEAT_KICK_COLOR + ',calc(var(--kick)*var(--str))),transparent 70%),' +
+      'radial-gradient(ellipse 65% 75% at 100% 100%,rgba(' + BEAT_KICK_COLOR + ',calc(var(--kick)*var(--str))),transparent 70%),' +
+      'radial-gradient(ellipse 60% 65% at 0% 0%,rgba(' + BEAT_SNARE_COLOR + ',calc(var(--snare)*var(--str))),transparent 70%),' +
+      'radial-gradient(ellipse 60% 65% at 100% 0%,rgba(' + BEAT_SNARE_COLOR + ',calc(var(--snare)*var(--str))),transparent 70%);}';
+    document.head.appendChild(st);
+    lightEl = document.createElement('div');
+    lightEl.id = 'beat-light';
+    lightEl.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(lightEl);
+    return lightEl;
+  }
+
+  function avgBins(a, b) {
+    var sum = 0;
+    for (var i = a; i <= b; i++) sum += lightData[i];
+    return sum / (b - a + 1);
+  }
+
+  function lightFrame() {
+    lightRaf = requestAnimationFrame(lightFrame);
+    if (document.hidden || !analyser) return;
+    analyser.getByteFrequencyData(lightData);
+    // bins de ~94 Hz: 0-2 = grave (bumbo), 10-60 = ~1 a 5,6 kHz (caixa/chimbal)
+    var low = avgBins(0, 2), high = avgBins(10, 60);
+    peakLow = Math.max(low, peakLow * 0.997, 60);
+    peakHigh = Math.max(high, peakHigh * 0.997, 40);
+    var k = Math.pow(Math.min(1, low / peakLow), 3);
+    var sn = Math.pow(Math.min(1, high / peakHigh), 3);
+    curKick = Math.max(k, curKick * 0.84);   // sobe na hora, apaga rápido
+    curSnare = Math.max(sn, curSnare * 0.84);
+    lightEl.style.setProperty('--kick', curKick.toFixed(3));
+    lightEl.style.setProperty('--snare', curSnare.toFixed(3));
+  }
+
+  function lightStart() {
+    if (!analyser) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    ensureLight();
+    lightEl.style.opacity = '1';
+    if (lightRaf) return;
+    lightData = new Uint8Array(analyser.frequencyBinCount);
+    lightRaf = requestAnimationFrame(lightFrame);
+  }
+
+  function lightStop() {
+    if (lightEl) lightEl.style.opacity = '0';
+    if (lightRaf) { cancelAnimationFrame(lightRaf); lightRaf = 0; }
+    curKick = curSnare = 0;
+    if (lightEl) { lightEl.style.setProperty('--kick', '0'); lightEl.style.setProperty('--snare', '0'); }
+  }
+
   function startTrack(name) {
     var tr = tracks[name];
     if (!ensureCtx()) return;
@@ -220,6 +298,7 @@
       tr.fade.gain.cancelScheduledValues(t);
       tr.fade.gain.setValueAtTime(tr.fade.gain.value, t);
       tr.fade.gain.linearRampToValueAtTime(tr.max, t + FADE_IN);
+      if (name === 'jungle') lightStart();
       return;
     }
     if (!tr.buffer) { loadTrack(name); return; }
@@ -233,11 +312,13 @@
     tr.fade.gain.setValueAtTime(0.0001, t);
     tr.fade.gain.linearRampToValueAtTime(tr.max, t + FADE_IN);
     tr.source.start(0);
+    if (name === 'jungle') lightStart();
     console.info('[áudio] tocando: ' + tr.src);
   }
 
   function killTrack(tr) {
     if (!tr.source) return;
+    if (tr === tracks.jungle) lightStop();
     try { tr.source.stop(); } catch (e) {}
     tr.source.disconnect();
     tr.source = null;
@@ -251,6 +332,7 @@
     tr.fade.gain.cancelScheduledValues(t);
     tr.fade.gain.setValueAtTime(tr.fade.gain.value, t);
     tr.fade.gain.linearRampToValueAtTime(0.0001, t + tr.fadeOut);
+    if (name === 'jungle' && lightEl) lightEl.style.opacity = '0'; // a luz se apaga junto com o fade
     tr.timer = setTimeout(function () {
       tr.timer = null;
       if (wantedTrack() !== name) killTrack(tr);
