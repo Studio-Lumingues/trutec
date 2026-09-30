@@ -2274,12 +2274,6 @@ html.bgfx-js.theme-bg .game-bg { display: block; }
 .theme-nav-next:hover { transform: translateY(-50%) translateX(0.2rem); }
 .theme-nav:active { transform: translateY(-50%) scale(0.92); }
 
-/* botão Selecionar / Sair, bem no meio embaixo */
-.theme-select-btn {
-  position: absolute; left: 0; right: 0; bottom: 1.5rem; margin: 0 auto;
-  width: max-content; min-width: 12rem; z-index: 2; cursor: pointer;
-}
-
 /* ---- o exemplo: o fundo REAL do tema, animado (losangos deslizando) ---- */
 .tb {
   position: relative; overflow: hidden; width: 100cqw; height: 100cqh;

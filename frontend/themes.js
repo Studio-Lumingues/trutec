@@ -1,9 +1,8 @@
 // ============================================================================
 // TEMAS (aba "Temas" em Configurações)
 // - Clicar na aba abre uma tela grande com um EXEMPLO do tema (fundo animado).
-// - Setas trocam de tema; o botão embaixo, no meio, mostra "Selecionar" (aplica
-//   o tema mostrado e volta pras Configurações) ou "Sair" (se o tema mostrado
-//   já é o que está em uso).
+// - As setas trocam de tema e o tema que estiver na tela já fica selecionado
+//   automaticamente (não precisa confirmar).
 // - Pra criar outro tema, copie um objeto de THEMES e troque:
 //     vars    -> variáveis CSS que o tema sobrescreve no :root
 //     bg      -> (opcional) fundo próprio da partida. Hoje: { kind:'leopard', ... }
@@ -171,7 +170,6 @@
   var elPreview = document.getElementById('theme-preview');
   var btnPrev = document.getElementById('theme-prev');
   var btnNext = document.getElementById('theme-next');
-  var btnSelect = document.getElementById('theme-select');
 
   function previewHtml(t) {
     var p = t.preview;
@@ -181,20 +179,11 @@
     '</div>';
   }
 
-  // "Selecionar" se o tema mostrado ainda não está em uso; "Sair" se já está.
-  function syncButton() {
-    var active = THEMES[index].id === currentId();
-    btnSelect.textContent = active ? 'Sair' : 'Selecionar';
-    btnSelect.classList.toggle('btn-primary', !active);
-    btnSelect.classList.toggle('btn-secondary', active);
-  }
-
   function render() {
     var t = THEMES[index];
     elTitle.textContent = t.name;
     elTag.textContent = t.tagline;
     elPreview.innerHTML = previewHtml(t);
-    syncButton();
   }
 
   function open() {
@@ -215,15 +204,14 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !modal.classList.contains('hidden')) backToSettings();
   });
-  btnPrev.addEventListener('click', function () { index = (index - 1 + THEMES.length) % THEMES.length; render(); });
-  btnNext.addEventListener('click', function () { index = (index + 1) % THEMES.length; render(); });
-  // botão do meio: aplica o tema mostrado (se ainda não for o atual) e volta
-  btnSelect.addEventListener('click', function () {
-    if (THEMES[index].id !== currentId()) apply(THEMES[index].id);
-    backToSettings();
-  });
-  // clicar no papel de parede também aplica o tema mostrado (sem sair)
-  elPreview.addEventListener('click', function () { apply(THEMES[index].id); syncButton(); });
+  // trocar de seta já aplica o tema mostrado
+  function go(step) {
+    index = (index + step + THEMES.length) % THEMES.length;
+    render();
+    apply(THEMES[index].id);
+  }
+  btnPrev.addEventListener('click', function () { go(-1); });
+  btnNext.addEventListener('click', function () { go(1); });
 
   window.openThemes = open;
 })();
