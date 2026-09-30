@@ -1119,7 +1119,7 @@ io.on('connection', (socket) => {
 
   // Sinal pro parceiro enquanto há um truco pendente contra a dupla.
   // Só os companheiros de dupla recebem (adversários nunca), e bots são ignorados.
-  const PARTNER_SIGNALS = { vamos: 'Vamos!', nao: 'Não vamos...', algo: 'Tenho alguma coisa' };
+  const PARTNER_SIGNALS = { vamos: 'Vamos!', nao: 'Não vamos...', algo: 'Tenho alguma coisa', nada: 'Não tenho nada' };
   socket.on('partner_signal', ({ signal } = {}) => {
     const r = room();
     if (!r || !r.started || r.gameOver || !r.pendingCall) return;

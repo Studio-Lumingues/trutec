@@ -2212,7 +2212,7 @@ html.bgfx-js .game-bg { display: none; }
 .partner-signals { margin-top: 1rem; padding-top: 0.875rem; border-top: 1px solid rgba(255,255,255,0.15); }
 .partner-signals.hidden { display: none; }
 .ps-label { display: block; font-size: 0.75rem; opacity: 0.75; margin-bottom: 0.5rem; }
-.ps-buttons { display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap; }
+.ps-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; }
 .ps-btn {
   flex: 1 1 0; min-width: 0; padding: 0.55rem 0.4rem;
   font: inherit; font-size: 0.8rem; font-weight: 700; color: #fff8f0;
