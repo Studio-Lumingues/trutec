@@ -55,10 +55,19 @@
     return true;
   }
 
-  function loadMusic() {
-    if (loading || buffer || !ensureCtx()) return;
-    loading = true;
-    fetch(MUSIC_SRC)
+  // Tenta o arquivo novo primeiro; se não achar (nome errado / fora da pasta
+  // assets/), tenta alternativas e avisa no console qual foi usado.
+  var MUSIC_CANDIDATES = [MUSIC_SRC, 'assets/desenho.wav', 'assets/song.wav'];
+  var loadFailed = false;
+
+  function tryLoad(i) {
+    if (i >= MUSIC_CANDIDATES.length) {
+      loading = false; loadFailed = true;
+      console.warn('[áudio] NENHUM arquivo de música foi encontrado. Coloque ' + MUSIC_SRC + ' na pasta assets/ do site publicado.');
+      return;
+    }
+    var url = MUSIC_CANDIDATES[i];
+    fetch(url)
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.arrayBuffer();
@@ -69,12 +78,20 @@
       .then(function (buf) {
         buffer = buf;
         loading = false;
+        if (i > 0) console.warn('[áudio] ' + MUSIC_SRC + ' NÃO foi encontrado; usando ' + url + ' no lugar.');
+        else console.info('[áudio] música carregada: ' + url);
         sync();
       })
       .catch(function (err) {
-        loading = false;
-        console.warn('[áudio] não consegui carregar ' + MUSIC_SRC + ' — confira se o arquivo está na pasta assets/ do site publicado.', err);
+        console.warn('[áudio] não consegui carregar ' + url, err);
+        tryLoad(i + 1);
       });
+  }
+
+  function loadMusic() {
+    if (loading || buffer || loadFailed || !ensureCtx()) return;
+    loading = true;
+    tryLoad(0);
   }
 
   var calls = {};
