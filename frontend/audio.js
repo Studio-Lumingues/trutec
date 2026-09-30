@@ -1,8 +1,10 @@
 // ============================================================================
-// ÁUDIO (música do editor de personagem + falas de truco/seis/nove/doze)
-// - A música (drum & bass) toca SÓ enquanto o personagem está sendo desenhado
-//   (tela do editor). Quando o desenho termina (todo mundo pronto / a partida
-//   começa / a pessoa sai do editor), ela some em fade out.
+// ÁUDIO (músicas + falas de truco/seis/nove/doze)
+// - assets/song.wav toca no lobby principal e na sala de espera.
+// - assets/jungle.wav toca SÓ na tela de fazer o personagem (editor). Quando o
+//   desenho termina (todo mundo pronto / a partida começa / a pessoa sai do
+//   editor), ela some em fade out. Ao trocar de tela, uma faixa some enquanto
+//   a outra entra. Na mesa do jogo não toca música.
 // - Continua tocando mesmo com a aba em segundo plano (só o botão de mudo pausa).
 // - Cliques em botões e sons de carta (bater na mesa / distribuir) são sintetizados aqui, sem arquivos.
 // - As falas tocam quando alguém pede (ou aumenta pra) truco, seis, nove, doze.
@@ -13,12 +15,9 @@
 // ============================================================================
 (function () {
   // Volume máximo (100% no controle). A música começa em 20% => 0.04. O jogador ajusta em Configurações.
-  var MUSIC_MAX = 1;   // a faixa nova é bem mais baixa que a antiga (≈ -7 dB), então 20% aqui ≈ o volume que a antiga tinha
   var SFX_BASE = 0.5;
   var DEFAULT_MUSIC_LEVEL = 0.2; // 0..1 (começa em 20%)
   var DEFAULT_SFX_LEVEL = 1;     // 0..1
-  var MUSIC_SRC = 'assets/jungle.wav';
-  var MUSIC_SCREENS = ['screen-character-editor']; // só na hora de desenhar
   var FADE_IN = 0.3;   // s
   var FADE_OUT = 2;    // s
 
@@ -38,8 +37,15 @@
   var sfxLevel = readLevel('trutec-vol-sfx', DEFAULT_SFX_LEVEL);
 
   // Música: Web Audio API (o <audio loop> do navegador deixa um vazinho na
-  // volta do loop; aqui o fim emenda direto no começo)
-  var ctx = null, gain = null, fadeGain = null, buffer = null, source = null, loading = false, fadeTimer = null;
+  // volta do loop; aqui o fim emenda direto no começo).
+  // Duas faixas: "song" (lobby / sala de espera) e "jungle" (só no editor de
+  // personagem). Cada uma tem seu fade; `max` compensa a diferença de volume
+  // entre os arquivos (a jungle é bem mais baixa que a song).
+  var tracks = {
+    song:   { src: 'assets/song.wav',   max: 0.2, fadeOut: 1, buffer: null, source: null, fade: null, timer: null, loading: false, failed: false },
+    jungle: { src: 'assets/jungle.wav', max: 1,   fadeOut: 2, buffer: null, source: null, fade: null, timer: null, loading: false, failed: false }
+  };
+  var ctx = null, gain = null;
   var TAIL_TRIM = 0.015; // corta ~15 ms de silêncio no fim do arquivo
 
   function ensureCtx() {
@@ -47,27 +53,22 @@
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return false;
     ctx = new AC();
-    gain = ctx.createGain();
-    gain.gain.value = musicLevel * MUSIC_MAX;
+    gain = ctx.createGain();            // volume escolhido em Configurações
+    gain.gain.value = musicLevel;
     gain.connect(ctx.destination);
-    fadeGain = ctx.createGain(); // controla só o fade in/out (o volume da pessoa fica em `gain`)
-    fadeGain.connect(gain);
+    Object.keys(tracks).forEach(function (k) {
+      tracks[k].fade = ctx.createGain(); // fade in/out de cada faixa
+      tracks[k].fade.gain.value = 0.0001;
+      tracks[k].fade.connect(gain);
+    });
     return true;
   }
 
-  // Carrega a música do editor; se não achar (nome errado / fora da pasta
-  // assets/), avisa no console.
-  var MUSIC_CANDIDATES = [MUSIC_SRC];
-  var loadFailed = false;
-
-  function tryLoad(i) {
-    if (i >= MUSIC_CANDIDATES.length) {
-      loading = false; loadFailed = true;
-      console.warn('[áudio] NENHUM arquivo de música foi encontrado. Coloque ' + MUSIC_SRC + ' na pasta assets/ do site publicado.');
-      return;
-    }
-    var url = MUSIC_CANDIDATES[i];
-    fetch(url)
+  function loadTrack(name) {
+    var tr = tracks[name];
+    if (tr.loading || tr.buffer || tr.failed || !ensureCtx()) return;
+    tr.loading = true;
+    fetch(tr.src)
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.arrayBuffer();
@@ -76,22 +77,15 @@
         return new Promise(function (ok, fail) { ctx.decodeAudioData(data, ok, fail); });
       })
       .then(function (buf) {
-        buffer = buf;
-        loading = false;
-        if (i > 0) console.warn('[áudio] ' + MUSIC_SRC + ' NÃO foi encontrado; usando ' + url + ' no lugar.');
-        else console.info('[áudio] música carregada: ' + url);
+        tr.buffer = buf;
+        tr.loading = false;
+        console.info('[áudio] música carregada: ' + tr.src);
         sync();
       })
       .catch(function (err) {
-        console.warn('[áudio] não consegui carregar ' + url, err);
-        tryLoad(i + 1);
+        tr.loading = false; tr.failed = true;
+        console.warn('[áudio] não consegui carregar ' + tr.src + ' — confira se o arquivo está na pasta assets/ do site publicado.', err);
       });
-  }
-
-  function loadMusic() {
-    if (loading || buffer || loadFailed || !ensureCtx()) return;
-    loading = true;
-    tryLoad(0);
   }
 
   var calls = {};
@@ -112,10 +106,14 @@
   var matchStarted = false;
   var drawingDone = false; // o desenho acabou (todos prontos): música em fade out
 
-  function wantsMusic() {
-    if (muted || matchStarted || drawingDone) return false;
-    return MUSIC_SCREENS.indexOf(currentScreen) !== -1;
+  // qual faixa deve estar tocando agora (ou null = silêncio)
+  function wantedTrack() {
+    if (muted || matchStarted) return null;
+    if (currentScreen === 'screen-character-editor') return drawingDone ? null : 'jungle';
+    if (currentScreen === 'screen-lobby' || currentScreen === 'screen-waiting') return 'song';
+    return null;
   }
+
 
   // ---- Efeitos sonoros gerados por código (clique e carta) ----
   // Não usam arquivo: são sintetizados na hora pela Web Audio API.
@@ -211,61 +209,66 @@
     sfxClick();
   }, true);
 
-  function startMusic() {
+  function startTrack(name) {
+    var tr = tracks[name];
     if (!ensureCtx()) return;
     if (ctx.state === 'suspended') ctx.resume().catch(function () { /* espera a 1ª interação */ });
     // cancela um fade out em andamento
-    if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
-    if (source) {
-      var n = ctx.currentTime;
-      fadeGain.gain.cancelScheduledValues(n);
-      fadeGain.gain.setValueAtTime(fadeGain.gain.value, n);
-      fadeGain.gain.linearRampToValueAtTime(1, n + FADE_IN);
+    if (tr.timer) { clearTimeout(tr.timer); tr.timer = null; }
+    var t = ctx.currentTime;
+    if (tr.source) {
+      tr.fade.gain.cancelScheduledValues(t);
+      tr.fade.gain.setValueAtTime(tr.fade.gain.value, t);
+      tr.fade.gain.linearRampToValueAtTime(tr.max, t + FADE_IN);
       return;
     }
-    if (!buffer) { loadMusic(); return; }
-    source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-    source.loopStart = 0;
-    source.loopEnd = Math.max(0.1, buffer.duration - TAIL_TRIM);
-    source.connect(fadeGain);
-    var t = ctx.currentTime;
-    fadeGain.gain.cancelScheduledValues(t);
-    fadeGain.gain.setValueAtTime(0.0001, t);
-    fadeGain.gain.linearRampToValueAtTime(1, t + FADE_IN);
-    source.start(0);
-    console.info('[áudio] música do editor iniciada');
+    if (!tr.buffer) { loadTrack(name); return; }
+    tr.source = ctx.createBufferSource();
+    tr.source.buffer = tr.buffer;
+    tr.source.loop = true;
+    tr.source.loopStart = 0;
+    tr.source.loopEnd = Math.max(0.1, tr.buffer.duration - TAIL_TRIM);
+    tr.source.connect(tr.fade);
+    tr.fade.gain.cancelScheduledValues(t);
+    tr.fade.gain.setValueAtTime(0.0001, t);
+    tr.fade.gain.linearRampToValueAtTime(tr.max, t + FADE_IN);
+    tr.source.start(0);
+    console.info('[áudio] tocando: ' + tr.src);
   }
 
-  function killSource() {
-    if (!source) return;
-    try { source.stop(); } catch (e) {}
-    source.disconnect();
-    source = null;
+  function killTrack(tr) {
+    if (!tr.source) return;
+    try { tr.source.stop(); } catch (e) {}
+    tr.source.disconnect();
+    tr.source = null;
   }
 
   // fade out suave e depois para de vez
-  function stopMusic() {
-    if (!source || fadeTimer) return;
+  function stopTrack(name) {
+    var tr = tracks[name];
+    if (!tr.source || tr.timer) return;
     var t = ctx.currentTime;
-    fadeGain.gain.cancelScheduledValues(t);
-    fadeGain.gain.setValueAtTime(fadeGain.gain.value, t);
-    fadeGain.gain.linearRampToValueAtTime(0, t + FADE_OUT);
-    fadeTimer = setTimeout(function () {
-      fadeTimer = null;
-      if (!wantsMusic()) killSource();
-    }, FADE_OUT * 1000 + 80);
+    tr.fade.gain.cancelScheduledValues(t);
+    tr.fade.gain.setValueAtTime(tr.fade.gain.value, t);
+    tr.fade.gain.linearRampToValueAtTime(0.0001, t + tr.fadeOut);
+    tr.timer = setTimeout(function () {
+      tr.timer = null;
+      if (wantedTrack() !== name) killTrack(tr);
+    }, tr.fadeOut * 1000 + 80);
   }
 
   function sync() {
-    if (wantsMusic()) startMusic(); else stopMusic();
+    var want = wantedTrack();
+    Object.keys(tracks).forEach(function (k) {
+      if (k === want) startTrack(k); else stopTrack(k);
+    });
   }
+
 
   // Autoplay: tenta de novo na primeira interação
   function unlock() {
     if (ctx && ctx.state === 'suspended') ctx.resume().catch(function () {});
-    if (wantsMusic()) startMusic();
+    sync();
   }
   // só estes eventos contam como "interação" para liberar áudio nos navegadores
   ['click', 'touchend', 'pointerup', 'keydown'].forEach(function (ev) {
@@ -284,7 +287,7 @@
   window.GameAudio = {
     onScreen: function (id) {
       // voltou a abrir o editor vindo de outra tela: rearma a música
-      if (id === 'screen-character-editor' && currentScreen !== id) { drawingDone = false; matchStarted = false; }
+      if ((id === 'screen-character-editor' || id === 'screen-lobby') && currentScreen !== id) { drawingDone = false; matchStarted = false; }
       currentScreen = id; sync();
     },
     // chamado quando todo mundo ficou pronto / a partida vai começar: fade out
@@ -334,7 +337,7 @@
     setMusicLevel: function (v) {
       musicLevel = Math.min(1, Math.max(0, +v || 0));
       try { localStorage.setItem('trutec-vol-music', String(musicLevel)); } catch (e) {}
-      if (gain) gain.gain.value = musicLevel * MUSIC_MAX;
+      if (gain) gain.gain.value = musicLevel;
     },
     setSfxLevel: function (v) {
       sfxLevel = Math.min(1, Math.max(0, +v || 0));
@@ -350,6 +353,6 @@
 
   // Tenta tocar a música já ao abrir a página (se o navegador barrar, o
   // primeiro clique/toque acima resolve)
-  loadMusic(); // já baixa/decodifica agora, pra tocar na hora de desenhar
+  loadTrack('song'); loadTrack('jungle'); // já baixa/decodifica agora, pra tocar na hora
   sync();
 })();
