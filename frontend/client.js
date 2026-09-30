@@ -1707,9 +1707,27 @@ socket.on('game_over', ({ winnerTeam, score }) => {
   document.getElementById('gameover-title').innerHTML = mine ? ICON('trophy') + ' Vocês venceram!' : 'Vocês perderam';
   document.getElementById('gameover-sub').textContent = `Placar final: ${score[0]} x ${score[1]}`;
   setTimeout(() => showScreen('screen-gameover'), 400);
+  // depois de alguns segundos todo mundo volta sozinho pra sala de espera
+  clearTimeout(backToRoomTimer);
+  backToRoomTimer = setTimeout(goBackToRoom, 6500);
 });
 
-document.getElementById('btn-play-again').addEventListener('click', () => leaveToLobby());
+// O servidor mantém a sala (mesmo código, duplas e bots) e manda a gente de volta.
+let backToRoomTimer = null;
+socket.on('back_to_room', ({ seat }) => {
+  myWaitingSeat = seat;   // os assentos podem ter sido reorganizados
+  mySeat = null;
+  myTeam = null;
+});
+function goBackToRoom() {
+  clearTimeout(backToRoomTimer);
+  if (!myRoomCode) return leaveToLobby();
+  if (window.GameAudio) GameAudio.setMatchStarted(false);
+  const err = document.getElementById('waiting-error');
+  if (err) err.textContent = '';
+  showScreen('screen-waiting');
+}
+document.getElementById('btn-play-again').addEventListener('click', goBackToRoom);
 
 socket.on('error_message', (msg) => {
   rollbackOptimistic();

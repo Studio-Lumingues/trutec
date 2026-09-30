@@ -660,6 +660,43 @@ function botAct(r) {
 }
 
 // Bot que assume o lugar de quem saiu no meio da partida.
+// Fim de partida: mostra o resultado e devolve TODO MUNDO pra sala de espera
+// (mesmo código, mesmas duplas, bots mantidos) pra jogar de novo sem criar sala.
+function endGame(r, winnerTeam) {
+  io.to(r.code).emit('game_over', { winnerTeam, score: r.score.slice() });
+  resetRoomToLobby(r);
+}
+
+function resetRoomToLobby(r) {
+  if (r._botTimer) { clearTimeout(r._botTimer); r._botTimer = null; }
+  if (r.characterPhaseTimer) { clearTimeout(r.characterPhaseTimer); r.characterPhaseTimer = null; }
+  r._botFails = 0; r._botSig = '';
+
+  // quem saiu no meio da partida não volta pra sala (nem o bot que ficou no lugar dele)
+  r.players = r.players.filter(p => (p.isBot ? !p.replacedHuman : p.connected));
+  if (!r.players.some(p => !p.isBot)) { rooms.delete(r.code); return; } // ninguém sobrou
+
+  // o host (assento 0) é sempre o primeiro humano; assentos ficam 0..n-1
+  r.players.sort((a, b) => a.seat - b.seat);
+  const hi = r.players.findIndex(p => !p.isBot);
+  if (hi > 0) r.players.unshift(r.players.splice(hi, 1)[0]);
+  r.players.forEach((p, i) => {
+    p.seat = i;
+    p.hand = [];
+    if (r.mode !== '2v2') p.team = i % 2;
+  });
+
+  r.started = false; r.gameOver = false;
+  r.score = [0, 0]; r.stake = 1; r.lastRaiserTeam = null; r.pendingCall = null;
+  r.maoNumber = 0; r.dealerSeat = -1; r.turnSeat = -1; r.leaderSeat = -1;
+  r.table = []; r.tricks = []; r.hiddenCardBySeat = {}; r.deck = []; r.vira = null; r.manilhaRank = null;
+  r.readySeats = new Set(); r.characterPhaseEndsAt = 0;
+  r.busy = false; r.handOver = false; r.nextPlayAt = 0; r.queuedPlay = false;
+
+  r.players.forEach(p => { if (!p.isBot) io.to(p.id).emit('back_to_room', { seat: p.seat }); });
+  io.to(r.code).emit('lobby_update', r.lobbyState());
+}
+
 function botTakeover(r, p) {
   if (p.isBot) return;
   p.origName = p.name;
@@ -784,8 +821,7 @@ function doPlayCard(r, player, payload, tell) {
         setTimeout(() => {
           if (rooms.get(r.code) !== r) return;
           if (isGameOver) {
-            io.to(r.code).emit('game_over', { winnerTeam: sd.winnerTeam, score: r.score });
-            rooms.delete(r.code);
+            endGame(r, sd.winnerTeam);
           } else {
             r.startMao();
             r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
@@ -806,8 +842,7 @@ function doPlayCard(r, player, payload, tell) {
     });
     setTimeout(() => {
       if (isGameOver) {
-        io.to(r.code).emit('game_over', { winnerTeam, score: r.score });
-        rooms.delete(r.code);
+        endGame(r, winnerTeam);
       } else {
         r.startMao();
         r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
@@ -843,8 +878,7 @@ function doRespondTruco(r, player, action, tell) {
     });
     setTimeout(() => {
       if (isGameOver) {
-        io.to(r.code).emit('game_over', { winnerTeam: result.winnerTeam, score: r.score });
-        rooms.delete(r.code);
+        endGame(r, result.winnerTeam);
       } else {
         r.startMao();
         r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
@@ -1153,8 +1187,7 @@ io.on('connection', (socket) => {
     });
     setTimeout(() => {
       if (isGameOver) {
-        io.to(r.code).emit('game_over', { winnerTeam: result.winnerTeam, score: r.score });
-        rooms.delete(r.code);
+        endGame(r, result.winnerTeam);
       } else {
         r.startMao();
         r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
