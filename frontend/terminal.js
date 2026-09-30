@@ -53,7 +53,7 @@
     '.tt-line{display:flex;align-items:baseline;}',
     '.tt-prompt{flex:none;white-space:pre;}',
     '.tt-in{flex:1;min-width:0;background:transparent;border:0;outline:0;padding:0;margin:0;color:#fff;font:inherit;caret-color:#5af78e;}',
-    '.tt-in.pw{color:transparent;caret-color:transparent;}',
+    '.tt-in.pw{letter-spacing:.12em;}',   /* senha aparece como bolinhas pra você ver que está digitando */
     '.tt-out{white-space:pre-wrap;}',
     '.c-r{color:#ff6b6b}.c-g{color:#5af78e}.c-y{color:#f4f99d}.c-b{color:#57c7ff}.c-m{color:#ff6ac1}',
     '.c-c{color:#9aedfe}.c-o{color:#ffb86c}.c-d{color:#8b8b96}.c-w{color:#fff}.b{font-weight:800}',
@@ -113,6 +113,9 @@
     inp.addEventListener('keydown', onKey);
     scroll();
     inp.focus();
+    // garante o foco mesmo se o navegador o perder ao trocar de linha (keydown do Enter)
+    setTimeout(function () { if (cur === inp && document.activeElement !== inp) inp.focus(); }, 0);
+    setTimeout(function () { if (cur === inp && document.activeElement !== inp) inp.focus(); }, 60);
   }
 
   // troca o <input> por texto fixo (a linha "enviada"); na senha não mostra nada
