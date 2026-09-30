@@ -9,6 +9,7 @@ const path = require('path');
 const crypto = require('crypto');
 const cors = require('cors');
 const { Server } = require('socket.io');
+const createBot = require('./bot');
 
 const app = express();
 const server = http.createServer(app);
@@ -47,7 +48,7 @@ const PORT = process.env.PORT || 3000;
 // hospedado separadamente na Vercel.
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 // /health mostra a versão do código que está rodando de verdade (útil pra conferir se o deploy no Render pegou).
-app.get('/health', (req, res) => res.json({ ok: true, version: '1.1.0', features: ['character-ack', 'rejoin'], rooms: rooms.size }));
+app.get('/health', (req, res) => res.json({ ok: true, version: '1.2.0', features: ['character-ack', 'rejoin', 'bots', 'swap-teams'], rooms: rooms.size }));
 
 // ---------------------------------------------------------------------------
 // Constantes do jogo
@@ -175,6 +176,10 @@ class Room {
     this.busy = false; // true durante o showdown de "melou" (bloqueia jogadas e trucos)
     this.nextPlayAt = 0; // timestamp (ms) a partir do qual a próxima carta pode entrar na mesa
     this.queuedPlay = false; // já existe uma jogada adiantada aguardando o intervalo
+    this.handOver = false; // true entre o fim de uma mão e o começo da próxima (ninguém joga nesse intervalo)
+    this._botTimer = null; // timer do bot (ver botKick)
+    this._botFails = 0;
+    this._botSig = '';
   }
 
   get teamsCount() {
@@ -207,7 +212,7 @@ class Room {
   // Quem já salvou o personagem durante a fase de desenho (pra mostrar ao lado).
   characterReadyState() {
     return this.players.map(p => ({
-      seat: p.seat, name: p.name, team: p.team, connected: p.connected,
+      seat: p.seat, name: p.name, team: p.team, connected: p.connected, isBot: !!p.isBot,
       character: p.character || null,
       ready: this.readySeats.has(p.seat)
     }));
@@ -235,7 +240,7 @@ class Room {
       canStart: !this.started && this.players.length === this.maxPlayers && this.teamsReady(),
       teamsReady: this.teamsReady(),
       players: this.players.map(p => ({
-        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: p.character || null
+        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: p.character || null, isBot: !!p.isBot
       }))
     };
   }
@@ -296,6 +301,7 @@ class Room {
     this.pendingCall = null;
     this.hiddenCardBySeat = {};
     this.busy = false;
+    this.handOver = false;
     this.nextPlayAt = 0;
     this.queuedPlay = false;
 
@@ -427,6 +433,7 @@ class Room {
   }
 
   finishMao(winnerTeam, points) {
+    this.handOver = true;
     this.score[winnerTeam] += points;
     this.advanceDealer();
     const isGameOver = this.score[0] >= 12 || this.score[1] >= 12;
@@ -512,6 +519,7 @@ class Room {
         name: p.name,
         team: p.team,
         connected: p.connected,
+        isBot: !!p.isBot,
         character: p.character || null,
         cardsLeft: p.hand.length,
         hand: p.seat === viewerSeat ? p.hand : undefined
@@ -528,9 +536,142 @@ class Room {
 
   broadcastState(io) {
     for (const p of this.players) {
+      if (p.isBot) continue;
       io.to(p.id).emit('state_update', this.redactedStateFor(p.seat));
     }
+    botKick(this); // se agora é a vez (ou a resposta) de um bot, ele age
   }
+}
+
+
+// ---------------------------------------------------------------------------
+// BOTS (ver bot.js)
+// - Host pode adicionar/remover bots na sala de espera (1v1 e 2v2).
+// - No 2v2, se alguém sair no meio da partida, um bot assume o lugar (e o
+//   jogador retoma o lugar se voltar com o token, ex.: queda de conexão).
+// ---------------------------------------------------------------------------
+const brain = createBot({ Room, cardStrength, buildDeck, STAKE_SEQUENCE });
+
+// Quais modos trocam quem sai por um bot no meio da partida.
+const BOT_REPLACES = { '2v2': true, '1v1': false };
+
+const BOT_NAMES = ['Bot Tião', 'Bot Zezé', 'Bot Chico', 'Bot Neide', 'Bot Baiano', 'Bot Dona Maria', 'Bot Zeca', 'Bot Lurdes'];
+const BOT_AVATAR_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">' +
+  '<g stroke="#0a0a0a" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M250 108 L250 58" fill="none"/><circle cx="250" cy="42" r="18" fill="#ff2e63"/>' +
+  '<path d="M112 112 L388 108 C404 108 414 120 414 136 L412 268 C412 284 402 296 386 296 L114 300 C98 300 88 288 88 272 L90 136 C90 120 98 112 112 112 Z" fill="#8fd3ff"/>' +
+  '<path d="M88 176 L56 178 L58 238 L90 236 Z" fill="#8fd3ff"/><path d="M412 176 L444 178 L442 238 L410 236 Z" fill="#8fd3ff"/>' +
+  '<circle cx="186" cy="192" r="36" fill="#fff8f0"/><circle cx="314" cy="192" r="36" fill="#fff8f0"/>' +
+  '<circle cx="190" cy="196" r="13" fill="#0a0a0a"/><circle cx="310" cy="196" r="13" fill="#0a0a0a"/>' +
+  '<path d="M182 258 L318 256" fill="none"/>' +
+  '<path d="M186 300 L184 328 M314 300 L316 328" fill="none"/>' +
+  '<path d="M150 328 L352 324 C368 324 378 336 378 352 L376 440 C376 456 366 466 350 466 L152 470 C136 470 124 458 124 442 L126 344 C126 336 136 328 150 328 Z" fill="#8fd3ff"/>' +
+  '<circle cx="250" cy="396" r="22" fill="#ff2e63"/></g></svg>';
+const BOT_AVATAR = 'data:image/svg+xml;base64,' + Buffer.from(BOT_AVATAR_SVG).toString('base64');
+
+function pickBotName(r) {
+  const used = new Set(r.players.map(p => p.name));
+  const free = BOT_NAMES.filter(n => !used.has(n));
+  const list = free.length ? free : BOT_NAMES;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function humansConnected(r) {
+  return r.players.some(p => !p.isBot && p.connected);
+}
+
+// Quem precisa agir agora entre os bots (ou null).
+function botPendingActor(r) {
+  if (!r.started || r.gameOver || r.handOver || r.busy || !humansConnected(r)) return null;
+  const pc = r.pendingCall;
+  if (pc) {
+    const resp = r.players.filter(p => p.team === pc.respondingTeam);
+    if (resp.some(p => !p.isBot && p.connected)) return null; // um humano da dupla responde
+    return resp.find(p => p.isBot) || null;
+  }
+  const cur = r.playerBySeat(r.turnSeat);
+  return cur && cur.isBot && cur.hand.length > 0 ? cur : null;
+}
+
+// Assinatura do estado: serve pra saber se a ação do bot realmente mudou algo.
+function botSig(r) {
+  const pc = r.pendingCall;
+  return [r.turnSeat, r.table.length, r.tricks.length, r.stake, r.maoNumber, r.handOver ? 1 : 0,
+    pc ? pc.value + ':' + pc.callingTeam : '-', r.players.map(p => p.hand.length).join('')].join('|');
+}
+
+function botKick(r) {
+  if (!r || r._botTimer || !botPendingActor(r)) return;
+  if (r._botFails >= 4 && botSig(r) === r._botSig) return; // travado: espera o estado mudar
+  let delay = 1000 + Math.random() * 1200;                  // "pensando"
+  if (r.pendingCall) delay = 1200 + Math.random() * 1600;
+  else {
+    if (r.table.length === 0) delay += 900;                 // 1ª carta da mão: dá tempo de ver a distribuição
+    delay = Math.max(delay, r.nextPlayAt - Date.now() + 150);
+  }
+  r._botTimer = setTimeout(() => { r._botTimer = null; botAct(r); }, delay);
+}
+
+function botAct(r) {
+  if (rooms.get(r.code) !== r) return;
+  const bot = botPendingActor(r);
+  if (!bot) return;
+  const noop = () => {};
+  const before = botSig(r);
+  try {
+    if (r.pendingCall) {
+      const action = brain.decideResponse(r, bot.seat);
+      doRespondTruco(r, bot, action, noop);
+    } else {
+      const dec = brain.decideTurn(r, bot.seat);
+      if (dec.type === 'call') doCallTruco(r, bot, dec.level, noop);
+      else doPlayCard(r, bot, { cardId: dec.cardId, hidden: dec.hidden }, noop);
+    }
+  } catch (e) {
+    console.error('Erro no bot da sala', r.code, e);
+  }
+  if (botSig(r) === before) {
+    // nada mudou (jogada recusada / erro): tenta o caminho simples
+    r._botFails++;
+    try {
+      if (r.pendingCall) doRespondTruco(r, bot, 'aceitar', noop);
+      else if (bot.hand.length) doPlayCard(r, bot, { cardId: bot.hand[0].id, hidden: false }, noop);
+    } catch (e) { console.error('Erro no bot (fallback)', e); }
+  } else {
+    r._botFails = 0;
+  }
+  r._botSig = botSig(r);
+  botKick(r);
+}
+
+// Bot que assume o lugar de quem saiu no meio da partida.
+function botTakeover(r, p) {
+  if (p.isBot) return;
+  p.origName = p.name;
+  p.origCharacter = p.character;
+  p.replacedHuman = true;
+  p.name = pickBotName(r);
+  p.character = BOT_AVATAR;
+  p.isBot = true;
+  p.connected = true;
+  io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${p.origName} saiu — ${p.name} assumiu o lugar.`, ts: Date.now() });
+  r.broadcastState(io); // atualiza nome/boneco na mesa e já deixa o bot agir se for a vez
+}
+
+// Menor assento livre (0..maxPlayers-1) — assentos não podem repetir mesmo
+// depois de um bot ser removido da sala de espera.
+function freeSeat(r) {
+  for (let i = 0; i < r.maxPlayers; i++) if (!r.players.some(p => p.seat === i)) return i;
+  return r.players.length;
+}
+
+// Dupla do novo jogador: a padrão (seat % 2), mas nunca uma dupla já cheia.
+function pickTeam(r, seat) {
+  if (r.mode !== '2v2') return seat % 2;
+  const counts = r.teamCounts();
+  const pref = seat % 2;
+  return counts[pref] < 2 ? pref : 1 - pref;
 }
 
 // Sai da fase de desenho e distribui a primeira mão.
@@ -565,8 +706,147 @@ function checkAllReady(r) {
 // Socket.io
 // ---------------------------------------------------------------------------
 
+// Intervalo mínimo entre cartas na mesa (ms). Ajuste aqui se ainda achar rápido/lento.
+const PLAY_GAP_MS = 1100;   // entre uma carta e a próxima da mesma vaza
+const TRICK_GAP_MS = 2400;  // depois que a vaza fecha (dá tempo de ver o resultado)
+
+// Joga uma carta pelo jogador `player` (humano ou bot). `tell(evento, dado)`
+// avisa só quem jogou (no bot não faz nada).
+function doPlayCard(r, player, payload, tell) {
+  let { cardId, hidden } = payload || {};
+  if (!r || !r.started || r.gameOver || !player) return;
+  if (r.handOver || r.busy || r.turnSeat !== player.seat || r.pendingCall) return tell('play_rejected'); // avisa o cliente pra desfazer a jogada instantânea
+
+  // Não pode esconder a carta na primeira rodada (vaza) da mão.
+  if (r.tricks.length === 0) hidden = false;
+
+  const result = r.playCard(player.seat, cardId, hidden);
+  if (result.error) return tell('error_message', result.error);
+
+  r.nextPlayAt = Date.now() + (result.trickResult ? TRICK_GAP_MS : PLAY_GAP_MS);
+
+  if (result.trickResult) {
+    // revela cartas escondidas ao fim da vaza
+    const startIdx = r.trickStartIndex() - r.players.length;
+    for (const play of r.table) play.revealed = true;
+    io.to(r.code).emit('trick_result', {
+      winnerSeat: result.trickResult.winnerSeat,
+      winnerTeam: result.trickResult.winnerTeam,
+      tie: result.trickResult.tie
+    });
+  }
+
+  // Sempre manda o estado com a carta recém-jogada (e a vaza revelada)
+  // ANTES de anunciar o fim da mão — senão a carta que decidiu o ponto
+  // nunca chega a aparecer pra ninguém na mesa.
+  r.broadcastState(io);
+
+  if (result.showdown) {
+    // Melou! Mostra a maior carta de cada um, revela e só então fecha a mão.
+    const sd = result.showdown;
+    io.to(r.code).emit('melou', {});
+    setTimeout(() => {
+      if (rooms.get(r.code) !== r) return;
+      for (const pick of sd.picks) {
+        const p = r.playerBySeat(pick.seat);
+        const hi = p.hand.findIndex(c => c.id === pick.card.id);
+        if (hi !== -1) p.hand.splice(hi, 1);
+        r.table.push({ seat: pick.seat, card: pick.card, hidden: false, revealed: true, showdown: true });
+      }
+      r.broadcastState(io);
+      io.to(r.code).emit('showdown_result', {
+        winnerSeat: sd.winnerSeat,
+        winnerTeam: sd.winnerTeam,
+        plays: sd.picks.map(pk => ({ seat: pk.seat, card: pk.card }))
+      });
+
+      setTimeout(() => {
+        if (rooms.get(r.code) !== r) return;
+        const points = r.stake;
+        const isGameOver = r.finishMao(sd.winnerTeam, points);
+        io.to(r.code).emit('mao_result', {
+          winnerTeam: sd.winnerTeam, points, score: r.score, teamName: r.teamName(sd.winnerTeam), showdown: true
+        });
+        setTimeout(() => {
+          if (rooms.get(r.code) !== r) return;
+          if (isGameOver) {
+            io.to(r.code).emit('game_over', { winnerTeam: sd.winnerTeam, score: r.score });
+            rooms.delete(r.code);
+          } else {
+            r.startMao();
+            r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
+            r.broadcastState(io);
+          }
+        }, 2200);
+      }, 2000);
+    }, 1800);
+    return;
+  }
+
+  if (result.maoOver) {
+    const winnerTeam = result.maoWinnerTeam;
+    const points = r.stake;
+    const isGameOver = r.finishMao(winnerTeam, points);
+    io.to(r.code).emit('mao_result', {
+      winnerTeam, points, score: r.score, teamName: r.teamName(winnerTeam)
+    });
+    setTimeout(() => {
+      if (isGameOver) {
+        io.to(r.code).emit('game_over', { winnerTeam, score: r.score });
+        rooms.delete(r.code);
+      } else {
+        r.startMao();
+        r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
+        r.broadcastState(io);
+      }
+    }, 2200);
+    return;
+  }
+}
+
+function doCallTruco(r, player, level, tell) {
+  if (!r || !r.started || r.gameOver || r.handOver || r.busy || !player) return;
+  const result = r.requestCall(player.seat, level);
+  if (result.error) return tell('error_message', result.error);
+  io.to(r.code).emit('call_announced', {
+    byTeam: player.team, byName: player.name, level, value: r.pendingCall.value
+  });
+  r.broadcastState(io);
+}
+
+function doRespondTruco(r, player, action, tell) {
+  if (!r || !r.started || r.gameOver || r.handOver || r.busy || !player) return;
+  const result = r.respondCall(player.seat, action);
+  if (result.error) return tell('error_message', result.error);
+
+  if (result.ran) {
+    // manda o estado atual (pedido resolvido) antes de anunciar o fim da mão
+    r.broadcastState(io);
+    const isGameOver = r.finishMao(result.winnerTeam, result.points);
+    io.to(r.code).emit('mao_result', {
+      winnerTeam: result.winnerTeam, points: result.points, score: r.score,
+      teamName: r.teamName(result.winnerTeam), ran: true
+    });
+    setTimeout(() => {
+      if (isGameOver) {
+        io.to(r.code).emit('game_over', { winnerTeam: result.winnerTeam, score: r.score });
+        rooms.delete(r.code);
+      } else {
+        r.startMao();
+        r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
+        r.broadcastState(io);
+      }
+    }, 2200);
+    return;
+  }
+
+  io.to(r.code).emit('call_response', { action, byName: player.name });
+  r.broadcastState(io);
+}
+
 io.on('connection', (socket) => {
   let currentRoomCode = null;
+  const tell = (ev, msg) => socket.emit(ev, msg);
 
   function room() {
     return currentRoomCode ? rooms.get(currentRoomCode) : null;
@@ -629,6 +909,14 @@ io.on('connection', (socket) => {
     if (!r) return reply({ ok: false, error: 'A sala não existe mais (o servidor pode ter reiniciado).' });
     const p = token ? r.players.find(x => x.token === token) : null;
     if (!p) return reply({ ok: false, error: 'Jogador não encontrado nessa sala.' });
+    if (p.isBot && p.replacedHuman) {
+      // quem tinha saído voltou: retoma o lugar que o bot estava segurando
+      p.isBot = false;
+      p.name = p.origName;
+      p.character = p.origCharacter;
+      delete p.replacedHuman; delete p.origName; delete p.origCharacter;
+      io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${p.name} voltou e retomou o lugar.`, ts: Date.now() });
+    }
     p.id = socket.id;
     p.connected = true;
     socket.join(r.code);
@@ -684,7 +972,7 @@ io.on('connection', (socket) => {
     // Antes de começar a valer, todo mundo tem alguns segundos pra desenhar
     // (ou ajustar) o personagem. Só depois desse tempo a mão é distribuída.
     const CHARACTER_PHASE_MS = 45000;
-    r.readySeats = new Set();
+    r.readySeats = new Set(r.players.filter(p => p.isBot).map(p => p.seat)); // bots já estão prontos
     r.characterPhaseEndsAt = Date.now() + CHARACTER_PHASE_MS;
     io.to(r.code).emit('character_phase_start', { durationMs: CHARACTER_PHASE_MS, players: r.characterReadyState() });
     r.characterPhaseTimer = setTimeout(() => beginMatch(r), CHARACTER_PHASE_MS);
@@ -705,23 +993,85 @@ io.on('connection', (socket) => {
     const target = r.playerBySeat(seat);
     if (!target) return cb && cb({ ok: false, error: 'Jogador não encontrado.' });
 
+    if (target.team !== team && r.teamCounts()[team] >= 2) return cb && cb({ ok: false, error: 'Essa dupla já está cheia.' });
+
     target.team = team;
     io.to(r.code).emit('lobby_update', r.lobbyState());
     cb && cb({ ok: true });
   });
 
+  // Substituição: dois jogadores trocam de dupla ao mesmo tempo (host, 2v2).
+  socket.on('swap_player_teams', ({ seatA, seatB } = {}, cb) => {
+    const reply = (o) => { if (typeof cb === 'function') cb(o); };
+    const r = room();
+    if (!r) return reply({ ok: false, error: 'Sala não encontrada.' });
+    const host = r.playerBySocket(socket.id);
+    if (!host || host.seat !== 0) return reply({ ok: false, error: 'Só o host pode escolher as duplas.' });
+    if (r.started || r.characterPhaseTimer) return reply({ ok: false, error: 'A partida já começou.' });
+    if (r.mode !== '2v2') return reply({ ok: false, error: 'Só é possível escolher duplas no modo 2v2.' });
+    const a = r.playerBySeat(seatA), b = r.playerBySeat(seatB);
+    if (!a || !b || a === b) return reply({ ok: false, error: 'Jogador não encontrado.' });
+    if (a.team !== b.team) {
+      const t = a.team; a.team = b.team; b.team = t;
+      io.to(r.code).emit('lobby_update', r.lobbyState());
+    }
+    reply({ ok: true });
+  });
+
+  // Host adiciona um bot na sala de espera (1v1 ou 2v2). No 2v2 pode escolher a dupla.
+  socket.on('add_bot', (payload, cb) => {
+    const reply = (o) => { if (typeof cb === 'function') cb(o); };
+    const r = room();
+    if (!r) return reply({ ok: false, error: 'Sala não encontrada.' });
+    const host = r.playerBySocket(socket.id);
+    if (!host || host.seat !== 0) return reply({ ok: false, error: 'Só o host pode adicionar bots.' });
+    if (r.started || r.characterPhaseTimer) return reply({ ok: false, error: 'A partida já começou.' });
+    if (r.players.length >= r.maxPlayers) return reply({ ok: false, error: 'A sala já está cheia.' });
+
+    const seat = freeSeat(r);
+    let team = seat % 2;
+    if (r.mode === '2v2') {
+      const counts = r.teamCounts();
+      const want = payload && (payload.team === 0 || payload.team === 1) ? payload.team : null;
+      if (want !== null) {
+        if (counts[want] >= 2) return reply({ ok: false, error: 'Essa dupla já está cheia.' });
+        team = want;
+      } else {
+        team = counts[1] <= counts[0] ? 1 : 0; // por padrão entra na dupla com menos gente (adversária primeiro)
+        if (counts[team] >= 2) team = 1 - team;
+      }
+    }
+    const token = crypto.randomBytes(12).toString('hex');
+    r.players.push({
+      id: 'bot:' + token, token, name: pickBotName(r), seat, team,
+      connected: true, hand: [], character: BOT_AVATAR, isBot: true
+    });
+    io.to(r.code).emit('lobby_update', r.lobbyState());
+    reply({ ok: true });
+  });
+
+  socket.on('remove_bot', ({ seat } = {}, cb) => {
+    const reply = (o) => { if (typeof cb === 'function') cb(o); };
+    const r = room();
+    if (!r) return reply({ ok: false, error: 'Sala não encontrada.' });
+    const host = r.playerBySocket(socket.id);
+    if (!host || host.seat !== 0) return reply({ ok: false, error: 'Só o host pode remover bots.' });
+    if (r.started || r.characterPhaseTimer) return reply({ ok: false, error: 'A partida já começou.' });
+    const bot = r.playerBySeat(seat);
+    if (!bot || !bot.isBot) return reply({ ok: false, error: 'Bot não encontrado.' });
+    r.players = r.players.filter(p => p !== bot);
+    io.to(r.code).emit('lobby_update', r.lobbyState());
+    reply({ ok: true });
+  });
+
   function joinRoomInternal(r, socket, name, character) {
-    const seat = r.players.length;
-    const team = r.seatTeam(seat);
+    const seat = freeSeat(r);
+    const team = pickTeam(r, seat);
     const player = { id: socket.id, token: crypto.randomBytes(12).toString('hex'), name, seat, team, connected: true, hand: [], character: sanitizeCharacter(character) };
     r.players.push(player);
     socket.join(r.code);
     return player;
   }
-
-  // Intervalo mínimo entre cartas na mesa (ms). Ajuste aqui se ainda achar rápido/lento.
-  const PLAY_GAP_MS = 1100;   // entre uma carta e a próxima da mesma vaza
-  const TRICK_GAP_MS = 2400;  // depois que a vaza fecha (dá tempo de ver o resultado)
 
   socket.on('play_card', (payload) => {
     const r = room();
@@ -734,159 +1084,28 @@ io.on('connection', (socket) => {
       setTimeout(() => {
         r.queuedPlay = false;
         if (rooms.get(r.code) !== r) return;
-        handlePlayCard(r, payload || {});
+        doPlayCard(r, r.playerBySocket(socket.id), payload || {}, tell);
       }, wait);
       return;
     }
-    handlePlayCard(r, payload || {});
+    doPlayCard(r, r.playerBySocket(socket.id), payload || {}, tell);
   });
 
-  function handlePlayCard(r, { cardId, hidden }) {
-    if (!r || !r.started || r.gameOver) return;
-    const player = r.playerBySocket(socket.id);
-    if (!player) return;
-    if (r.busy) return socket.emit('play_rejected'); // avisa o cliente pra desfazer a jogada instantânea
-    if (r.turnSeat !== player.seat) return socket.emit('play_rejected');
-    if (r.pendingCall) return socket.emit('play_rejected');
-
-    // Não pode esconder a carta na primeira rodada (vaza) da mão.
-    if (r.tricks.length === 0) hidden = false;
-
-    const result = r.playCard(player.seat, cardId, hidden);
-    if (result.error) return socket.emit('error_message', result.error);
-
-    r.nextPlayAt = Date.now() + (result.trickResult ? TRICK_GAP_MS : PLAY_GAP_MS);
-
-    if (result.trickResult) {
-      // revela cartas escondidas ao fim da vaza
-      const startIdx = r.trickStartIndex() - r.players.length;
-      for (const play of r.table) play.revealed = true;
-      io.to(r.code).emit('trick_result', {
-        winnerSeat: result.trickResult.winnerSeat,
-        winnerTeam: result.trickResult.winnerTeam,
-        tie: result.trickResult.tie
-      });
-    }
-
-    // Sempre manda o estado com a carta recém-jogada (e a vaza revelada)
-    // ANTES de anunciar o fim da mão — senão a carta que decidiu o ponto
-    // nunca chega a aparecer pra ninguém na mesa.
-    r.broadcastState(io);
-
-    if (result.showdown) {
-      // Melou! Mostra a maior carta de cada um, revela e só então fecha a mão.
-      const sd = result.showdown;
-      io.to(r.code).emit('melou', {});
-      setTimeout(() => {
-        if (rooms.get(r.code) !== r) return;
-        for (const pick of sd.picks) {
-          const p = r.playerBySeat(pick.seat);
-          const hi = p.hand.findIndex(c => c.id === pick.card.id);
-          if (hi !== -1) p.hand.splice(hi, 1);
-          r.table.push({ seat: pick.seat, card: pick.card, hidden: false, revealed: true, showdown: true });
-        }
-        r.broadcastState(io);
-        io.to(r.code).emit('showdown_result', {
-          winnerSeat: sd.winnerSeat,
-          winnerTeam: sd.winnerTeam,
-          plays: sd.picks.map(pk => ({ seat: pk.seat, card: pk.card }))
-        });
-
-        setTimeout(() => {
-          if (rooms.get(r.code) !== r) return;
-          const points = r.stake;
-          const isGameOver = r.finishMao(sd.winnerTeam, points);
-          io.to(r.code).emit('mao_result', {
-            winnerTeam: sd.winnerTeam, points, score: r.score, teamName: r.teamName(sd.winnerTeam), showdown: true
-          });
-          setTimeout(() => {
-            if (rooms.get(r.code) !== r) return;
-            if (isGameOver) {
-              io.to(r.code).emit('game_over', { winnerTeam: sd.winnerTeam, score: r.score });
-              rooms.delete(r.code);
-            } else {
-              r.startMao();
-              r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
-              r.broadcastState(io);
-            }
-          }, 2200);
-        }, 2000);
-      }, 1800);
-      return;
-    }
-
-    if (result.maoOver) {
-      const winnerTeam = result.maoWinnerTeam;
-      const points = r.stake;
-      const isGameOver = r.finishMao(winnerTeam, points);
-      io.to(r.code).emit('mao_result', {
-        winnerTeam, points, score: r.score, teamName: r.teamName(winnerTeam)
-      });
-      setTimeout(() => {
-        if (isGameOver) {
-          io.to(r.code).emit('game_over', { winnerTeam, score: r.score });
-          rooms.delete(r.code);
-        } else {
-          r.startMao();
-          r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
-          r.broadcastState(io);
-        }
-      }, 2200);
-      return;
-    }
-  }
-
-  socket.on('call_truco', ({ level }) => {
+  socket.on('call_truco', ({ level } = {}) => {
     const r = room();
-    if (!r || !r.started || r.gameOver) return;
-    if (r.busy) return;
-    const player = r.playerBySocket(socket.id);
-    if (!player) return;
-    const result = r.requestCall(player.seat, level);
-    if (result.error) return socket.emit('error_message', result.error);
-    io.to(r.code).emit('call_announced', {
-      byTeam: player.team, byName: player.name, level, value: r.pendingCall.value
-    });
-    r.broadcastState(io);
+    if (!r) return;
+    doCallTruco(r, r.playerBySocket(socket.id), level, tell);
   });
 
-  socket.on('respond_truco', ({ action }) => {
+  socket.on('respond_truco', ({ action } = {}) => {
     const r = room();
-    if (!r || !r.started || r.gameOver) return;
-    if (r.busy) return;
-    const player = r.playerBySocket(socket.id);
-    if (!player) return;
-    const result = r.respondCall(player.seat, action);
-    if (result.error) return socket.emit('error_message', result.error);
-
-    if (result.ran) {
-      // manda o estado atual (pedido resolvido) antes de anunciar o fim da mão
-      r.broadcastState(io);
-      const isGameOver = r.finishMao(result.winnerTeam, result.points);
-      io.to(r.code).emit('mao_result', {
-        winnerTeam: result.winnerTeam, points: result.points, score: r.score,
-        teamName: r.teamName(result.winnerTeam), ran: true
-      });
-      setTimeout(() => {
-        if (isGameOver) {
-          io.to(r.code).emit('game_over', { winnerTeam: result.winnerTeam, score: r.score });
-          rooms.delete(r.code);
-        } else {
-          r.startMao();
-          r.players.forEach(p => io.to(p.id).emit('game_start', r.redactedStateFor(p.seat)));
-          r.broadcastState(io);
-        }
-      }, 2200);
-      return;
-    }
-
-    io.to(r.code).emit('call_response', { action, byName: player.name });
-    r.broadcastState(io);
+    if (!r) return;
+    doRespondTruco(r, r.playerBySocket(socket.id), action, tell);
   });
 
   socket.on('run_away', () => {
     const r = room();
-    if (!r || !r.started || r.gameOver) return;
+    if (!r || !r.started || r.gameOver || r.handOver) return;
     if (r.busy) return;
     const player = r.playerBySocket(socket.id);
     if (!player) return;
@@ -941,13 +1160,17 @@ io.on('connection', (socket) => {
     }
     io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${player.name} desconectou.`, ts: Date.now() });
 
-    // limpa salas vazias/abandonadas
-    const anyoneConnected = r.players.some(p => p.connected);
+    // No meio da partida (2v2), um bot assume o lugar de quem saiu.
+    if (r.started && !r.gameOver && BOT_REPLACES[r.mode] && humansConnected(r)) botTakeover(r, player);
+
+    // limpa salas vazias/abandonadas (bots não contam como "alguém na sala")
+    const anyoneConnected = r.players.some(p => !p.isBot && p.connected);
     if (!anyoneConnected) {
       setTimeout(() => {
         const stillThere = rooms.get(r.code);
-        if (stillThere && !stillThere.players.some(p => p.connected)) {
+        if (stillThere && !stillThere.players.some(p => !p.isBot && p.connected)) {
           if (stillThere.characterPhaseTimer) clearTimeout(stillThere.characterPhaseTimer);
+          if (stillThere._botTimer) clearTimeout(stillThere._botTimer);
           rooms.delete(r.code);
         }
       }, 30000);
@@ -958,3 +1181,6 @@ io.on('connection', (socket) => {
 server.listen(PORT, () => {
   console.log(`Truco Paulista rodando na porta ${PORT}`);
 });
+
+// usado só nos testes automáticos
+module.exports = { Room, rooms, io, cardStrength, buildDeck, STAKE_SEQUENCE };
