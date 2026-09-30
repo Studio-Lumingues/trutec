@@ -5,6 +5,9 @@
 // empurrado e os canais R/G/B se separam. Como só o fundo passa pelo shader,
 // cards, botões, cartas e bonecos (que são HTML por cima) NÃO distorcem.
 //
+// Temas com fundo próprio (Onça, ?????, Mar): o desenho do tema (o mesmo SVG
+// animado do themes.js) vira textura e passa pelo mesmo shader.
+//
 // Se o navegador não tiver WebGL (ou o usuário pediu menos movimento), nada
 // muda: continua o fundo em CSS de sempre.
 // Ajustes: as constantes logo abaixo.
@@ -23,6 +26,8 @@
     'precision highp float;',
     'uniform vec2 uRes, uMouse, uVel;',
     'uniform float uTime, uMode, uRem, uDpr, uEnergy, uRadius, uStrength, uSplit;',
+    'uniform sampler2D uTex;',
+    'uniform vec2 uTile;',
     'const vec3 CREAM = vec3(1.0, 0.9725, 0.9412);',
 
     // listras diagonais (120deg) que andam devagar — igual ao CSS do body
@@ -51,7 +56,13 @@
     '  return mix(vec3(0.0392, 0.0235, 0.0706), vec3(0.1373, 0.0627, 0.2745), s);',
     '}',
 
-    'vec3 bg(vec2 p){ return uMode > 0.5 ? diamonds(p) : stripes(p); }',
+    // fundo do tema (textura que se repete), deslizando como o .game-bg do CSS
+    'vec3 themeTex(vec2 p){',
+    '  float ox = -uTile.x + uTile.x * (mod(uTime, 8.0) / 8.0);',
+    '  return texture2D(uTex, vec2((p.x - ox) / uTile.x, p.y / uTile.y)).rgb;',
+    '}',
+
+    'vec3 bg(vec2 p){ return uMode > 1.5 ? themeTex(p) : (uMode > 0.5 ? diamonds(p) : stripes(p)); }',
 
     'void main(){',
     '  vec2 p = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);',
@@ -97,10 +108,65 @@
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     var U = {};
-    ['uRes', 'uMouse', 'uVel', 'uTime', 'uMode', 'uRem', 'uDpr', 'uEnergy', 'uRadius', 'uStrength', 'uSplit']
+    ['uRes', 'uMouse', 'uVel', 'uTime', 'uMode', 'uRem', 'uDpr', 'uEnergy', 'uRadius', 'uStrength', 'uSplit', 'uTex', 'uTile']
       .forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
 
     var dpr = 1, gameScreen = document.getElementById('screen-game');
+    var root = document.documentElement;
+
+    // ---- textura do tema (só nos temas que têm `bg`) ----
+    // Cada quadro "hand drawn" do tema é rasterizado num canvas de tamanho
+    // potência de 2 (exigência do WebGL1 pra repetir a textura) e enviado à GPU.
+    var tex = { id: undefined, spec: null, frames: [], ready: false, key: '', token: 0 };
+    var dummy = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, dummy);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
+    gl.uniform1i(U.uTex, 0);
+
+    function pot(n) { var p = 64; while (p < n && p < 2048) p *= 2; return p; }
+    function freeTex() {
+      for (var i = 0; i < tex.frames.length; i++) gl.deleteTexture(tex.frames[i]);
+      tex.frames = []; tex.ready = false;
+      root.classList.remove('bgfx-tex');
+    }
+    function loadTheme(id) {
+      var token = ++tex.token;
+      tex.id = id;
+      freeTex();
+      tex.spec = (id && window.TruThemes && TruThemes.bgSpec) ? TruThemes.bgSpec(id) : null;
+      var spec = tex.spec;
+      if (!spec) { tex.key = ''; return; }           // sem `bg`: losangos do shader
+      var rem = parseFloat(getComputedStyle(root).fontSize) || 16;
+      var tw = spec.tileW * rem * dpr, th = spec.tileH * rem * dpr;
+      var pw = pot(tw), ph = pot(th);
+      tex.key = id + ':' + pw + 'x' + ph;
+      var frames = [], pending = spec.urls.length;
+      spec.urls.forEach(function (url, i) {
+        var img = new Image();
+        img.onload = function () {
+          if (token !== tex.token || dead) return;
+          var c = document.createElement('canvas');
+          c.width = pw; c.height = ph;
+          c.getContext('2d').drawImage(img, 0, 0, pw, ph);
+          var t = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, t);
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          frames[i] = t;
+          if (--pending === 0) {
+            tex.frames = frames; tex.ready = true;
+            gl.uniform2f(U.uTile, tw, th);
+            root.classList.add('bgfx-tex');          // a partir daqui o CSS do tema sai de cena
+          }
+        };
+        img.onerror = function () { /* fica o fundo em CSS do tema */ };
+        img.src = url;
+      });
+    }
     function resize() {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.max(1, Math.round(window.innerWidth * dpr));
@@ -113,6 +179,11 @@
       gl.uniform1f(U.uRadius, RADIUS * dpr);
       gl.uniform1f(U.uStrength, STRENGTH * dpr);
       gl.uniform1f(U.uSplit, SPLIT);
+      if (tex.spec) {                                 // rem/dpr mudou: refaz a textura se o tamanho mudar
+        var tw = tex.spec.tileW * rem * dpr, th = tex.spec.tileH * rem * dpr;
+        if (tex.key !== tex.id + ':' + pot(tw) + 'x' + pot(th)) loadTheme(tex.id);
+        else gl.uniform2f(U.uTile, tw, th);
+      }
     }
 
     // ---- mouse / toque ----
@@ -132,7 +203,7 @@
     canvas.addEventListener('webglcontextlost', function (e) {
       e.preventDefault();
       dead = true;
-      document.documentElement.classList.remove('bgfx-js'); // volta pro fundo em CSS
+      root.classList.remove('bgfx-js', 'bgfx-tex'); // volta pro fundo em CSS
     });
 
     var dead = false, last = performance.now(), shown = false;
@@ -157,7 +228,14 @@
       gl.uniform2f(U.uVel, svx / 1500 * vn, svy / 1500 * vn);
       gl.uniform1f(U.uEnergy, energy);
       gl.uniform1f(U.uTime, now / 1000);
-      gl.uniform1f(U.uMode, gameScreen && gameScreen.classList.contains('active') ? 1 : 0);
+      // trocou de tema? (o themes.js marca <html data-theme="...">)
+      var want = window.TruThemes ? root.getAttribute('data-theme') : null;
+      if (want !== tex.id) loadTheme(want);
+      var inGame = gameScreen && gameScreen.classList.contains('active');
+      var useTex = inGame && tex.ready;
+      gl.uniform1f(U.uMode, useTex ? 2 : (inGame ? 1 : 0));
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, useTex ? tex.frames[Math.floor(now / 1000 * 8) % tex.frames.length] : dummy);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
 
       if (!shown) { shown = true; document.documentElement.classList.add('bgfx-js'); }

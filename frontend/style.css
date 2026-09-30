@@ -2136,7 +2136,7 @@ html.bgfx-js body { background-image: none; animation: none; }
 html.bgfx-js body { background-color: transparent; }
 html.bgfx-js .game-bg { display: none; }
 /* temas com fundo próprio (ex.: Onça Cinza): o fundo em CSS cobre o canvas WebGL na partida */
-html.bgfx-js.theme-bg .game-bg { display: block; }
+html.bgfx-js.theme-bg:not(.bgfx-tex) .game-bg { display: block; } /* .bgfx-tex = o WebGL já está desenhando o fundo do tema (com distorção) */
 /* tema cinza: o granulado também fica sem cor */
 html[data-theme="onca"] .noise-layer,
 html[data-theme="binario"] .noise-layer { filter: grayscale(1); }

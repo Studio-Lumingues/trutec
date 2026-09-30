@@ -317,7 +317,17 @@
     return true;
   }
 
-  window.TruThemes = { list: THEMES, apply: apply, current: currentId, nameOf: nameOf, mountThumb: mountThumb, unmountThumb: unmountThumb };
+  // Fundo do tema em imagens (um quadro por semente) pro bg-distort.js virar textura WebGL.
+  // Retorna null nos temas sem `bg` (Drácula usa os losangos desenhados direto no shader).
+  function bgSpec(id) {
+    var t = byId(id);
+    if (!t || !t.bg) return null;
+    var urls = [];
+    for (var i = 0; i < SEEDS.length; i++) urls.push(bgImage(t, i).slice(5, -2));
+    return { tileW: t.bg.tileW, tileH: t.bg.tileH, urls: urls };
+  }
+
+  window.TruThemes = { bgSpec: bgSpec, list: THEMES, apply: apply, current: currentId, nameOf: nameOf, mountThumb: mountThumb, unmountThumb: unmountThumb };
   apply(currentId());
 
   // ---------------------------------------------------------------- tela
