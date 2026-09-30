@@ -214,6 +214,10 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <div id="settings-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="settings-card">
       <h2 id="settings-title"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg> Configurações</h2>
+      <div class="settings-tabs" role="tablist">
+        <button type="button" class="settings-tab active" role="tab" aria-selected="true">Geral</button>
+        <button type="button" id="tab-temas" class="settings-tab" role="tab" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-palette"/></svg> Temas</button>
+      </div>
 
       <div class="settings-row">
         <div class="settings-label"><label for="set-music"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg> Música</label><span id="set-music-val">50%</span></div>
@@ -245,6 +249,31 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       </div>
 
       <button id="settings-close" type="button" class="btn btn-primary settings-close-btn">Fechar</button>
+    </div>
+  </div>
+
+  <!-- ===================== TEMAS (abre pela aba "Temas" das configurações) ===================== -->
+  <div id="themes-modal" class="settings-modal themes-modal hidden" role="dialog" aria-modal="true" aria-labelledby="themes-title">
+    <div class="themes-card">
+      <div class="settings-tabs" role="tablist">
+        <button type="button" id="tab-geral-back" class="settings-tab" role="tab" aria-selected="false">Geral</button>
+        <button type="button" class="settings-tab active" role="tab" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-palette"/></svg> Temas</button>
+      </div>
+      <div class="themes-head">
+        <button type="button" id="theme-prev" class="theme-nav" aria-label="Tema anterior" hidden>‹</button>
+        <div class="themes-heading">
+          <h2 id="themes-title">Drácula</h2>
+          <p id="theme-tagline"></p>
+        </div>
+        <button type="button" id="theme-next" class="theme-nav" aria-label="Próximo tema" hidden>›</button>
+      </div>
+      <div class="theme-preview-wrap"><div id="theme-preview" class="theme-preview"></div></div>
+      <div id="theme-palette" class="theme-palette"></div>
+      <div class="themes-foot">
+        <span id="theme-count" class="theme-count"></span>
+        <button id="theme-use" type="button" class="btn btn-primary">Tema atual</button>
+        <button id="themes-close" type="button" class="btn btn-secondary">Voltar</button>
+      </div>
     </div>
   </div>
 
@@ -529,6 +558,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="stats.js"></script>
   <script src="audio.js?v=4"></script>
   <script src="settings.js"></script>
+  <script src="themes.js"></script>
   <script src="favicon.js"></script>
   <script src="client.js?v=6"></script>
 </body>
