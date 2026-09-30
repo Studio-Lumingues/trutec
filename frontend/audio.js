@@ -11,11 +11,10 @@
 // - O volume da música e dos efeitos é ajustado em Configurações (não há botão de mudo).
 // ============================================================================
 (function () {
-  // Volume máximo (100% no controle). A música agora começa em 50% => 0.10
-  // (antes era fixa em 0.20). O jogador ajusta em Configurações.
+  // Volume máximo (100% no controle). A música começa em 20% => 0.04. O jogador ajusta em Configurações.
   var MUSIC_MAX = 0.2;
   var SFX_BASE = 0.5;
-  var DEFAULT_MUSIC_LEVEL = 0.5; // 0..1
+  var DEFAULT_MUSIC_LEVEL = 0.2; // 0..1 (começa em 20%)
   var DEFAULT_SFX_LEVEL = 1;     // 0..1
   var LOBBY_SCREENS = ['screen-lobby', 'screen-waiting', 'screen-character-editor'];
 
@@ -79,6 +78,12 @@
     a.volume = sfxLevel;
     calls[name] = a;
   });
+
+  // Volume relativo de cada arquivo (multiplica o volume geral de efeitos).
+  // O som de início de partida é bem baixinho de propósito.
+  var CALL_GAIN = { sfx01: 0.12 };
+  function callVol(name) { return Math.min(1, sfxLevel * (CALL_GAIN[name] === undefined ? 1 : CALL_GAIN[name])); }
+  Object.keys(calls).forEach(function (k) { calls[k].volume = callVol(k); });
 
   var currentScreen = 'screen-lobby';
   var matchStarted = false;
@@ -237,7 +242,29 @@
       if (p && p.catch) p.catch(function () {});
     },
     // som de início de partida (assets/sfx01.wav): toca quando a partida começa
-    playStart: function () { GameAudio.playCall('sfx01'); },
+    // Só toca quando a tela escura da transição (#game-intro) deixa de cobrir
+    // a mesa — não durante a transição.
+    playStart: function () {
+      var intro = document.getElementById('game-intro');
+      if (!intro) { GameAudio.playCall('sfx01'); return; }
+      function covering() {
+        var cs = getComputedStyle(intro);
+        return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0.05;
+      }
+      var t0 = Date.now(), seen = false, done = false;
+      var iv = setInterval(function () {
+        if (done) return;
+        var now = covering();
+        if (now) seen = true;
+        var elapsed = Date.now() - t0;
+        // toca quando a tela escura já apareceu e sumiu; se ela nunca apareceu
+        // (1,5 s de tolerância) ou demorou demais (20 s), toca mesmo assim
+        if ((seen && !now) || (!seen && elapsed > 1500) || elapsed > 20000) {
+          done = true; clearInterval(iv);
+          GameAudio.playCall('sfx01');
+        }
+      }, 50);
+    },
     toggleMute: function () {
       muted = !muted;
       try { localStorage.setItem('trutec-muted', muted ? '1' : '0'); } catch (e) {}
@@ -256,7 +283,7 @@
       sfxLevel = Math.min(1, Math.max(0, +v || 0));
       SFX_VOLUME = SFX_BASE * sfxLevel;
       try { localStorage.setItem('trutec-vol-sfx', String(sfxLevel)); } catch (e) {}
-      Object.keys(calls).forEach(function (k) { calls[k].volume = sfxLevel; });
+      Object.keys(calls).forEach(function (k) { calls[k].volume = callVol(k); });
     },
     click: sfxClick,
     cardPlay: sfxCardPlay,
