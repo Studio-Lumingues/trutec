@@ -1,5 +1,5 @@
 // ============================================================================
-// CONFIGURAÇÕES (botão "⚙️ Configurações" na tela inicial)
+// CONFIGURAÇÕES (botão "Configurações" na tela inicial)
 // - Volume da música e dos efeitos sonoros (SFX + falas de truco/seis/nove/doze)
 // - Modo daltonismo (paleta segura + naipes com cores diferentes)
 // Tudo fica salvo no localStorage; o volume em si é aplicado pelo audio.js.

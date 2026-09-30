@@ -48,6 +48,43 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
         <feTurbulence data-boil type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="1" result="n"/>
         <feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/>
       </filter>
+      <!-- ícones: tremido bem sutil (escala pequena) -->
+      <filter id="boil-ic" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+        <feTurbulence data-boil type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="1" result="n"/>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="1.6" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <!-- Ícones hand drawn (traço branco = currentColor). Uso: <svg class="ic"><use href="#i-nome"/></svg> -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-gamepad" viewBox="0 0 24 24"><path d="M7 8 C4.6 8.2 3 12 2.8 15.4 C2.7 17.4 3.7 18.5 5.2 18.3 C6.6 18.1 7.5 16.4 8.8 15.2 L15.3 15.3 C16.6 16.5 17.5 18.2 19 18.4 C20.4 18.5 21.4 17.3 21.2 15.5 C21 12 19.4 8.2 17 8 C15 7.9 9.6 7.7 7 8 Z M8 10.6 L8.1 13.4 M6.7 12 L9.4 12.1 M15.6 11.2 h.01 M17.7 12.8 h.01"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4.5 C12.1 8 11.8 15.5 12 19.6 M4.3 12.2 C8.5 11.9 15.3 12.1 19.7 11.8"/></symbol>
+      <symbol id="i-gear" viewBox="0 0 24 24"><path d="M18.6 10.7 L21.3 10.9 L21.2 12.8 L18.6 13.2 L17.9 15.7 L19.4 18.1 L17.9 19.6 L15.8 17.5 L13.2 18.6 L12.9 21.7 L10.9 21.5 L10.5 18.4 L8.1 17.8 L6.0 19.4 L4.6 17.9 L6.2 16.0 L4.9 13.6 L2.6 13.1 L2.7 10.8 L5.3 10.6 L5.9 8.1 L4.5 6.0 L6.1 4.4 L8.0 6.3 L10.8 5.2 L10.9 2.6 L13.0 2.7 L13.2 5.5 L15.7 6.3 L18.0 4.3 L19.6 6.2 L17.8 8.1 Z M12 9.3 C13.6 9.1 14.9 10.4 14.8 12 C14.9 13.6 13.5 14.9 12 14.8 C10.4 14.9 9.1 13.6 9.2 12 C9.1 10.5 10.5 9.3 12 9.3 Z"/></symbol>
+      <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 17.5 C9 19 7.6 20 6.2 19.6 C4.8 19.2 4.6 17.4 5.8 16.6 C7 15.8 8.6 16.2 9.1 17.3 L9.3 5.6 L18.6 4 L18.5 15.4 M18.5 15.5 C18.6 17 17.2 18 15.8 17.7 C14.4 17.3 14.2 15.6 15.4 14.8 C16.6 14.1 18.2 14.5 18.5 15.6 M9.3 9 L18.5 7.4"/></symbol>
+      <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9.6 L8 9.4 L12.6 5.6 L12.4 18.4 L8 14.6 L4.1 14.5 Z M15.6 9.2 C16.9 10.6 16.9 13.4 15.6 14.8 M18.3 6.8 C21 9.4 21 14.6 18.4 17.3"/></symbol>
+      <symbol id="i-volume-off" viewBox="0 0 24 24"><path d="M4 9.6 L8 9.4 L12.6 5.6 L12.4 18.4 L8 14.6 L4.1 14.5 Z M16 9.5 L21 14.6 M21.1 9.4 L16.1 14.7"/></symbol>
+      <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3.6 C7 3.5 2.9 7.3 3.1 12 C3.3 16.9 7.4 20.6 11.6 20.4 C13.4 20.4 13.9 18.9 13 17.8 C12.1 16.7 12.6 15.2 14 15.1 L16.6 15.1 C19.4 15 21 13 20.9 10.9 C20.6 6.6 16.8 3.7 12 3.6 Z M7.6 11.3 h.01 M10.4 7.8 h.01 M15 7.9 h.01"/></symbol>
+      <symbol id="i-brush" viewBox="0 0 24 24"><path d="M20.3 3.7 C18.6 3.8 12 9.6 10.6 12.3 L12.2 13.9 C15 12.5 20.4 6 20.3 3.7 Z M10.3 12.6 C8.3 12.3 6.6 13.8 6.5 15.8 C6.4 17.6 5.4 18.7 3.6 19.4 C6.2 20.8 10.4 20.4 11.7 17.6 C12.1 16.4 12.3 15 12 14"/></symbol>
+      <symbol id="i-droplet" viewBox="0 0 24 24"><path d="M12 3.4 C10 7 5.6 10.6 5.6 14.6 C5.6 18.2 8.4 20.6 12 20.6 C15.6 20.6 18.4 18.2 18.4 14.6 C18.4 10.6 14 7 12 3.4 Z M8.9 15.2 C9 16.7 10 17.7 11.4 18"/></symbol>
+      <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M16 3.8 C17 3.2 18.4 3.6 19.4 4.6 C20.4 5.6 20.8 7 20.1 8 L8.4 19.8 L3.6 20.6 L4.4 15.8 Z M14 5.9 L18.1 10"/></symbol>
+      <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M13.6 4.3 L20 10.4 C20.6 11 20.5 11.8 20 12.3 L11.8 20.3 L6.4 20.4 L3.8 17.6 C3.3 17.1 3.4 16.4 3.9 15.9 L12 4.4 C12.4 4 13.1 3.9 13.6 4.3 Z M8.6 9 L15.6 15.8 M11.5 20.4 L20.6 20.5"/></symbol>
+      <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9.2 4.6 L4.2 9.4 L9.4 14 M4.6 9.4 C10 8.8 18 8.4 19.6 14.2 C20.6 17.6 18.2 20 14.4 20.2"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 6.6 C8 6.3 16 6.6 20 6.4 M9.2 6.4 L9.4 4.2 L14.6 4.1 L14.8 6.4 M6 6.7 L6.9 19.6 C7 20.4 7.6 20.8 8.4 20.8 L15.6 20.7 C16.4 20.7 17 20.3 17.1 19.5 L18 6.6 M10 10.4 L10.2 17 M14 10.3 L13.9 17"/></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M4.4 4.6 L16.6 4.3 L20 7.7 L19.7 19 C19.7 19.8 19.1 20.3 18.4 20.3 L5.4 20.5 C4.6 20.5 4.1 20 4.1 19.2 Z M7.6 4.5 L7.7 9.4 L14.4 9.3 L14.5 4.3 M7.4 20.4 L7.6 14 L16.4 14.1 L16.3 20.3"/></symbol>
+      <symbol id="i-exit" viewBox="0 0 24 24"><path d="M9.4 4.4 L5.6 4.5 C4.8 4.5 4.3 5 4.3 5.8 L4.4 18.4 C4.4 19.2 4.9 19.7 5.7 19.7 L9.5 19.6 M14 8 L18.4 12 L14.1 16.2 M18.3 12.1 L8.8 11.9"/></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M2.6 12.2 C5 7.8 8.4 5.8 12 5.8 C15.7 5.8 19 7.9 21.5 12 C19 16.3 15.7 18.4 12 18.3 C8.4 18.4 5 16.4 2.6 12.2 Z M12 9.5 C13.4 9.4 14.6 10.6 14.5 12 C14.6 13.4 13.3 14.6 12 14.5 C10.6 14.6 9.4 13.3 9.5 12 C9.4 10.7 10.6 9.5 12 9.5 Z M4.2 3.8 L19.9 20.4"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4.2 5.2 C8 4.8 16 5 19.8 5.1 C20.6 5.2 21 5.7 21 6.5 L20.9 14.2 C20.9 15 20.4 15.5 19.6 15.5 L11.6 15.6 L7 19.8 L7.1 15.6 L4.6 15.5 C3.8 15.5 3.3 15 3.3 14.2 L3.4 6.5 C3.4 5.7 3.8 5.3 4.2 5.2 Z M7.6 9.3 L16.5 9.4 M7.6 12 L13.4 12"/></symbol>
+      <symbol id="i-crown" viewBox="0 0 24 24"><path d="M3.6 8.2 L7.6 12.4 L12 5.2 L16.4 12.4 L20.6 8 L19.2 18.6 L4.9 18.8 Z M5.2 21 L18.9 20.9"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.2 12.6 C6.4 14.4 8 16.2 9.6 18.6 C12.6 13 15.8 9 20.2 5.4"/></symbol>
+      <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7.2 4.2 L16.8 4.1 L16.4 10.6 C16.2 13.6 14.4 15.2 12 15.2 C9.6 15.2 7.8 13.6 7.6 10.6 Z M7.2 5.8 C4.6 5.6 3.8 6.6 4.2 8.4 C4.6 10.2 6 10.8 7.5 10.8 M16.8 5.8 C19.4 5.6 20.2 6.6 19.8 8.4 C19.4 10.2 18 10.8 16.5 10.8 M12 15.4 L12.1 18.6 M8.2 20.4 L15.9 20.3 M9 20.4 C9.2 19.2 10.4 18.7 12 18.7 C13.6 18.7 14.8 19.2 15 20.4"/></symbol>
+      <symbol id="i-thumb" viewBox="0 0 24 24"><path d="M7.4 10.6 L7.3 20 L4 20.1 L4 10.7 Z M7.6 10.8 C10 9 11.2 6.6 11.4 3.8 C13.2 3.6 14.2 5 13.8 7 L13.4 9.6 L18.6 9.6 C19.8 9.7 20.6 10.6 20.4 11.8 L19.4 18 C19.2 19.2 18.4 20 17.2 20 L7.6 20"/></symbol>
+      <symbol id="i-laugh" viewBox="0 0 24 24"><path d="M12 3 C16.9 2.9 21 7 21 12 C21 17 16.9 21.1 12 21 C7 21.1 2.9 17 3 12 C2.9 7 7 2.9 12 3 Z M7.6 10.4 C8.4 9 9.6 9 10.4 10.4 M13.6 10.4 C14.4 9 15.6 9 16.4 10.4 M7.4 13.6 L16.6 13.5 C16.4 16.8 14.6 18.6 12 18.6 C9.4 18.6 7.6 16.8 7.4 13.6 Z"/></symbol>
+      <symbol id="i-wow" viewBox="0 0 24 24"><path d="M12 3 C16.9 2.9 21 7 21 12 C21 17 16.9 21.1 12 21 C7 21.1 2.9 17 3 12 C2.9 7 7 2.9 12 3 Z M8.8 9.4 h.01 M15.2 9.4 h.01 M12 13.2 C13.4 13.1 14.4 14.2 14.3 15.6 C14.4 17 13.3 18 12 17.9 C10.6 18 9.6 16.9 9.7 15.5 C9.6 14.2 10.7 13.2 12 13.2 Z"/></symbol>
+      <symbol id="i-angry" viewBox="0 0 24 24"><path d="M12 3 C16.9 2.9 21 7 21 12 C21 17 16.9 21.1 12 21 C7 21.1 2.9 17 3 12 C2.9 7 7 2.9 12 3 Z M7 8 L10.6 9.8 M17 8 L13.4 9.8 M9 12 h.01 M15 12 h.01 M8.4 17.4 C10.4 15.2 13.6 15.2 15.6 17.4"/></symbol>
+      <symbol id="i-fire" viewBox="0 0 24 24"><path d="M12.4 2.8 C13 6.4 16.6 8.2 17.6 12.2 C18.6 16.2 16 20.6 12 20.8 C7.8 21 5.2 17.6 6 13.8 C6.4 11.8 7.6 10.4 8.6 9.4 C8.8 11 9.6 12 10.6 12.4 C10.4 8.6 10.8 5.4 12.4 2.8 Z M12 20.4 C10.4 19.8 10 18 10.8 16.6 C11.4 15.6 12.2 15 12.4 14 C13.8 15.2 14.6 16.4 14.4 18 C14.2 19.2 13.2 20.2 12 20.4"/></symbol>
+      <symbol id="i-shush" viewBox="0 0 24 24"><path d="M12 3 C16.9 2.9 21 7 21 12 C21 17 16.9 21.1 12 21 C7 21.1 2.9 17 3 12 C2.9 7 7 2.9 12 3 Z M8.8 9.2 h.01 M15.2 9.2 h.01 M10.8 21 L10.9 13.6 C10.9 12.4 13.1 12.4 13.1 13.6 L13.2 21"/></symbol>
     </defs>
   </svg>
 
@@ -133,9 +170,9 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
       </div>
 
       <div class="lobby-actions">
-        <button id="btn-play" type="button" class="btn btn-primary">🎮 Jogar</button>
-        <button id="btn-create" type="button" class="btn btn-secondary">➕ Criar sala</button>
-        <button id="btn-settings" type="button" class="btn btn-secondary">⚙️ Configurações</button>
+        <button id="btn-play" type="button" class="btn btn-primary"><svg class="ic" aria-hidden="true"><use href="#i-gamepad"/></svg> Jogar</button>
+        <button id="btn-create" type="button" class="btn btn-secondary"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Criar sala</button>
+        <button id="btn-settings" type="button" class="btn btn-secondary"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg> Configurações</button>
       </div>
 
       <p id="lobby-error" class="error-text"></p>
@@ -148,7 +185,7 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
   <!-- ===================== JOGAR: colar o link da sala ===================== -->
   <div id="join-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="join-title">
     <div class="settings-card">
-      <h2 id="join-title">🎮 Jogar</h2>
+      <h2 id="join-title"><svg class="ic" aria-hidden="true"><use href="#i-gamepad"/></svg> Jogar</h2>
       <p class="modal-hint">Digite o código da sala que seu amigo te enviou.</p>
       <input id="input-code" class="modal-input modal-code-input" maxlength="5" placeholder="CÓDIGO DA SALA" autocomplete="off" autocapitalize="characters" spellcheck="false" />
       <p id="join-error" class="error-text"></p>
@@ -162,7 +199,7 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
   <!-- ===================== CRIAR SALA: escolher 1v1 ou 2v2 ===================== -->
   <div id="create-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-title">
     <div class="settings-card">
-      <h2 id="create-title">➕ Criar sala</h2>
+      <h2 id="create-title"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Criar sala</h2>
       <p class="modal-hint">Escolha o modo da partida.</p>
       <div class="create-modes">
         <button id="btn-create-1v1" type="button" class="btn btn-primary" data-mode="1v1">1 vs 1</button>
@@ -176,21 +213,21 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
   <!-- ===================== CONFIGURAÇÕES (abre pela tela inicial) ===================== -->
   <div id="settings-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="settings-card">
-      <h2 id="settings-title">⚙️ Configurações</h2>
+      <h2 id="settings-title"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg> Configurações</h2>
 
       <div class="settings-row">
-        <div class="settings-label"><label for="set-music">🎵 Música</label><span id="set-music-val">50%</span></div>
+        <div class="settings-label"><label for="set-music"><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg> Música</label><span id="set-music-val">50%</span></div>
         <input type="range" id="set-music" class="settings-slider" min="0" max="100" step="1" value="50" />
       </div>
 
       <div class="settings-row">
-        <div class="settings-label"><label for="set-sfx">🔊 Efeitos sonoros (SFX)</label><span id="set-sfx-val">100%</span></div>
+        <div class="settings-label"><label for="set-sfx"><svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg> Efeitos sonoros (SFX)</label><span id="set-sfx-val">100%</span></div>
         <input type="range" id="set-sfx" class="settings-slider" min="0" max="100" step="1" value="100" />
       </div>
 
       <div class="settings-row settings-row-toggle">
         <div class="settings-label-col">
-          <label for="set-colorblind">🎨 Modo daltonismo</label>
+          <label for="set-colorblind"><svg class="ic" aria-hidden="true"><use href="#i-palette"/></svg> Modo daltonismo</label>
           <small>Cores de naipes e times mais fáceis de distinguir.</small>
         </div>
         <label class="switch">
@@ -222,8 +259,8 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
 
         <div class="character-toolbar">
           <div class="editor-tabs">
-            <button type="button" class="editor-tab-btn active" data-tab="desenho">🖌️ Desenho</button>
-            <button type="button" class="editor-tab-btn" data-tab="pele">🎨 Pele</button>
+            <button type="button" class="editor-tab-btn active" data-tab="desenho"><svg class="ic" aria-hidden="true"><use href="#i-brush"/></svg> Desenho</button>
+            <button type="button" class="editor-tab-btn" data-tab="pele"><svg class="ic" aria-hidden="true"><use href="#i-droplet"/></svg> Pele</button>
           </div>
 
           <div class="editor-tab-panel active" data-tab-panel="desenho">
@@ -243,10 +280,10 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
             </div>
 
             <div class="tool-buttons">
-              <button type="button" id="btn-tool-pen" class="tool-btn active">✏️ Caneta</button>
-              <button type="button" id="btn-tool-eraser" class="tool-btn">🧽 Borracha</button>
-              <button type="button" id="btn-character-undo" class="tool-btn">↩️ Desfazer</button>
-              <button type="button" id="btn-character-clear" class="tool-btn">🗑️ Limpar</button>
+              <button type="button" id="btn-tool-pen" class="tool-btn active"><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg> Caneta</button>
+              <button type="button" id="btn-tool-eraser" class="tool-btn"><svg class="ic" aria-hidden="true"><use href="#i-eraser"/></svg> Borracha</button>
+              <button type="button" id="btn-character-undo" class="tool-btn"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg> Desfazer</button>
+              <button type="button" id="btn-character-clear" class="tool-btn"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg> Limpar</button>
             </div>
           </div>
 
@@ -256,7 +293,7 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
             <div class="skin-presets" id="skin-presets"></div>
           </div>
 
-          <button type="button" id="btn-character-save" class="btn btn-primary character-save-btn">💾 Salvar personagem</button>
+          <button type="button" id="btn-character-save" class="btn btn-primary character-save-btn"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> Salvar personagem</button>
           <p id="character-save-msg" class="character-save-msg"></p>
 
           <button type="button" id="btn-close-character-editor" class="btn btn-ghost character-back-btn">← Voltar</button>
@@ -315,8 +352,8 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
           <img src="assets/logo.png" alt="TruTEC" draggable="false" />
         </button>
         <div id="logo-menu-list" class="logo-menu-list hidden" role="menu">
-          <button id="btn-menu-settings" type="button" class="logo-menu-item" role="menuitem">⚙️ Configurações</button>
-          <button id="btn-exit-room" type="button" class="logo-menu-item logo-menu-danger" role="menuitem">🚪 Sair</button>
+          <button id="btn-menu-settings" type="button" class="logo-menu-item" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg> Configurações</button>
+          <button id="btn-exit-room" type="button" class="logo-menu-item logo-menu-danger" role="menuitem"><svg class="ic" aria-hidden="true"><use href="#i-exit"/></svg> Sair</button>
         </div>
       </div>
 
@@ -350,9 +387,9 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
         <!-- ações (coluna esquerda no desktop / barra embaixo no mobile) -->
         <div class="actions-bar">
           <button class="action-btn" id="btn-truco" data-level="truco">TRUCO</button>
-          <button class="action-btn" id="btn-esconder">🙈 ESCONDER</button>
+          <button class="action-btn" id="btn-esconder"><svg class="ic" aria-hidden="true"><use href="#i-eye-off"/></svg> ESCONDER</button>
           <button class="action-btn danger" id="btn-correr">FUGIR</button>
-          <button class="action-btn icon" id="btn-toggle-chat">💬</button>
+          <button class="action-btn icon" id="btn-toggle-chat" aria-label="Chat"><svg class="ic ic-only" aria-hidden="true"><use href="#i-chat"/></svg></button>
         </div>
 
         <!-- mesa + mão do jogador (centro) -->
@@ -404,15 +441,15 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
 
         <!-- chat (coluna direita no desktop / popup no mobile) -->
         <div id="chat-panel" class="chat-panel hidden">
-          <div class="chat-header">💬 Chat da mesa</div>
+          <div class="chat-header"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg> Chat da mesa</div>
           <div class="chat-messages" id="chat-messages"></div>
           <div class="emoji-row">
-            <button class="emoji-btn">👍</button>
-            <button class="emoji-btn">😂</button>
-            <button class="emoji-btn">😮</button>
-            <button class="emoji-btn">😡</button>
-            <button class="emoji-btn">🔥</button>
-            <button class="emoji-btn">🤫</button>
+            <button class="emoji-btn" data-emoji="👍" aria-label="Joinha"><svg class="ic ic-only" aria-hidden="true"><use href="#i-thumb"/></svg></button>
+            <button class="emoji-btn" data-emoji="😂" aria-label="Rindo"><svg class="ic ic-only" aria-hidden="true"><use href="#i-laugh"/></svg></button>
+            <button class="emoji-btn" data-emoji="😮" aria-label="Surpreso"><svg class="ic ic-only" aria-hidden="true"><use href="#i-wow"/></svg></button>
+            <button class="emoji-btn" data-emoji="😡" aria-label="Bravo"><svg class="ic ic-only" aria-hidden="true"><use href="#i-angry"/></svg></button>
+            <button class="emoji-btn" data-emoji="🔥" aria-label="Fogo"><svg class="ic ic-only" aria-hidden="true"><use href="#i-fire"/></svg></button>
+            <button class="emoji-btn" data-emoji="🤫" aria-label="Silêncio"><svg class="ic ic-only" aria-hidden="true"><use href="#i-shush"/></svg></button>
           </div>
           <div class="chat-input-row">
             <input id="chat-input" maxlength="120" placeholder="Manda a mensagem…" />

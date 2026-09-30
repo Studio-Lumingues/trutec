@@ -2038,3 +2038,38 @@ html.noise-js body::after { display: none; }
 .stats-card .stats-row + .stats-row { margin-top: 0.25rem; }
 .stats-card b { color: var(--gold-bright); font-weight: 800; }
 @media (prefers-reduced-motion: reduce) { .stats-card { transition: none; } }
+
+
+/* --------------------------------------------------------------------
+   ÍCONES HAND DRAWN (substituem os emojis). Traço = cor do texto do
+   elemento onde estão (branco nos fundos escuros; nos botões creme vira
+   escuro junto com o texto, senão sumiria). O tremido vem do filtro
+   #boil-ic, animado pelo boil.js.
+   -------------------------------------------------------------------- */
+.ic {
+  width: 1.2em;
+  height: 1.2em;
+  display: inline-block;
+  vertical-align: -0.24em;
+  margin-right: 0.4em;
+  flex-shrink: 0;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: url(#boil-ic);
+}
+.ic-only { margin-right: 0; }
+
+.emoji-btn { color: var(--cream); line-height: 0; }
+.emoji-btn .ic { width: 1.6em; height: 1.6em; vertical-align: middle; }
+.floating-emoji { color: #fff8f0; line-height: 0; }
+.floating-emoji .ic { width: 2.6rem; height: 2.6rem; stroke-width: 1.8; }
+.mute-btn { display: flex; align-items: center; justify-content: center; }
+.mute-btn .ic { width: 1.35rem; height: 1.35rem; vertical-align: middle; }
+#btn-toggle-chat .ic { width: 1.5em; height: 1.5em; vertical-align: middle; }
+#gameover-title .ic { width: 1.1em; height: 1.1em; stroke-width: 2.2; }
+.wp-name .ic { margin-left: 0.15em; vertical-align: -0.2em; }
+.ready-status .ic { width: 1.05em; height: 1.05em; }

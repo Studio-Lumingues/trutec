@@ -99,6 +99,10 @@ function lobbyErrorSafe(msg) {
   if (el) el.textContent = msg;
 }
 
+// Ícones hand drawn (sprite no index.html). Sempre brancos/da cor do texto.
+const ICON = (name, only) => '<svg class="ic' + (only ? ' ic-only' : '') + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
+// reações: o servidor continua trocando o emoji como texto; aqui só trocamos o desenho
+const EMOJI_ICON = { '👍': 'thumb', '😂': 'laugh', '😮': 'wow', '😡': 'angry', '🔥': 'fire', '🤫': 'shush' };
 const SUIT_SYMBOLS = { ouros: '♦', espadas: '♠', copas: '♥', paus: '♣' };
 const SUIT_COLOR = { ouros: 'red', espadas: 'black', copas: 'red', paus: 'black' };
 
@@ -367,13 +371,13 @@ function getSavedCharacter() {
       saveMsg.textContent = txt;
       setTimeout(() => { if (saveMsg.textContent === txt) saveMsg.textContent = ''; }, ms);
     };
-    if (!myRoomCode) return flash('Personagem salvo! ✅');
+    if (!myRoomCode) return flash('Personagem salvo!');
     if (!socket.connected) return flash('Sem conexão com o servidor. Aguarde reconectar e salve de novo.', 5000);
     saveMsg.textContent = 'Salvando…';
     socket.timeout(6000).emit('update_character', { character: dataUrl }, (err, res) => {
       if (err) return flash('O servidor não respondeu. Ele pode estar acordando ou desatualizado — tente de novo.', 6000);
       if (!res || !res.ok) return flash('Erro ao salvar: ' + ((res && res.error) || 'desconhecido'), 6000);
-      flash('Personagem salvo! ✅');
+      flash('Personagem salvo!');
     });
   });
 
@@ -488,7 +492,7 @@ function playerCardHtml(p, draggable) {
   return `
     <div class="team-card${draggable ? ' team-card-draggable' : ''}" data-seat="${p.seat}">
       <div class="wp-avatar"><img src="${avatarSrc}" alt="" draggable="false" /></div>
-      <span class="wp-name">${escapeHtml(p.name)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' 👑' : ''}</span>
+      <span class="wp-name">${escapeHtml(p.name)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
     </div>
   `;
 }
@@ -542,7 +546,7 @@ function renderClassicList(lobby) {
       row.innerHTML = `
         <div class="wp-avatar"><img src="${avatarSrc}" alt="" draggable="false" /></div>
         <div class="wp-info">
-          <span class="wp-name">${escapeHtml(p.name)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' 👑' : ''}</span>
+          <span class="wp-name">${escapeHtml(p.name)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
           <span class="wp-team">Time ${p.team + 1}</span>
         </div>
       `;
@@ -787,7 +791,7 @@ function renderCharacterReady(players) {
     nm.textContent = p.name + (p.seat === (mySeat !== null ? mySeat : myWaitingSeat) ? ' (você)' : '');
     const st = document.createElement('span');
     st.className = 'ready-status';
-    st.textContent = !p.connected ? 'desconectou' : (p.ready ? '✅ Pronto' : '✏️ Desenhando…');
+    st.innerHTML = !p.connected ? 'desconectou' : (p.ready ? ICON('check') + ' Pronto' : ICON('pencil') + ' Desenhando…');
     info.appendChild(nm);
     info.appendChild(st);
     li.appendChild(img);
@@ -1433,7 +1437,7 @@ socket.on('game_over', ({ winnerTeam, score }) => {
     statsCounted = true; // garante que a partida só conta uma vez
     if (mine) TruStats.addWin(); else TruStats.addLoss();
   }
-  document.getElementById('gameover-title').textContent = mine ? '🏆 Vocês venceram!' : 'Vocês perderam';
+  document.getElementById('gameover-title').innerHTML = mine ? ICON('trophy') + ' Vocês venceram!' : 'Vocês perderam';
   document.getElementById('gameover-sub').textContent = `Placar final: ${score[0]} x ${score[1]}`;
   setTimeout(() => showScreen('screen-gameover'), 400);
 });
@@ -1475,7 +1479,7 @@ socket.on('chat_message', ({ name, text }) => {
 
 document.querySelectorAll('.emoji-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    socket.emit('send_emoji', { emoji: btn.textContent });
+    socket.emit('send_emoji', { emoji: btn.dataset.emoji });
   });
 });
 
@@ -1483,7 +1487,7 @@ socket.on('emoji', ({ seat, emoji }) => {
   const layer = document.getElementById('emoji-layer');
   const el = document.createElement('div');
   el.className = 'floating-emoji';
-  el.textContent = emoji;
+  if (EMOJI_ICON[emoji]) el.innerHTML = ICON(EMOJI_ICON[emoji], true); else el.textContent = emoji;
   const n = latestState ? latestState.players.length : 2;
   const pos = seat !== null && mySeat !== null ? seatOffsetLabel(seat, n) : 'bottom';
   const coords = {

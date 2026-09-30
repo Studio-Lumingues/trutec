@@ -266,7 +266,7 @@
     btn.type = 'button';
     btn.className = 'mute-btn';
     function paint() {
-      btn.textContent = muted ? '🔇' : '🔊';
+      btn.innerHTML = '<svg class="ic ic-only" aria-hidden="true"><use href="#i-' + (muted ? 'volume-off' : 'volume') + '"/></svg>';
       btn.title = muted ? 'Ativar som' : 'Silenciar';
       btn.setAttribute('aria-label', btn.title);
     }
