@@ -1575,9 +1575,10 @@ document.getElementById('btn-correr').addEventListener('click', () => {
 // ------------------------------------------------------------------
 function updateCallOverlay(state) {
   const overlay = document.getElementById('call-overlay');
-  if (!state.pendingCall) { overlay.classList.add('hidden'); return; }
+  if (!state.pendingCall) { overlay.classList.add('hidden'); updatePartnerSignals(state, false); return; }
 
   const myRespond = myTeam === state.pendingCall.respondingTeam;
+  updatePartnerSignals(state, myRespond);
   if (!myRespond) {
     overlay.classList.add('hidden');
     setBanner(`Aguardando resposta do adversário… (${state.pendingCall.level.toUpperCase()})`);
@@ -1590,6 +1591,36 @@ function updateCallOverlay(state) {
   const nextValue = { 3: 6, 6: 9, 9: 12 }[state.pendingCall.value];
   document.getElementById('btn-aumentar-resp').style.display = nextValue ? '' : 'none';
 }
+
+// Sinais pro parceiro: "Vamos!", "Não vamos..." e "Tenho alguma coisa".
+// Só aparecem no 2v2 quando o parceiro é uma pessoa (bot não lê sinal).
+let signalCallKey = null;
+function updatePartnerSignals(state, show) {
+  const box = document.getElementById('partner-signals');
+  if (!box) return;
+  const pc = state.pendingCall;
+  const partner = state.players.find(p => p.team === myTeam && p.seat !== mySeat);
+  const canSignal = !!(show && pc && state.players.length === 4 && partner && !partner.isBot);
+  box.classList.toggle('hidden', !canSignal);
+  const key = pc ? pc.level + ':' + pc.callingTeam : null;
+  if (key !== signalCallKey) { // pedido novo (ou acabou): limpa escolha e mensagem
+    signalCallKey = key;
+    box.querySelectorAll('.ps-btn').forEach(b => b.classList.remove('sent'));
+    document.getElementById('partner-signal-msg').textContent = '';
+  }
+}
+document.querySelectorAll('#partner-signals .ps-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#partner-signals .ps-btn').forEach(b => b.classList.toggle('sent', b === btn));
+    socket.emit('partner_signal', { signal: btn.dataset.signal });
+  });
+});
+socket.on('partner_signal', ({ text, name }) => {
+  const el = document.getElementById('partner-signal-msg');
+  if (!el) return;
+  el.textContent = name + ': ' + text;
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+});
 
 document.getElementById('btn-aceitar').addEventListener('click', () => {
   socket.emit('respond_truco', { action: 'aceitar' });

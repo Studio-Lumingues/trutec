@@ -1103,6 +1103,26 @@ io.on('connection', (socket) => {
     doRespondTruco(r, r.playerBySocket(socket.id), action, tell);
   });
 
+  // Sinal pro parceiro enquanto há um truco pendente contra a dupla.
+  // Só os companheiros de dupla recebem (adversários nunca), e bots são ignorados.
+  const PARTNER_SIGNALS = { vamos: 'Vamos!', nao: 'Não vamos...', algo: 'Tenho alguma coisa' };
+  socket.on('partner_signal', ({ signal } = {}) => {
+    const r = room();
+    if (!r || !r.started || r.gameOver || !r.pendingCall) return;
+    const me = r.playerBySocket(socket.id);
+    if (!me || me.team !== r.pendingCall.respondingTeam) return;
+    const text = PARTNER_SIGNALS[signal];
+    if (!text) return;
+    const now = Date.now();
+    if (me._lastSignalAt && now - me._lastSignalAt < 400) return; // anti-spam
+    me._lastSignalAt = now;
+    r.players.forEach(p => {
+      if (p !== me && p.team === me.team && !p.isBot && p.connected) {
+        io.to(p.id).emit('partner_signal', { signal, text, name: me.name });
+      }
+    });
+  });
+
   socket.on('run_away', () => {
     const r = room();
     if (!r || !r.started || r.gameOver || r.handOver) return;

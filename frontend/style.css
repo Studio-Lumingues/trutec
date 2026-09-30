@@ -2204,3 +2204,23 @@ html.bgfx-js .game-bg { display: none; }
 .team-card:hover .bot-remove-btn, .wp-row:hover .bot-remove-btn { opacity: 1; }
 .bot-remove-btn:hover { background: #c0392b; }
 @media (hover: none) { .bot-remove-btn { opacity: 1; } }
+
+
+/* ==================================================================== */
+/* SINAIS PRO PARCEIRO (2v2) no pedido de truco                          */
+/* ==================================================================== */
+.partner-signals { margin-top: 1rem; padding-top: 0.875rem; border-top: 1px solid rgba(255,255,255,0.15); }
+.partner-signals.hidden { display: none; }
+.ps-label { display: block; font-size: 0.75rem; opacity: 0.75; margin-bottom: 0.5rem; }
+.ps-buttons { display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap; }
+.ps-btn {
+  flex: 1 1 0; min-width: 0; padding: 0.55rem 0.4rem;
+  font: inherit; font-size: 0.8rem; font-weight: 700; color: #fff8f0;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 0.625rem; cursor: pointer; transition: background .15s ease, border-color .15s ease;
+}
+.ps-btn:hover { background: rgba(255,255,255,0.16); }
+.ps-btn.sent { background: rgba(255,255,255,0.22); border-color: #fff8f0; }
+.partner-signal-msg { min-height: 1.4rem; margin-top: 0.6rem; font-size: 0.95rem; font-weight: 700; color: var(--gold-bright); }
+.partner-signal-msg.pop { animation: psPop .35s ease; }
+@keyframes psPop { 0% { transform: scale(.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
