@@ -478,6 +478,11 @@ socket.on('lobby_update', (lobby) => {
   const isHost = myWaitingSeat === 0;
   const canEditTeams = isHost && lobby.mode === '2v2' && !lobby.started;
 
+  // Nunca pode haver mais de 2 jogadores numa dupla: se o servidor mandou um
+  // time lotado, o host corrige na hora (na tela dele) e avisa o servidor
+  // pra mandar o jogador que sobrou pra vaga que está faltando.
+  if (canEditTeams) autoBalanceTeams(lobby);
+
   if (lobby.mode === '2v2') {
     wrap.appendChild(renderTeamsBoard(lobby, canEditTeams));
   } else {
@@ -486,6 +491,27 @@ socket.on('lobby_update', (lobby) => {
 
   updateStartButton(lobby);
 });
+
+const pendingBalance = new Set();
+function autoBalanceTeams(lobby) {
+  const count = [0, 1].map(t => lobby.players.filter(p => p.team === t).length);
+  for (const from of [0, 1]) {
+    const to = 1 - from;
+    while (count[from] > 2 && count[to] < 2) {
+      // quem entrou por último (maior assento) é quem muda; o host nunca sai da dupla dele
+      const cand = lobby.players
+        .filter(p => p.team === from && p.seat !== 0)
+        .sort((a, b) => b.seat - a.seat)[0];
+      if (!cand) break;
+      cand.team = to;
+      count[from]--; count[to]++;
+      const key = cand.seat + ':' + to;
+      if (pendingBalance.has(key)) continue; // já pedido, esperando o servidor
+      pendingBalance.add(key);
+      socket.emit('set_player_team', { seat: cand.seat, team: to }, () => pendingBalance.delete(key));
+    }
+  }
+}
 
 function playerCardHtml(p, draggable) {
   const avatarSrc = p.character || 'assets/personagem.svg';
@@ -688,6 +714,14 @@ function onTeamDragEnd(e) {
     // e só depois confirma com o servidor. Os outros jogadores recebem pelo
     // lobby_update, com o delay normal da rede.
     const targetCol = document.querySelector('.team-column[data-team="' + targetTeam + '"]');
+    if (targetCol && !targetCol.querySelector('.team-slot-empty')) {
+      // dupla cheia (2 jogadores): não troca
+      const errEl = document.getElementById('waiting-error');
+      if (errEl) errEl.textContent = 'Essa dupla já está cheia.';
+      return;
+    }
+    const errEl0 = document.getElementById('waiting-error');
+    if (errEl0) errEl0.textContent = '';
     const moved = moveCardToColumn(sourceEl, targetCol);
     socket.emit('set_player_team', { seat, team: targetTeam }, (res) => {
       if (res && !res.ok) {
