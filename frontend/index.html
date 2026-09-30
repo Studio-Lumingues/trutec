@@ -149,8 +149,8 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
   <div id="join-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="join-title">
     <div class="settings-card">
       <h2 id="join-title">🎮 Jogar</h2>
-      <p class="modal-hint">Cole o link da sala que seu amigo te enviou.</p>
-      <input id="input-link" class="modal-input" placeholder="Cole o link da sala aqui" autocomplete="off" autocapitalize="off" spellcheck="false" />
+      <p class="modal-hint">Digite o código da sala que seu amigo te enviou.</p>
+      <input id="input-code" class="modal-input modal-code-input" maxlength="5" placeholder="CÓDIGO DA SALA" autocomplete="off" autocapitalize="characters" spellcheck="false" />
       <p id="join-error" class="error-text"></p>
       <div class="modal-actions">
         <button id="join-cancel" type="button" class="btn btn-secondary">Voltar</button>
@@ -294,7 +294,7 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
         </button>
       </div>
       <p id="copy-feedback" class="copy-feedback">&nbsp;</p>
-      <p class="tagline">Compartilhe o link com os amigos.</p>
+      <p class="tagline">Compartilhe o código com os amigos.</p>
       <div id="waiting-players" class="waiting-players"></div>
       <p id="waiting-hint" class="waiting-hint">Aguardando jogadores…</p>
       <button id="btn-start-game" class="btn btn-primary hidden" disabled>Iniciar partida</button>

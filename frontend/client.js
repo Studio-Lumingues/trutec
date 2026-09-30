@@ -408,14 +408,14 @@ function lobbyError(msg) {
 // ---- modais da tela inicial (Jogar / Criar sala) ----
 const joinModal = document.getElementById('join-modal');
 const createModal = document.getElementById('create-modal');
-const linkInput = document.getElementById('input-link');
+const codeInput = document.getElementById('input-code');
 
 function openModal(m) { lobbyError(''); m.classList.remove('hidden'); }
 function closeModal(m) { m.classList.add('hidden'); lobbyError(''); }
 
 document.getElementById('btn-play').addEventListener('click', () => {
   openModal(joinModal);
-  linkInput.focus();
+  codeInput.focus();
 });
 document.getElementById('btn-create').addEventListener('click', () => openModal(createModal));
 document.getElementById('join-cancel').addEventListener('click', () => closeModal(joinModal));
@@ -427,19 +427,6 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { closeModal(joinModal); closeModal(createModal); }
 });
 
-// Aceita o link completo (…/?sala=ABCDE) ou só o código
-function extractRoomCode(text) {
-  const t = (text || '').trim();
-  if (!t) return '';
-  const q = t.match(/[?&#](?:sala|room|code|codigo)=([A-Za-z0-9]+)/i);
-  if (q) return q[1].toUpperCase();
-  if (/^https?:\/\//i.test(t) || t.includes('/')) {
-    const last = t.split(/[?#]/)[0].split('/').filter(Boolean).pop() || '';
-    return last.toUpperCase();
-  }
-  return t.toUpperCase();
-}
-
 function enterRoom(res) {
   if (!res.ok) return lobbyError(res.error);
   myRoomCode = res.code;
@@ -450,14 +437,14 @@ function enterRoom(res) {
   showScreen('screen-waiting');
 }
 
-function joinByLink(raw) {
-  const code = extractRoomCode(raw);
-  if (!code) return lobbyError('Cole o link da sala.');
+function joinByCode() {
+  const code = codeInput.value.trim().toUpperCase();
+  if (!code) return lobbyError('Digite o código da sala.');
   myName = currentName();
   socket.emit('join_room', { code, name: myName, character: getSavedCharacter() }, enterRoom);
 }
-document.getElementById('btn-join').addEventListener('click', () => joinByLink(linkInput.value));
-linkInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinByLink(linkInput.value); });
+document.getElementById('btn-join').addEventListener('click', joinByCode);
+codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinByCode(); });
 
 // Criar sala privada: 1v1 ou 2v2
 document.querySelectorAll('.create-modes .btn').forEach((btn) => {
@@ -467,14 +454,6 @@ document.querySelectorAll('.create-modes .btn').forEach((btn) => {
     socket.emit('create_room', { name: myName, mode: myMode, isPublic: false, character: getSavedCharacter() }, enterRoom);
   });
 });
-
-// Abriu um link de sala (?sala=ABCDE): já cai na janela de Jogar com o link preenchido
-(function openFromUrl() {
-  const m = location.search.match(/[?&](?:sala|room)=([A-Za-z0-9]+)/i);
-  if (!m) return;
-  linkInput.value = location.href;
-  openModal(joinModal);
-})();
 
 document.getElementById('btn-leave-waiting').addEventListener('click', () => {
   location.reload();
@@ -720,21 +699,10 @@ document.getElementById('btn-start-game').addEventListener('click', () => {
 });
 
 // ------------------------------------------------------------------
-// Copiar link da sala (leva direto pra janela "Jogar" com o link preenchido)
+// Copiar código da sala
 // ------------------------------------------------------------------
-function roomLink() {
-  const u = new URL(location.href);
-  u.search = '';
-  u.hash = '';
-  u.searchParams.set('sala', currentRoomCodeForCopy);
-  const server = new URLSearchParams(location.search).get('server');
-  if (server) u.searchParams.set('server', server);
-  return u.toString();
-}
-
 function copyRoomCode() {
   if (!currentRoomCodeForCopy) return;
-  const linkText = roomLink();
 
   const done = (ok) => {
     const btn = document.getElementById('btn-copy-code');
@@ -742,7 +710,7 @@ function copyRoomCode() {
     const iconCheck = document.getElementById('icon-check');
     const feedback = document.getElementById('copy-feedback');
     if (!ok) {
-      feedback.textContent = 'Não foi possível copiar o link.';
+      feedback.textContent = 'Não foi possível copiar. Selecione o código manualmente.';
       feedback.classList.add('show');
       setTimeout(() => feedback.classList.remove('show'), 2500);
       return;
@@ -750,7 +718,7 @@ function copyRoomCode() {
     btn.classList.add('copied');
     iconCopy.style.display = 'none';
     iconCheck.style.display = 'block';
-    feedback.textContent = 'Link copiado!';
+    feedback.textContent = 'Código copiado!';
     feedback.classList.add('show');
     setTimeout(() => {
       btn.classList.remove('copied');
@@ -761,12 +729,12 @@ function copyRoomCode() {
   };
 
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(linkText).then(() => done(true)).catch(() => done(false));
+    navigator.clipboard.writeText(currentRoomCodeForCopy).then(() => done(true)).catch(() => done(false));
   } else {
     // Fallback pra contextos sem clipboard API (http, navegadores antigos)
     try {
       const tmp = document.createElement('textarea');
-      tmp.value = linkText;
+      tmp.value = currentRoomCodeForCopy;
       tmp.style.position = 'fixed';
       tmp.style.opacity = '0';
       document.body.appendChild(tmp);

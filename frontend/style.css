@@ -1936,3 +1936,4 @@ body::after {
 .modal-actions .btn { flex: 1; font-size: 1.05rem; }
 .create-modes { display: flex; gap: 0.75rem; margin-bottom: 0.5rem; }
 .create-modes .btn { flex: 1; font-size: 1.3rem; padding: 1.25rem 0.5rem; }
+.modal-code-input { text-align: center; text-transform: uppercase; letter-spacing: 0.1875rem; font-size: 1.3rem; }
