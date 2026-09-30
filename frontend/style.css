@@ -9,9 +9,9 @@
 }
 
 :root {
-  --felt-dark: #081b40;
-  --felt: #123a7a;
-  --felt-light: #2f5fc9;
+  --felt-dark: #150a33;
+  --felt: #33196a;
+  --felt-light: #5a37b0;
   --felt-highlight: #fff8f033;
   --gold: #fff8f0;
   --gold-bright: #fff8f0;
@@ -25,10 +25,10 @@
   --danger-bright: #ff3b30;
   --panel: #050401;
   --wood: #040303;
-  --wood-light: #2541b2;
-  --wood-brown: #6b4326;
-  --wood-brown-light: #8a5a34;
-  --wood-brown-dark: #402710;
+  --wood-light: #a78bfa;
+  --wood-brown: #351d69;
+  --wood-brown-light: #5b3a9e;
+  --wood-brown-dark: #170c34;
   --radius: 0.875rem;
   font-family: 'Coolvetica', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
@@ -782,7 +782,7 @@ button { font-family: inherit; cursor: pointer; }
   color: var(--gold-bright);
   text-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.6);
 }
-.score-vs { color: #2541b2; font-size: 1.3rem; font-weight: 800; }
+.score-vs { color: var(--wood-light); font-size: 1.3rem; font-weight: 800; }
 
 .stake-box {
   background: var(--gold);
@@ -918,7 +918,7 @@ button { font-family: inherit; cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle, var(--felt-dark) 0%, rgba(8,27,64,0) 72%);
+  background: radial-gradient(circle, var(--felt-dark) 0%, rgba(21,10,51,0) 72%);
   box-shadow: 0 0 0 1rem rgba(0,0,0,0.22), 0 0.375rem 0.875rem rgba(0,0,0,0.5);
   transition: box-shadow .25s ease, transform .25s ease;
 }
@@ -1207,7 +1207,7 @@ button { font-family: inherit; cursor: pointer; }
   gap: 0.375rem;
   padding: 0.5rem 0.625rem 0.75rem;
   overflow-x: auto;
-  background: linear-gradient(rgba(45,26,13,0.45), rgba(45,26,13,0.35));
+  background: linear-gradient(rgba(10,6,18,0.6), rgba(10,6,18,0.45));
   border-top: 1px solid rgba(255,255,255,0.2);
 }
 .action-btn {
@@ -1351,7 +1351,7 @@ button { font-family: inherit; cursor: pointer; }
   right: 0.625rem; bottom: 5.625rem;
   width: min(17.5rem, calc(100vw - 1.25rem));
   height: 20rem;
-  background: rgba(12,24,33,0.97);
+  background: rgba(16,9,34,0.97);
   border: 1px solid rgba(255,255,255,0.4);
   border-radius: 0.875rem;
   display: flex;
