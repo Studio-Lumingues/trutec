@@ -1718,8 +1718,8 @@ button { font-family: inherit; cursor: pointer; }
    ZOOM NO BONECO DOS OUTROS JOGADORES (hover no desktop / toque no celular)
    - O avatar cresce a partir da borda voltada pra fora da mesa, então nunca
      sai da tela nem "invade" o outro lado do feltro.
-   - Mão e nome descem junto (mesma distância que o avatar cresceu), então
-     nada fica coberto: dá pra ler o nome enquanto olha o desenho.
+   - Mão e nome somem em fade out enquanto o boneco está ampliado e
+     voltam (fade in) quando o zoom termina.
    - Curva com leve "overshoot" (mola) na entrada, saída mais rápida.
    - O tremido (boil) e o wiggle da vez continuam; o wiggle pausa no zoom
      pra não brigar com o movimento.
@@ -1736,7 +1736,7 @@ button { font-family: inherit; cursor: pointer; }
 .seat-figure { cursor: zoom-in; }
 .seat .opp-hand,
 .seat .seat-name {
-  transition: transform .22s cubic-bezier(.3, 0, .4, 1);
+  transition: opacity .22s ease;
 }
 
 /* estado ampliado (hover ou .is-zoomed via toque) */
@@ -1748,7 +1748,7 @@ button { font-family: inherit; cursor: pointer; }
     0 1.1rem 2rem rgba(0,0,0,0.6);
 }
 .seat .seat-figure.is-zoomed ~ .opp-hand,
-.seat .seat-figure.is-zoomed ~ .seat-name { transform: translateY(var(--zoom-push)); }
+.seat .seat-figure.is-zoomed ~ .seat-name { opacity: 0; pointer-events: none; }
 .seat .seat-figure.is-zoomed .seat-avatar-img { animation: none; }
 .seat:has(.seat-figure.is-zoomed) { z-index: 30; }
 
@@ -1765,7 +1765,7 @@ button { font-family: inherit; cursor: pointer; }
       0 1.1rem 2rem rgba(0,0,0,0.6);
   }
   .seat .seat-figure:hover ~ .opp-hand,
-  .seat .seat-figure:hover ~ .seat-name { transform: translateY(var(--zoom-push)); transition-delay: .05s; }
+  .seat .seat-figure:hover ~ .seat-name { opacity: 0; pointer-events: none; transition-delay: .05s; }
   .seat .seat-figure:hover .seat-avatar-img { animation: none; }
   .seat:hover { z-index: 30; }
 }
