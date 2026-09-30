@@ -356,9 +356,9 @@ button { font-family: inherit; cursor: pointer; }
 .tagline { color: #fff8f0; margin: 0 0 1.625rem; font-size: 1.15rem; }
 
 /* ---------------------------------------------------------------- */
-/* Transição de entrada na partida: bolinha branca cresce cobrindo    */
-/* a tela, mostra a logo TruTEC, e depois tudo dá fade out revelando  */
-/* a mesa (que já está pronta por baixo, esperando).                 */
+/* Transição de entrada na partida: a tela escurece (fade in), fica    */
+/* preta com um círculo hand drawn girando (duas barras) e depois     */
+/* faz fade out revelando a mesa. Tempos: ver playGameIntro no JS.    */
 /* ---------------------------------------------------------------- */
 .game-intro {
   position: fixed;
@@ -367,56 +367,39 @@ button { font-family: inherit; cursor: pointer; }
   display: none;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  background: #000;
+  opacity: 0;
   pointer-events: none;
 }
-.game-intro.active { display: flex; }
-
-.game-intro-circle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 160vmax;
-  height: 160vmax;
-  margin-top: -80vmax;
-  margin-left: -80vmax;
-  border-radius: 50%;
-  background: #fff8f0;
-  transform: scale(0);
-  transform-origin: center;
+.game-intro.active {
+  display: flex;
+  animation: introFadeIn 0.4s ease forwards;
 }
-.game-intro.active .game-intro-circle {
-  animation: introCircleGrow 0.6s cubic-bezier(.2, .85, .3, 1) forwards;
-}
-
-@keyframes introCircleGrow {
-  from { transform: scale(0); }
-  to   { transform: scale(1); }
-}
-
-.game-intro-logo {
-  position: relative;
-  z-index: 1;
-  width: min(23.75rem, 68vw);
-  opacity: 0;
-  transform: scale(0.82);
-  filter: drop-shadow(0 0.5rem 1.25rem rgba(0,0,0,0.18));
-}
-.game-intro.active .game-intro-logo {
-  animation: introLogoIn 0.45s cubic-bezier(.2, .85, .3, 1) 0.55s forwards;
-}
-
-@keyframes introLogoIn {
-  to { opacity: 1; transform: scale(1); }
-}
-
 .game-intro.fade-out {
   animation: introFadeOut 0.5s ease forwards;
 }
+@keyframes introFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes introFadeOut { from { opacity: 1; } to { opacity: 0; } }
 
-@keyframes introFadeOut {
-  to { opacity: 0; }
+/* círculo "hand drawn": duas barras (arcos) girando, com o tremido do boil.js */
+.game-intro-spinner {
+  width: clamp(4.5rem, 12vmin, 7rem);
+  height: clamp(4.5rem, 12vmin, 7rem);
+  filter: url(#boil-sm);
 }
+.game-intro-spinner svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: introSpin 1s linear infinite;
+}
+.game-intro-spinner path {
+  fill: none;
+  stroke: #fff8f0;
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+@keyframes introSpin { to { transform: rotate(360deg); } }
 
 @keyframes floatLogo {
   0%   { transform: translateY(0); }

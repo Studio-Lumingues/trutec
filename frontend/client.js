@@ -840,23 +840,41 @@ socket.on('character_all_ready', () => {
   const timerEl = document.getElementById('character-phase-timer');
   });
 
+// Transição pra partida: a tela escurece (fade in), fica preta com o círculo
+// girando e depois some (fade out) revelando a mesa.
+const INTRO_FADE_IN_MS = 400;   // igual a introFadeIn no CSS
+const INTRO_HOLD_MS = 1200;     // tempo na tela preta
+const INTRO_FADE_OUT_MS = 500;  // igual a introFadeOut no CSS
 function playGameIntro() {
   const overlay = document.getElementById('game-intro');
   if (!overlay) return;
   overlay.classList.remove('fade-out');
   overlay.classList.add('active');
-
-  // dá tempo da bolinha crescer + a logo aparecer, segura um instante,
-  // e então esconde tudo revelando a mesa (que já está pronta por baixo)
   setTimeout(() => {
     overlay.classList.add('fade-out');
     setTimeout(() => {
       overlay.classList.remove('active', 'fade-out');
-    }, 550);
-  }, 2000);
+    }, INTRO_FADE_OUT_MS + 50);
+  }, INTRO_FADE_IN_MS + INTRO_HOLD_MS);
 }
 
+let gameStartPending = false;   // esperando a tela ficar preta pra montar a mesa
+let pendingStateUpdate = null;  // state_update que chegou nesse meio-tempo
+
 socket.on('game_start', (state) => {
+  if (matchIntroPlayed) return beginMatch(state, 0);
+  matchIntroPlayed = true;
+  gameStartPending = true;
+  playGameIntro();
+  // só troca de tela quando estiver tudo preto, sem mostrar a mesa piscando
+  setTimeout(() => {
+    gameStartPending = false;
+    beginMatch(state, INTRO_HOLD_MS + INTRO_FADE_OUT_MS + 100);
+    if (pendingStateUpdate) { const s = pendingStateUpdate; pendingStateUpdate = null; renderState(s); }
+  }, INTRO_FADE_IN_MS);
+});
+
+function beginMatch(state, dealDelay) {
   if (window.GameAudio) GameAudio.setMatchStarted(true);
   statsCounted = false;
   lastCallSoundKey = null;
@@ -881,14 +899,10 @@ socket.on('game_start', (state) => {
   handWrapEl.innerHTML = '';
   handWrapEl.dataset.mao = '';
   const myHandCount = (state.players.find(p => p.seat === mySeat).hand || []).length;
-  startDealAnimation(myHandCount, matchIntroPlayed ? 0 : 2100);
+  startDealAnimation(myHandCount, dealDelay);
   renderState(state);
   setBanner('');
-  if (!matchIntroPlayed) {
-    matchIntroPlayed = true;
-    playGameIntro();
-  }
-});
+}
 
 function setupSeatLabels(state) {
   // score-a mostra SEMPRE o placar do meu time e score-b o do adversário
@@ -913,6 +927,7 @@ function playCallSoundFromState(state) {
 }
 
 socket.on('state_update', (state) => {
+  if (gameStartPending) { pendingStateUpdate = state; return; }
   playCallSoundFromState(state);
   renderState(state);
 });
