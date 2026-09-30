@@ -453,7 +453,11 @@ class Room {
     if (levelValue !== expectedNext) return { error: 'Chamada inválida neste momento.' };
 
     const respondingTeam = team === 0 ? 1 : 0;
-    this.pendingCall = { level, value: levelValue, callingTeam: team, respondingTeam, previousStake: this.stake };
+    // Quem responde é só o adversário à direita de quem pediu (na tela: o boneco da direita).
+    // Se quiser inverter o lado, troque n - 1 por 1.
+    const n = this.players.length;
+    const respondingSeat = (seat + n - 1) % n;
+    this.pendingCall = { level, value: levelValue, callingTeam: team, respondingTeam, callingSeat: seat, respondingSeat, previousStake: this.stake };
     return { ok: true };
   }
 
@@ -461,6 +465,12 @@ class Room {
     if (!this.pendingCall) return { error: 'Não há pedido pendente.' };
     const team = this.seatTeam(seat);
     if (team !== this.pendingCall.respondingTeam) return { error: 'Você não pode responder a esta chamada.' };
+    const rs = this.pendingCall.respondingSeat;
+    if (rs !== undefined && rs !== seat) {
+      const rp = this.playerBySeat(rs);
+      // só libera o parceiro se o jogador pedido não estiver mais na sala
+      if (rp && !rp.isBot && rp.connected) return { error: 'Quem responde é o jogador pedido. Use os sinais pro seu parceiro.' };
+    }
 
     if (action === 'aceitar') {
       this.stake = this.pendingCall.value;
@@ -482,9 +492,11 @@ class Room {
       const newCallingTeam = team;
       const newRespondingTeam = this.pendingCall.callingTeam;
       const nextLevel = NEXT_CALL_NAME[this.pendingCall.value];
+      const nPl = this.players.length;
       this.pendingCall = {
         level: nextLevel, value: nextValue, callingTeam: newCallingTeam,
-        respondingTeam: newRespondingTeam, previousStake: this.pendingCall.value
+        respondingTeam: newRespondingTeam, callingSeat: seat, respondingSeat: (seat + nPl - 1) % nPl,
+        previousStake: this.pendingCall.value
       };
       return { ok: true, reraised: true };
     }
@@ -586,8 +598,10 @@ function botPendingActor(r) {
   if (!r.started || r.gameOver || r.handOver || r.busy || !humansConnected(r)) return null;
   const pc = r.pendingCall;
   if (pc) {
+    const rp = pc.respondingSeat !== undefined ? r.playerBySeat(pc.respondingSeat) : null;
+    if (rp) return rp.isBot ? rp : null; // o jogador pedido responde (humano ou bot)
     const resp = r.players.filter(p => p.team === pc.respondingTeam);
-    if (resp.some(p => !p.isBot && p.connected)) return null; // um humano da dupla responde
+    if (resp.some(p => !p.isBot && p.connected)) return null;
     return resp.find(p => p.isBot) || null;
   }
   const cur = r.playerBySeat(r.turnSeat);
@@ -1110,17 +1124,16 @@ io.on('connection', (socket) => {
     const r = room();
     if (!r || !r.started || r.gameOver || !r.pendingCall) return;
     const me = r.playerBySocket(socket.id);
-    if (!me || me.team !== r.pendingCall.respondingTeam) return;
+    if (!me || me.team !== r.pendingCall.respondingTeam || me.seat === r.pendingCall.respondingSeat) return;
     const text = PARTNER_SIGNALS[signal];
     if (!text) return;
     const now = Date.now();
     if (me._lastSignalAt && now - me._lastSignalAt < 400) return; // anti-spam
     me._lastSignalAt = now;
-    r.players.forEach(p => {
-      if (p !== me && p.team === me.team && !p.isBot && p.connected) {
-        io.to(p.id).emit('partner_signal', { signal, text, name: me.name });
-      }
-    });
+    const target = r.playerBySeat(r.pendingCall.respondingSeat);
+    if (target && target !== me && !target.isBot && target.connected) {
+      io.to(target.id).emit('partner_signal', { signal, text, name: me.name });
+    }
   });
 
   socket.on('run_away', () => {

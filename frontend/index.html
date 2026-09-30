@@ -477,11 +477,13 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
           </div>
           <!-- sinais pro parceiro (2v2): só o parceiro vê -->
           <div id="partner-signals" class="partner-signals hidden">
-            <span class="ps-label">Avise seu parceiro (só ele vê):</span>
-            <div class="ps-buttons">
-              <button type="button" class="ps-btn" data-signal="vamos">Vamos!</button>
-              <button type="button" class="ps-btn" data-signal="nao">Não vamos...</button>
-              <button type="button" class="ps-btn" data-signal="algo">Tenho alguma coisa</button>
+            <div id="ps-send">
+              <span class="ps-label">Avise seu parceiro (só ele vê):</span>
+              <div class="ps-buttons">
+                <button type="button" class="ps-btn" data-signal="vamos">Vamos!</button>
+                <button type="button" class="ps-btn" data-signal="nao">Não vamos...</button>
+                <button type="button" class="ps-btn" data-signal="algo">Tenho alguma coisa</button>
+              </div>
             </div>
             <div id="partner-signal-msg" class="partner-signal-msg"></div>
           </div>

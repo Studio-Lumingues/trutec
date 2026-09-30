@@ -1575,34 +1575,53 @@ document.getElementById('btn-correr').addEventListener('click', () => {
 // ------------------------------------------------------------------
 function updateCallOverlay(state) {
   const overlay = document.getElementById('call-overlay');
-  if (!state.pendingCall) { overlay.classList.add('hidden'); updatePartnerSignals(state, false); return; }
+  const pc = state.pendingCall;
+  if (!pc) { overlay.classList.add('hidden'); updatePartnerSignals(state, null); return; }
 
-  const myRespond = myTeam === state.pendingCall.respondingTeam;
-  updatePartnerSignals(state, myRespond);
-  if (!myRespond) {
+  const teamResponds = myTeam === pc.respondingTeam;
+  if (!teamResponds) {
     overlay.classList.add('hidden');
-    setBanner(`Aguardando resposta do adversário… (${state.pendingCall.level.toUpperCase()})`);
+    updatePartnerSignals(state, null);
+    setBanner(`Aguardando resposta do adversário… (${pc.level.toUpperCase()})`);
     return;
   }
-  overlay.classList.remove('hidden');
-  document.getElementById('call-text').textContent =
-    `Pediram ${state.pendingCall.level.toUpperCase()}! Valendo ${state.pendingCall.value} pontos. O que você faz?`;
 
-  const nextValue = { 3: 6, 6: 9, 9: 12 }[state.pendingCall.value];
-  document.getElementById('btn-aumentar-resp').style.display = nextValue ? '' : 'none';
+  // Só o jogador pedido (adversário à direita de quem pediu) responde.
+  // O parceiro dele só pode mandar sinal.
+  const iAmResponder = pc.respondingSeat === undefined || pc.respondingSeat === mySeat;
+  const partner = state.players.find(p => p.team === myTeam && p.seat !== mySeat);
+  const humanPartner = state.players.length === 4 && !!partner && !partner.isBot;
+  const buttons = overlay.querySelector('.call-buttons');
+
+  overlay.classList.remove('hidden');
+  overlay.classList.toggle('call-overlay-partner', !iAmResponder);
+  buttons.style.display = iAmResponder ? '' : 'none';
+
+  if (iAmResponder) {
+    document.getElementById('call-text').textContent =
+      `Pediram ${pc.level.toUpperCase()}! Valendo ${pc.value} pontos. O que você faz?`;
+    const nextValue = { 3: 6, 6: 9, 9: 12 }[pc.value];
+    document.getElementById('btn-aumentar-resp').style.display = nextValue ? '' : 'none';
+    updatePartnerSignals(state, humanPartner ? 'receive' : null);
+  } else {
+    const who = state.players.find(p => p.seat === pc.respondingSeat);
+    document.getElementById('call-text').textContent =
+      `Pediram ${pc.level.toUpperCase()} pra ${who ? who.name : 'seu parceiro'}! Só ele responde: dê um sinal.`;
+    updatePartnerSignals(state, humanPartner ? 'send' : null);
+  }
 }
 
 // Sinais pro parceiro: "Vamos!", "Não vamos..." e "Tenho alguma coisa".
-// Só aparecem no 2v2 quando o parceiro é uma pessoa (bot não lê sinal).
+// mode: 'send' (parceiro do jogador pedido: escolhe o sinal), 'receive'
+// (jogador pedido: só vê o sinal) ou null (escondido; também no bot/1v1).
 let signalCallKey = null;
-function updatePartnerSignals(state, show) {
+function updatePartnerSignals(state, mode) {
   const box = document.getElementById('partner-signals');
   if (!box) return;
   const pc = state.pendingCall;
-  const partner = state.players.find(p => p.team === myTeam && p.seat !== mySeat);
-  const canSignal = !!(show && pc && state.players.length === 4 && partner && !partner.isBot);
-  box.classList.toggle('hidden', !canSignal);
-  const key = pc ? pc.level + ':' + pc.callingTeam : null;
+  box.classList.toggle('hidden', !mode);
+  document.getElementById('ps-send').style.display = mode === 'send' ? '' : 'none';
+  const key = pc ? pc.level + ':' + pc.callingTeam + ':' + pc.callingSeat : null;
   if (key !== signalCallKey) { // pedido novo (ou acabou): limpa escolha e mensagem
     signalCallKey = key;
     box.querySelectorAll('.ps-btn').forEach(b => b.classList.remove('sent'));
