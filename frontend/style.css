@@ -897,7 +897,7 @@ button { font-family: inherit; cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle, var(--felt-dark) 0%, rgba(21,10,51,0) 72%);
+  background: radial-gradient(circle, var(--felt-dark) 0%, rgba(var(--ui-felt-dark,21,10,51),0) 72%);
   box-shadow: 0 0 0 1rem rgba(0,0,0,0.22), 0 0.375rem 0.875rem rgba(0,0,0,0.5);
   transition: box-shadow .25s ease, transform .25s ease;
 }
@@ -1186,7 +1186,7 @@ button { font-family: inherit; cursor: pointer; }
   gap: 0.375rem;
   padding: 0.5rem 0.625rem 0.75rem;
   overflow-x: auto;
-  background: linear-gradient(rgba(10,6,18,0.6), rgba(10,6,18,0.45));
+  background: linear-gradient(rgba(var(--ui-dark,10,6,18),0.6), rgba(var(--ui-dark,10,6,18),0.45));
   border-top: none;
 }
 .action-btn {
@@ -1330,7 +1330,7 @@ button { font-family: inherit; cursor: pointer; }
   right: 0.625rem; bottom: 5.625rem;
   width: min(17.5rem, calc(100vw - 1.25rem));
   height: 20rem;
-  background: rgba(16,9,34,0.97);
+  background: rgba(var(--ui-chat,16,9,34),0.97);
   border: 1px solid rgba(255,255,255,0.4);
   border-radius: 0.875rem;
   display: flex;
@@ -1990,7 +1990,7 @@ html.noise-js body::after { display: none; }
 
 /* a barra do topo acompanha o tom do fundo novo */
 #screen-game .hud-top {
-  background: linear-gradient(rgba(10,6,18,0.7), rgba(10,6,18,0.55));
+  background: linear-gradient(rgba(var(--ui-dark,10,6,18),0.7), rgba(var(--ui-dark,10,6,18),0.55));
   border-bottom: none;
 }
 
@@ -2005,7 +2005,7 @@ html.noise-js body::after { display: none; }
   min-width: 9rem;
   padding: 0.625rem 0.875rem;
   border-radius: 0.75rem;
-  background: rgba(10, 6, 18, 0.92);
+  background: rgba(var(--ui-dark,10,6,18), 0.92);
   border: 1px solid rgba(255, 248, 240, 0.28);
   box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.55);
   color: var(--cream);
@@ -2128,6 +2128,8 @@ html.bgfx-js body { background-color: transparent; }
 html.bgfx-js .game-bg { display: none; }
 /* temas com fundo próprio (ex.: Onça Cinza): o fundo em CSS cobre o canvas WebGL na partida */
 html.bgfx-js.theme-bg .game-bg { display: block; }
+/* tema cinza: o granulado também fica sem cor */
+html[data-theme="onca"] .noise-layer { filter: grayscale(1); }
 
 
 /* ==================================================================== */

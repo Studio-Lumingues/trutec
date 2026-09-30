@@ -13,6 +13,8 @@
 // ============================================================================
 (function () {
   var KEY = 'trutec-theme';
+  var FPS = 8;                        // igual ao boil.js
+  var SEEDS = [1, 4, 7, 2, 9, 5];     // igual ao boil.js
 
   var THEMES = [
     {
@@ -37,7 +39,9 @@
       vars: {
         '--felt-dark': '#1f1f1f', '--felt': '#4a4a4a', '--felt-light': '#7c7c7c',
         '--wood-light': '#c2c2c2', '--wood-brown': '#3a3a3a',
-        '--wood-brown-light': '#666666', '--wood-brown-dark': '#181818'
+        '--wood-brown-light': '#666666', '--wood-brown-dark': '#181818',
+        // tudo que era roxo escuro fixo no CSS (barras, chat, cards) vira cinza neutro
+        '--ui-dark': '14,14,14', '--ui-chat': '22,22,22', '--ui-felt-dark': '31,31,31'
       },
       // fundo em estampa de onça (gerado em SVG, sem imagem externa)
       bg: { kind: 'leopard', base: '#8d8d8d', mid: '#6a6a6a', dark: '#141414', tileW: 16, tileH: 24 },
@@ -75,12 +79,18 @@
 
   // Estampa de onça que se repete sem emenda: rosetas (anéis abertos de manchas
   // escuras com miolo mais claro) em fileiras alternadas + pintinhas soltas.
-  function leopardSvg(bg) {
+  function leopardSvg(bg, frame) {
     var W = 240, H = 360, r = rng(11);
+    var jr = rng(SEEDS[frame % SEEDS.length] * 97 + 13);   // tremido "hand drawn" deste quadro
     var mids = [], darks = [];
 
     function put(list, cx, cy, rx, ry, rot) {
-      var ext = Math.max(rx, ry) + 1;
+      // cada mancha treme um pouco de um quadro pro outro (as cópias das bordas
+      // recebem o mesmo tremido, então a estampa continua sem emenda)
+      cx += (jr() - 0.5) * 3.6; cy += (jr() - 0.5) * 3.6;
+      rot += (jr() - 0.5) * 16;
+      var sc = 1 + (jr() - 0.5) * 0.12; rx *= sc; ry *= 1 + (jr() - 0.5) * 0.12;
+      var ext = Math.max(rx, ry) + 3;
       var xs = [0], ys = [0];
       if (cx - ext < 0) xs.push(W); if (cx + ext > W) xs.push(-W);
       if (cy - ext < 0) ys.push(H); if (cy + ext > H) ys.push(-H);
@@ -122,10 +132,12 @@
   }
 
   // Fundo do tema: losangos (Drácula) ou estampa própria (`bg`).
-  function bgImage(t) {
+  function bgImage(t, frame) {
     var svg;
     if (t.bg && t.bg.kind === 'leopard') {
-      svg = t._svg || (t._svg = leopardSvg(t.bg));
+      frame = (frame || 0) % SEEDS.length;
+      t._svg = t._svg || [];
+      svg = t._svg[frame] || (t._svg[frame] = leopardSvg(t.bg, frame));
     } else {
       var p = t.preview;
       svg = "<svg xmlns='http://www.w3.org/2000/svg' width='70' height='120' viewBox='0 0 70 120'>" +
@@ -135,6 +147,30 @@
         "<polygon points='0,60 35,120 0,180 -35,120'/><polygon points='70,60 105,120 70,180 35,120'/></g></svg>";
     }
     return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+  }
+
+  // "Hand drawn": troca a estampa entre alguns quadros (cada um com as manchas
+  // levemente deslocadas), no mesmo ritmo do boil.js. As imagens são geradas e
+  // pré-carregadas antes, então a troca não pisca.
+  var boilTimer = null, boilN = 0;
+  function stopBoil() {
+    if (boilTimer) clearInterval(boilTimer);
+    boilTimer = null;
+    var g = document.querySelector('.game-bg');
+    if (g) g.style.removeProperty('--theme-bg-image');
+  }
+  function startBoil(t) {
+    stopBoil();
+    for (var i = 0; i < SEEDS.length; i++) { var im = new Image(); im.src = bgImage(t, i).slice(5, -2); }
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    boilTimer = setInterval(function () {
+      if (document.hidden) return;
+      var url = bgImage(t, ++boilN);
+      var g = document.querySelector('.game-bg');
+      if (g) g.style.setProperty('--theme-bg-image', url);
+      var sl = document.querySelectorAll('.tb-slide[data-boil]');
+      for (var k = 0; k < sl.length; k++) sl[k].style.backgroundImage = url;
+    }, 1000 / FPS);
   }
 
   function setVar(k, v) { root.style.setProperty(k, v); appliedVars.push(k); }
@@ -152,6 +188,7 @@
       setVar('--theme-tile-h', t.bg.tileH + 'rem');
     }
     root.classList.toggle('theme-bg', !!t.bg);
+    if (t.bg) startBoil(t); else stopBoil();
     root.setAttribute('data-theme', t.id);
     try { localStorage.setItem(KEY, t.id); } catch (e) {}
     return t;
@@ -175,7 +212,7 @@
     var p = t.preview;
     var size = t.bg ? ';--tile-w:' + t.bg.tileW + 'rem;background-size:' + t.bg.tileW + 'rem ' + t.bg.tileH + 'rem' : '';
     return '<div class="tb" style="background:' + p.bga + '">' +
-      '<div class="tb-slide" style="background-image:' + bgImage(t).replace(/"/g, '&quot;') + size + '"></div>' +
+      '<div class="tb-slide"' + (t.bg ? ' data-boil="1"' : '') + ' style="background-image:' + bgImage(t).replace(/"/g, '&quot;') + size + '"></div>' +
     '</div>';
   }
 
