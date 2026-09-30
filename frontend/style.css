@@ -2095,6 +2095,13 @@ html.leaving-intro .game-intro { display: flex; opacity: 1; }
 .waiting-spinner.hidden,
 .waiting-hint.hidden { display: none; }
 
-/* botão "voltar" só com a seta pra esquerda (sala de espera e editor) */
+/* botão "voltar" só com a seta pra esquerda (sala de espera e editor).
+   Traço grosso com passadas duplas + tremido "boil" mais forte = hand drawn.
+   Tamanho: mude o width/height abaixo. */
 .btn-back-arrow { text-decoration: none; line-height: 0; }
-.btn-back-arrow .ic { width: 2rem; height: 2rem; stroke-width: 2.2; margin: 0; vertical-align: middle; }
+.btn-back-arrow .ic {
+  width: 3.6rem; height: 3.6rem;
+  stroke-width: 1.7;
+  margin: 0; vertical-align: middle;
+  filter: url(#boil-sm);
+}
