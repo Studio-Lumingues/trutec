@@ -1917,3 +1917,22 @@ body::after {
 .colorblind .card.suit-copas,  .colorblind .mini-card.suit-copas,  .colorblind .pv-suit.suit-copas  { color: #D55E00; } /* ♥ laranja */
 .colorblind .card.suit-espadas,.colorblind .mini-card.suit-espadas,.colorblind .pv-suit.suit-espadas{ color: #0a0a0a; } /* ♠ preto */
 .colorblind .card.suit-paus,   .colorblind .mini-card.suit-paus,   .colorblind .pv-suit.suit-paus   { color: #007a5a; } /* ♣ verde-azulado */
+
+
+/* ---- Tela inicial enxuta: 3 botões + modais Jogar / Criar sala ---- */
+.lobby-actions .btn { width: 100%; }
+.modal-hint { margin: -0.5rem 0 1rem; text-align: center; opacity: 0.75; font-size: 1rem; }
+.modal-input {
+  width: 100%;
+  padding: 0.75rem 0.875rem;
+  border-radius: 0.625rem;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.25);
+  color: var(--cream);
+  font-size: 1.05rem;
+}
+.settings-card .error-text { text-align: center; }
+.modal-actions { display: flex; gap: 0.625rem; margin-top: 0.75rem; }
+.modal-actions .btn { flex: 1; font-size: 1.05rem; }
+.create-modes { display: flex; gap: 0.75rem; margin-bottom: 0.5rem; }
+.create-modes .btn { flex: 1; font-size: 1.3rem; padding: 1.25rem 0.5rem; }

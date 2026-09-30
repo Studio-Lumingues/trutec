@@ -132,30 +132,44 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
         <input id="input-name" maxlength="16" placeholder="Ex: Zé da Manilha" />
       </div>
 
-      <div class="mode-toggle">
-        <button class="mode-btn active" data-mode="1v1">1 vs 1</button>
-        <button class="mode-btn" data-mode="2v2">2 vs 2</button>
-      </div>
-
       <div class="lobby-actions">
-        <button id="btn-quick" class="btn btn-primary">🎲 Jogar agora (sala pública)</button>
-
-        <div class="divider"><span>ou</span></div>
-
-        <button id="btn-create" class="btn btn-secondary">➕ Criar sala privada</button>
-
-        <div class="join-row">
-          <input id="input-code" maxlength="5" placeholder="CÓDIGO DA SALA" />
-          <button id="btn-join" class="btn btn-secondary">Entrar</button>
-        </div>
+        <button id="btn-play" type="button" class="btn btn-primary">🎮 Jogar</button>
+        <button id="btn-create" type="button" class="btn btn-secondary">➕ Criar sala</button>
+        <button id="btn-settings" type="button" class="btn btn-secondary">⚙️ Configurações</button>
       </div>
 
       <p id="lobby-error" class="error-text"></p>
-
-      <button id="btn-settings" type="button" class="btn btn-ghost settings-open-btn">⚙️ Configurações</button>
     </div>
     </div>
 
+    </div>
+  </div>
+
+  <!-- ===================== JOGAR: colar o link da sala ===================== -->
+  <div id="join-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="join-title">
+    <div class="settings-card">
+      <h2 id="join-title">🎮 Jogar</h2>
+      <p class="modal-hint">Cole o link da sala que seu amigo te enviou.</p>
+      <input id="input-link" class="modal-input" placeholder="Cole o link da sala aqui" autocomplete="off" autocapitalize="off" spellcheck="false" />
+      <p id="join-error" class="error-text"></p>
+      <div class="modal-actions">
+        <button id="join-cancel" type="button" class="btn btn-secondary">Voltar</button>
+        <button id="btn-join" type="button" class="btn btn-primary">Entrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CRIAR SALA: escolher 1v1 ou 2v2 ===================== -->
+  <div id="create-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-title">
+    <div class="settings-card">
+      <h2 id="create-title">➕ Criar sala</h2>
+      <p class="modal-hint">Escolha o modo da partida.</p>
+      <div class="create-modes">
+        <button id="btn-create-1v1" type="button" class="btn btn-primary" data-mode="1v1">1 vs 1</button>
+        <button id="btn-create-2v2" type="button" class="btn btn-primary" data-mode="2v2">2 vs 2</button>
+      </div>
+      <p id="create-error" class="error-text"></p>
+      <button id="create-cancel" type="button" class="btn btn-secondary settings-close-btn">Voltar</button>
     </div>
   </div>
 
@@ -280,7 +294,7 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
         </button>
       </div>
       <p id="copy-feedback" class="copy-feedback">&nbsp;</p>
-      <p class="tagline">Compartilhe o código com os amigos.</p>
+      <p class="tagline">Compartilhe o link com os amigos.</p>
       <div id="waiting-players" class="waiting-players"></div>
       <p id="waiting-hint" class="waiting-hint">Aguardando jogadores…</p>
       <button id="btn-start-game" class="btn btn-primary hidden" disabled>Iniciar partida</button>
