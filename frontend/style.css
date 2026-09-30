@@ -2105,3 +2105,24 @@ html.leaving-intro .game-intro { display: flex; opacity: 1; }
   margin: 0; vertical-align: middle;
   filter: url(#boil-sm);
 }
+
+
+/* ==================================================================== */
+/* DISTORÇÃO RGB NO FUNDO (bg-distort.js)                                */
+/* O canvas WebGL desenha o fundo (listras / losangos) atrás de tudo.    */
+/* A classe .bgfx-js só entra depois do 1º quadro desenhado; sem WebGL   */
+/* ela nunca entra e o fundo em CSS original continua valendo.           */
+/* ==================================================================== */
+.bgfx-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  display: block;
+}
+html.bgfx-js,
+html.bgfx-js body { background-image: none; animation: none; }
+html.bgfx-js body { background-color: transparent; }
+html.bgfx-js .game-bg { display: none; }
