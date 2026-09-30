@@ -727,6 +727,10 @@ button { font-family: inherit; cursor: pointer; }
   padding: 0.75rem;
   border-radius: 1.875rem;
   overflow: hidden;
+  /* o overflow:hidden sozinho falha nos cantos por causa da perspectiva 3D do
+     feltro (aparecia um quadradinho mais claro atrás da curva); o clip-path
+     recorta a moldura de verdade */
+  clip-path: inset(0 round 1.875rem);
 }
 .game-layout .actions-bar { order: 2; }
 .game-layout .chat-panel { order: 3; }
