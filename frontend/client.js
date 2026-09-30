@@ -656,6 +656,7 @@ function onTeamDragEnd(e) {
 function updateStartButton(lobby) {
   const btn = document.getElementById('btn-start-game');
   const hint = document.getElementById('waiting-hint');
+  const spinner = document.getElementById('waiting-spinner');
   const isHost = myWaitingSeat === 0;
 
   btn.classList.toggle('hidden', !isHost);
@@ -678,7 +679,7 @@ function updateStartButton(lobby) {
     } else if (!teamsReady) {
       hint.textContent = 'Toque em "Dupla 1" / "Dupla 2" pra montar os times (2 jogadores em cada).';
     } else {
-      hint.textContent = 'A mesa está completa — quando quiser, aperte em Iniciar partida.';
+      hint.textContent = ''; // mesa completa: o botão Iniciar partida já diz tudo
     }
   } else {
     if (!full) {
@@ -686,9 +687,15 @@ function updateStartButton(lobby) {
     } else if (!teamsReady) {
       hint.textContent = 'O host está montando as duplas…';
     } else {
-      hint.textContent = 'A mesa está completa. Aguardando o host iniciar a partida…';
+      hint.textContent = ''; // sem texto: só o círculo girando
     }
   }
+
+  // quem não é host, com a mesa completa e as duplas prontas, só vê o círculo
+  // girando (o mesmo das telas de carregamento) enquanto espera o host iniciar
+  const waitingForHost = !isHost && full && teamsReady;
+  if (spinner) spinner.classList.toggle('hidden', !waitingForHost);
+  hint.classList.toggle('hidden', !hint.textContent);
 }
 
 document.getElementById('btn-start-game').addEventListener('click', () => {

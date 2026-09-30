@@ -333,6 +333,13 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       <p class="tagline">Compartilhe o código com os amigos.</p>
       <div id="waiting-players" class="waiting-players"></div>
       <p id="waiting-hint" class="waiting-hint">Aguardando jogadores…</p>
+      <!-- só pra quem não é host, com a mesa completa: círculo girando igual ao das telas de carregamento -->
+      <div id="waiting-spinner" class="game-intro-spinner waiting-spinner hidden" aria-label="Aguardando o host iniciar">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M50 12 A38 38 0 0 1 86 38" />
+          <path d="M50 88 A38 38 0 0 1 14 62" />
+        </svg>
+      </div>
       <button id="btn-start-game" class="btn btn-primary hidden" disabled>Iniciar partida</button>
       <p id="waiting-error" class="error-text"></p>
       <button id="btn-leave-waiting" class="btn btn-ghost">Voltar</button>
@@ -508,6 +515,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="audio.js?v=4"></script>
   <script src="settings.js"></script>
   <script src="favicon.js"></script>
-  <script src="client.js?v=4"></script>
+  <script src="client.js?v=5"></script>
 </body>
 </html>

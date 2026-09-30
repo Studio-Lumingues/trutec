@@ -2088,3 +2088,9 @@ html.noise-js body::after { display: none; }
 /* ---- Saindo da partida: a tela de carregamento já nasce cobrindo tudo depois
    do reload (classe posta pelo <head>), e o client.js faz o fade out. ---- */
 html.leaving-intro .game-intro { display: flex; opacity: 1; }
+
+/* círculo girando da sala de espera (quem não é host): reaproveita o visual
+   do .game-intro-spinner, só que num tamanho menor e centralizado no card */
+.waiting-spinner { width: 3.5rem; height: 3.5rem; margin: 0.75rem auto 0.5rem; }
+.waiting-spinner.hidden,
+.waiting-hint.hidden { display: none; }
