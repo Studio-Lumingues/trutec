@@ -93,9 +93,10 @@
 
   var currentScreen = 'screen-lobby';
   var matchStarted = false;
+  var drawingDone = false; // o desenho acabou (todos prontos): música em fade out
 
   function wantsMusic() {
-    if (muted || matchStarted) return false;
+    if (muted || matchStarted || drawingDone) return false;
     return MUSIC_SCREENS.indexOf(currentScreen) !== -1;
   }
 
@@ -245,6 +246,7 @@
 
   // Autoplay: tenta de novo na primeira interação
   function unlock() {
+    if (ctx && ctx.state === 'suspended') ctx.resume().catch(function () {});
     if (wantsMusic()) startMusic();
   }
   // só estes eventos contam como "interação" para liberar áudio nos navegadores
@@ -262,7 +264,13 @@
 
   // ---- API usada pelo client.js ----
   window.GameAudio = {
-    onScreen: function (id) { currentScreen = id; sync(); },
+    onScreen: function (id) {
+      // voltou a abrir o editor vindo de outra tela: rearma a música
+      if (id === 'screen-character-editor' && currentScreen !== id) { drawingDone = false; matchStarted = false; }
+      currentScreen = id; sync();
+    },
+    // chamado quando todo mundo ficou pronto / a partida vai começar: fade out
+    endMusic: function () { drawingDone = true; sync(); },
     setMatchStarted: function (v) { matchStarted = !!v; sync(); },
     playCall: function (level) {
       if (muted || sfxLevel <= 0) return;
@@ -324,5 +332,6 @@
 
   // Tenta tocar a música já ao abrir a página (se o navegador barrar, o
   // primeiro clique/toque acima resolve)
+  loadMusic(); // já baixa/decodifica agora, pra tocar na hora de desenhar
   sync();
 })();
