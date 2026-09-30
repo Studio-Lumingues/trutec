@@ -67,9 +67,6 @@
   var elTitle = document.getElementById('themes-title');
   var elTag = document.getElementById('theme-tagline');
   var elPreview = document.getElementById('theme-preview');
-  var elPalette = document.getElementById('theme-palette');
-  var elCount = document.getElementById('theme-count');
-  var btnUse = document.getElementById('theme-use');
   var btnPrev = document.getElementById('theme-prev');
   var btnNext = document.getElementById('theme-next');
 
@@ -97,15 +94,6 @@
     elTitle.textContent = t.name;
     elTag.textContent = t.tagline;
     elPreview.innerHTML = previewHtml(t);
-    elPalette.innerHTML = t.palette.map(function (c) {
-      return '<span class="tp-sw"><i style="background:' + c[1] + '"></i>' + c[0] + '</span>';
-    }).join('');
-    var many = THEMES.length > 1;
-    btnPrev.hidden = btnNext.hidden = !many;
-    elCount.textContent = (index + 1) + ' de ' + THEMES.length + (many ? '' : ' · mais temas em breve');
-    var isCurrent = currentId() === t.id;
-    btnUse.disabled = isCurrent;
-    btnUse.textContent = isCurrent ? 'Tema atual' : 'Usar este tema';
   }
 
   function open() {
@@ -114,7 +102,6 @@
     render();
     if (settingsModal) settingsModal.classList.add('hidden');
     modal.classList.remove('hidden');
-    btnUse.focus();
   }
   function backToSettings() {
     modal.classList.add('hidden');
@@ -122,7 +109,6 @@
   }
 
   tabOpen.addEventListener('click', open);
-  document.getElementById('themes-close').addEventListener('click', backToSettings);
   document.getElementById('tab-geral-back').addEventListener('click', backToSettings);
   modal.addEventListener('click', function (e) { if (e.target === modal) backToSettings(); });
   document.addEventListener('keydown', function (e) {
@@ -130,7 +116,8 @@
   });
   btnPrev.addEventListener('click', function () { index = (index - 1 + THEMES.length) % THEMES.length; render(); });
   btnNext.addEventListener('click', function () { index = (index + 1) % THEMES.length; render(); });
-  btnUse.addEventListener('click', function () { apply(THEMES[index].id); render(); });
+  // clicar no papel de parede aplica o tema mostrado (útil quando houver mais de um)
+  elPreview.addEventListener('click', function () { apply(THEMES[index].id); });
 
   window.openThemes = open;
 })();

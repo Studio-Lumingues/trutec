@@ -259,20 +259,14 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
         <button type="button" id="tab-geral-back" class="settings-tab" role="tab" aria-selected="false">Geral</button>
         <button type="button" class="settings-tab active" role="tab" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-palette"/></svg> Temas</button>
       </div>
-      <div class="themes-head">
-        <button type="button" id="theme-prev" class="theme-nav" aria-label="Tema anterior" hidden>‹</button>
-        <div class="themes-heading">
-          <h2 id="themes-title">Drácula</h2>
-          <p id="theme-tagline"></p>
-        </div>
-        <button type="button" id="theme-next" class="theme-nav" aria-label="Próximo tema" hidden>›</button>
+      <div class="themes-heading">
+        <h2 id="themes-title">Drácula</h2>
+        <p id="theme-tagline"></p>
       </div>
-      <div class="theme-preview-wrap"><div id="theme-preview" class="theme-preview"></div></div>
-      <div id="theme-palette" class="theme-palette"></div>
-      <div class="themes-foot">
-        <span id="theme-count" class="theme-count"></span>
-        <button id="theme-use" type="button" class="btn btn-primary">Tema atual</button>
-        <button id="themes-close" type="button" class="btn btn-secondary">Voltar</button>
+      <div class="theme-preview-wrap">
+        <div id="theme-preview" class="theme-preview"></div>
+        <button type="button" id="theme-prev" class="theme-nav theme-nav-prev" aria-label="Tema anterior"><svg class="ic ic-only" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
+        <button type="button" id="theme-next" class="theme-nav theme-nav-next" aria-label="Próximo tema"><svg class="ic ic-only" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
       </div>
     </div>
   </div>
