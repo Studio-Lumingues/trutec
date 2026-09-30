@@ -2057,3 +2057,30 @@ html.noise-js body::after { display: none; }
 /* botão de configurações da tela inicial: só o ícone da engrenagem */
 .btn-icon-only .ic { width: 1.6em; height: 1.6em; vertical-align: middle; }
 .btn-icon-only { line-height: 0; }
+
+/* ---- Card de desenho: cai de cima com efeito elástico e centraliza rápido ----
+   Toda vez que a tela do editor abre (.active), o card despenca do topo, bate
+   no centro (leve amassadinha) e balança até assentar. Duração: 0.65s.
+   Pra ficar mais rápido/lento, mude o 0.65s; pra mais/menos "elástico", mexa
+   nos translateY dos passos 58%-86%. */
+@keyframes editorDrop {
+  0%   { transform: translateY(-115vh) scale(1, 1);       opacity: 1; animation-timing-function: cubic-bezier(0.55, 0, 0.9, 0.5); }
+  44%  { transform: translateY(0) scale(0.98, 1.04);       animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1); }
+  58%  { transform: translateY(2.6vh) scale(1.03, 0.95);   animation-timing-function: ease-in-out; }
+  72%  { transform: translateY(-1.3vh) scale(0.99, 1.02);  animation-timing-function: ease-in-out; }
+  86%  { transform: translateY(0.5vh) scale(1.005, 0.99);  animation-timing-function: ease-in-out; }
+  100% { transform: translateY(0) scale(1, 1);             opacity: 1; }
+}
+/* durante a queda o overshoot pra baixo não pode criar barra de rolagem */
+@keyframes editorNoScroll { 0%, 100% { overflow-y: hidden; } }
+
+#screen-character-editor.active .character-panel {
+  animation: editorDrop 0.65s both;
+  transform-origin: 50% 100%;
+}
+#screen-character-editor.active { animation: editorNoScroll 0.7s; }
+
+@media (prefers-reduced-motion: reduce) {
+  #screen-character-editor.active .character-panel,
+  #screen-character-editor.active { animation: none; }
+}
