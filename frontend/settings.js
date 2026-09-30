@@ -34,7 +34,7 @@
   }
 
   function open() { syncFromState(); modal.classList.remove('hidden'); closeBtn.focus(); }
-  function close() { modal.classList.add('hidden'); openBtn.focus(); }
+  function close() { modal.classList.add('hidden'); if (openBtn.offsetParent) openBtn.focus(); }
 
   openBtn.addEventListener('click', open);
   closeBtn.addEventListener('click', close);
@@ -62,5 +62,6 @@
     try { localStorage.setItem('trutec-colorblind', cb.checked ? '1' : '0'); } catch (e) {}
   });
 
+  window.openSettings = open;
   syncFromState();
 })();

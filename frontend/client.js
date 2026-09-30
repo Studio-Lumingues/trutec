@@ -1303,7 +1303,23 @@ document.getElementById('btn-correr').addEventListener('click', () => {
   const open = () => { modal.classList.remove('hidden'); document.getElementById('exit-modal-stay').focus(); };
   const close = () => modal.classList.add('hidden');
 
-  document.getElementById('btn-exit-room').addEventListener('click', open);
+  // menu da logo (Configurações / Sair)
+  const logoMenu = document.getElementById('logo-menu');
+  const trigger = document.getElementById('btn-logo-menu');
+  const list = document.getElementById('logo-menu-list');
+  const setMenu = (show) => {
+    list.classList.toggle('hidden', !show);
+    trigger.setAttribute('aria-expanded', show ? 'true' : 'false');
+  };
+  trigger.addEventListener('click', () => setMenu(list.classList.contains('hidden')));
+  document.addEventListener('click', (e) => { if (!logoMenu.contains(e.target)) setMenu(false); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
+  document.getElementById('btn-menu-settings').addEventListener('click', () => {
+    setMenu(false);
+    if (window.openSettings) window.openSettings();
+  });
+
+  document.getElementById('btn-exit-room').addEventListener('click', () => { setMenu(false); open(); });
   document.getElementById('exit-modal-stay').addEventListener('click', close);
   document.getElementById('exit-modal-leave').addEventListener('click', () => location.reload());
   // clicar fora da caixinha ou apertar Esc também cancela

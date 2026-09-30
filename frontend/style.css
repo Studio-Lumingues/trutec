@@ -1231,22 +1231,44 @@ button { font-family: inherit; cursor: pointer; }
 .action-btn.esconder-active { outline: 0.125rem solid var(--gold-bright); box-shadow: 0 0 0.75rem rgba(255,255,255,0.7); }
 
 /* botão de sair da sala — fixo no canto superior esquerdo da tela (logo TruTEC) */
-.exit-room-btn {
-  position: fixed;
-  top: 0.75rem;
-  left: 0.75rem;
-  z-index: 12;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.25);
-  border-radius: 0.625rem;
-  padding: 0.375rem 0.625rem;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 0.1875rem 0 rgba(0,0,0,0.3), 0 0.375rem 0.875rem rgba(0,0,0,0.35);
+/* logo no canto: só a imagem (sem aparência de botão); clicar abre o menu */
+.logo-menu { position: fixed; top: 0.75rem; left: 0.75rem; z-index: 12; }
+.logo-menu-trigger {
+  display: block;
+  padding: 0; margin: 0;
+  background: none; border: none; box-shadow: none; border-radius: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition: filter .15s, transform .1s;
 }
-.exit-room-btn img { display: block; height: 2.25rem; width: auto; pointer-events: none; }
-.exit-room-btn:hover { filter: brightness(1.12); }
-.exit-room-btn:active { transform: translateY(1px); }
+.logo-menu-trigger img { display: block; height: 2.25rem; width: auto; pointer-events: none; }
+.logo-menu-trigger:hover { filter: brightness(1.12); }
+.logo-menu-trigger:active { transform: translateY(1px); }
+.logo-menu-trigger:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 4px; border-radius: 0.25rem; }
+
+.logo-menu-list {
+  position: absolute; top: calc(100% + 0.5rem); left: 0;
+  min-width: 11rem;
+  display: flex; flex-direction: column; gap: 0.25rem;
+  padding: 0.375rem;
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 0.75rem;
+  box-shadow: 0 0.25rem 0 rgba(0,0,0,0.35), 0 0.75rem 1.5rem rgba(0,0,0,0.5);
+  animation: exitPop .16s cubic-bezier(.2,1.3,.4,1);
+  transform-origin: top left;
+}
+.logo-menu-list.hidden { display: none; }
+.logo-menu-item {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border: none; border-radius: 0.5rem;
+  background: transparent; color: var(--cream);
+  font-size: 1.05rem; font-weight: 700; cursor: pointer;
+  font-family: inherit;
+}
+.logo-menu-item:hover, .logo-menu-item:focus-visible { background: rgba(255,255,255,0.12); outline: none; }
+.logo-menu-danger { color: var(--danger-bright); }
 
 /* caixa de confirmação de saída */
 .exit-modal {
@@ -1560,7 +1582,7 @@ button { font-family: inherit; cursor: pointer; }
   .vira-label { font-size: 0.8rem; }
   .stake-box { font-size: 0.95rem; }
   .action-btn { font-size: 1.05rem; }
-  .exit-room-btn img { height: 1.875rem; }
+  .logo-menu-trigger img { height: 1.875rem; }
   .chat-header { font-size: 0.95rem; }
   .chat-messages { font-size: 0.95rem; }
   .chat-input-row input { font-size: 1rem; }

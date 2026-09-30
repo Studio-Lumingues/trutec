@@ -307,10 +307,16 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
   <div id="screen-game" class="screen">
     <div class="table-wrap">
 
-      <!-- sair da sala: canto superior esquerdo da tela -->
-      <button id="btn-exit-room" class="exit-room-btn" title="Sair da sala" aria-label="Sair da sala">
-        <img src="assets/logo.png" alt="TruTEC" draggable="false" />
-      </button>
+      <!-- logo com menu (Configurações / Sair): canto superior esquerdo da tela -->
+      <div id="logo-menu" class="logo-menu">
+        <button id="btn-logo-menu" type="button" class="logo-menu-trigger" aria-haspopup="menu" aria-expanded="false" aria-label="Menu">
+          <img src="assets/logo.png" alt="TruTEC" draggable="false" />
+        </button>
+        <div id="logo-menu-list" class="logo-menu-list hidden" role="menu">
+          <button id="btn-menu-settings" type="button" class="logo-menu-item" role="menuitem">⚙️ Configurações</button>
+          <button id="btn-exit-room" type="button" class="logo-menu-item logo-menu-danger" role="menuitem">🚪 Sair</button>
+        </div>
+      </div>
 
       <!-- confirmação de saída -->
       <div id="exit-modal" class="exit-modal hidden" role="dialog" aria-modal="true" aria-labelledby="exit-modal-title">
