@@ -1594,7 +1594,6 @@ function updateCallOverlay(state) {
   const buttons = overlay.querySelector('.call-buttons');
 
   overlay.classList.remove('hidden');
-  overlay.classList.toggle('call-overlay-partner', !iAmResponder);
   buttons.style.display = iAmResponder ? '' : 'none';
 
   if (iAmResponder) {
