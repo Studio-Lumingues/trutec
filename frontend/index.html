@@ -59,8 +59,6 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
   <!-- Ícones hand drawn (traço branco = currentColor). Uso: <svg class="ic"><use href="#i-nome"/></svg> -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
     <defs>
-      <symbol id="i-gamepad" viewBox="0 0 24 24"><path d="M7 8 C4.6 8.2 3 12 2.8 15.4 C2.7 17.4 3.7 18.5 5.2 18.3 C6.6 18.1 7.5 16.4 8.8 15.2 L15.3 15.3 C16.6 16.5 17.5 18.2 19 18.4 C20.4 18.5 21.4 17.3 21.2 15.5 C21 12 19.4 8.2 17 8 C15 7.9 9.6 7.7 7 8 Z M8 10.6 L8.1 13.4 M6.7 12 L9.4 12.1 M15.6 11.2 h.01 M17.7 12.8 h.01"/></symbol>
-      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4.5 C12.1 8 11.8 15.5 12 19.6 M4.3 12.2 C8.5 11.9 15.3 12.1 19.7 11.8"/></symbol>
       <symbol id="i-gear" viewBox="0 0 24 24"><path d="M18.6 10.7 L21.3 10.9 L21.2 12.8 L18.6 13.2 L17.9 15.7 L19.4 18.1 L17.9 19.6 L15.8 17.5 L13.2 18.6 L12.9 21.7 L10.9 21.5 L10.5 18.4 L8.1 17.8 L6.0 19.4 L4.6 17.9 L6.2 16.0 L4.9 13.6 L2.6 13.1 L2.7 10.8 L5.3 10.6 L5.9 8.1 L4.5 6.0 L6.1 4.4 L8.0 6.3 L10.8 5.2 L10.9 2.6 L13.0 2.7 L13.2 5.5 L15.7 6.3 L18.0 4.3 L19.6 6.2 L17.8 8.1 Z M12 9.3 C13.6 9.1 14.9 10.4 14.8 12 C14.9 13.6 13.5 14.9 12 14.8 C10.4 14.9 9.1 13.6 9.2 12 C9.1 10.5 10.5 9.3 12 9.3 Z"/></symbol>
       <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 17.5 C9 19 7.6 20 6.2 19.6 C4.8 19.2 4.6 17.4 5.8 16.6 C7 15.8 8.6 16.2 9.1 17.3 L9.3 5.6 L18.6 4 L18.5 15.4 M18.5 15.5 C18.6 17 17.2 18 15.8 17.7 C14.4 17.3 14.2 15.6 15.4 14.8 C16.6 14.1 18.2 14.5 18.5 15.6 M9.3 9 L18.5 7.4"/></symbol>
       <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9.6 L8 9.4 L12.6 5.6 L12.4 18.4 L8 14.6 L4.1 14.5 Z M15.6 9.2 C16.9 10.6 16.9 13.4 15.6 14.8 M18.3 6.8 C21 9.4 21 14.6 18.4 17.3"/></symbol>
@@ -170,9 +168,9 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
       </div>
 
       <div class="lobby-actions">
-        <button id="btn-play" type="button" class="btn btn-primary"><svg class="ic" aria-hidden="true"><use href="#i-gamepad"/></svg> Jogar</button>
-        <button id="btn-create" type="button" class="btn btn-secondary"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Criar sala</button>
-        <button id="btn-settings" type="button" class="btn btn-secondary"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg> Configurações</button>
+        <button id="btn-play" type="button" class="btn btn-primary">Jogar</button>
+        <button id="btn-create" type="button" class="btn btn-secondary">Criar sala</button>
+        <button id="btn-settings" type="button" class="btn btn-secondary btn-icon-only" aria-label="Configurações" title="Configurações"><svg class="ic ic-only" aria-hidden="true"><use href="#i-gear"/></svg></button>
       </div>
 
       <p id="lobby-error" class="error-text"></p>
@@ -185,7 +183,7 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
   <!-- ===================== JOGAR: colar o link da sala ===================== -->
   <div id="join-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="join-title">
     <div class="settings-card">
-      <h2 id="join-title"><svg class="ic" aria-hidden="true"><use href="#i-gamepad"/></svg> Jogar</h2>
+      <h2 id="join-title">Jogar</h2>
       <p class="modal-hint">Digite o código da sala que seu amigo te enviou.</p>
       <input id="input-code" class="modal-input modal-code-input" maxlength="5" placeholder="CÓDIGO DA SALA" autocomplete="off" autocapitalize="characters" spellcheck="false" />
       <p id="join-error" class="error-text"></p>
@@ -199,7 +197,7 @@ try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentEl
   <!-- ===================== CRIAR SALA: escolher 1v1 ou 2v2 ===================== -->
   <div id="create-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-title">
     <div class="settings-card">
-      <h2 id="create-title"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> Criar sala</h2>
+      <h2 id="create-title">Criar sala</h2>
       <p class="modal-hint">Escolha o modo da partida.</p>
       <div class="create-modes">
         <button id="btn-create-1v1" type="button" class="btn btn-primary" data-mode="1v1">1 vs 1</button>
