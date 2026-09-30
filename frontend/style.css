@@ -1975,3 +1975,48 @@ body::after {
 .create-modes { display: flex; gap: 0.75rem; margin-bottom: 0.5rem; }
 .create-modes .btn { flex: 1; font-size: 1.3rem; padding: 1.25rem 0.5rem; }
 .modal-code-input { text-align: center; text-transform: uppercase; letter-spacing: 0.1875rem; font-size: 1.3rem; }
+
+
+/* ==================================================================== */
+/* FUNDO DA PARTIDA: losangos (arlequim) escuros deslizando pro lado       */
+/* Fica dentro do #screen-game, então só aparece durante a partida (o      */
+/* lobby e as outras telas continuam com o fundo de listras).             */
+/* Cores: preto-arroxeado + roxo bem escuro (nada de preto puro).          */
+/* Pra mudar: troque --gbg-a / --gbg-b aqui e as duas cores dentro do      */
+/* SVG do background-image (%230a0612 e %23231046).                        */
+/* ==================================================================== */
+.game-bg {
+  --tile-w: 7rem;
+  --tile-h: 12rem;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #0a0612;
+}
+.game-bg::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: calc(var(--tile-w) * -1);
+  width: calc(100% + var(--tile-w));
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='120' viewBox='0 0 70 120'%3E%3Crect width='70' height='120' fill='%23231046'/%3E%3Cg fill='%230a0612'%3E%3Cpolygon points='0,-60 35,0 0,60 -35,0'/%3E%3Cpolygon points='70,-60 105,0 70,60 35,0'/%3E%3Cpolygon points='0,60 35,120 0,180 -35,120'/%3E%3Cpolygon points='70,60 105,120 70,180 35,120'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: var(--tile-w) var(--tile-h);
+  animation: gameBgSlide 8s linear infinite; /* menor = mais rápido */
+  will-change: transform;
+}
+/* anda exatamente 1 losango de largura: o loop é perfeito, sem "pulo" */
+@keyframes gameBgSlide {
+  from { transform: translateX(0); }
+  to   { transform: translateX(var(--tile-w)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-bg::before { animation: none; }
+}
+
+/* a barra do topo acompanha o tom do fundo novo */
+#screen-game .hud-top {
+  background: linear-gradient(rgba(10,6,18,0.7), rgba(10,6,18,0.55));
+  border-bottom-color: rgba(255,255,255,0.14);
+}
