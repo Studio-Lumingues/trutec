@@ -44,10 +44,10 @@
         '--ui-dark': '14,14,14', '--ui-chat': '22,22,22', '--ui-felt-dark': '31,31,31'
       },
       // fundo em estampa de onça (gerado em SVG, sem imagem externa)
-      bg: { kind: 'leopard', base: '#8d8d8d', mid: '#6a6a6a', dark: '#141414', tileW: 16, tileH: 24 },
-      preview: { bga: '#8d8d8d', bgb: '#8d8d8d', accent: '#c2c2c2', cream: '#fff8f0' },
+      bg: { kind: 'leopard', base: '#474747', mid: '#333333', dark: '#0a0a0a', tileW: 16, tileH: 24 },
+      preview: { bga: '#474747', bgb: '#474747', accent: '#c2c2c2', cream: '#fff8f0' },
       palette: [
-        ['Fundo', '#8d8d8d'], ['Miolo', '#6a6a6a'], ['Mancha', '#141414'],
+        ['Fundo', '#474747'], ['Miolo', '#333333'], ['Mancha', '#0a0a0a'],
         ['Feltro', '#4a4a4a'], ['Realce', '#c2c2c2'], ['Creme', '#fff8f0']
       ]
     }
