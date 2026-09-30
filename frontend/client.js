@@ -1232,10 +1232,17 @@ function withOptimistic(state) {
   });
 }
 
+// Primeira rodada da mão = eu ainda não joguei nenhuma carta (mão cheia, 3 cartas).
+// Nela não pode esconder a carta.
+function isFirstRound(state) {
+  const me = state && state.players ? state.players.find(p => p.seat === mySeat) : null;
+  return !!(me && me.hand && me.hand.length >= 3);
+}
+
 function playSelectedCard() {
   if (!selectedCardId) return;
   const cardId = selectedCardId;
-  const hidden = esconderAtivo;
+  const hidden = esconderAtivo && !isFirstRound(latestState);
   socket.emit('play_card', { cardId, hidden }); // manda pro servidor...
   startOptimisticPlay(cardId, hidden);          // ...e já mostra na tela, sem esperar resposta
   selectedCardId = null;
@@ -1244,6 +1251,7 @@ function playSelectedCard() {
 }
 
 document.getElementById('btn-esconder').addEventListener('click', () => {
+  if (isFirstRound(latestState)) return; // não pode esconder na 1ª rodada
   esconderAtivo = !esconderAtivo;
   document.getElementById('btn-esconder').classList.toggle('esconder-active', esconderAtivo);
 });
@@ -1267,7 +1275,14 @@ function updateActionButtons(state) {
   }
 
   document.getElementById('btn-correr').disabled = !isMyTurn || !!state.pendingCall || state.gameOver;
-  document.getElementById('btn-esconder').disabled = !isMyTurn || !!state.pendingCall || state.gameOver;
+  const btnEsconder = document.getElementById('btn-esconder');
+  const firstRound = isFirstRound(state);
+  btnEsconder.disabled = !isMyTurn || !!state.pendingCall || state.gameOver || firstRound;
+  btnEsconder.title = firstRound ? 'Não é possível esconder a carta na primeira rodada' : '';
+  if (firstRound && esconderAtivo) { // desliga o "esconder" que ficou marcado
+    esconderAtivo = false;
+    btnEsconder.classList.remove('esconder-active');
+  }
 }
 
 document.getElementById('btn-truco').addEventListener('click', () => {
