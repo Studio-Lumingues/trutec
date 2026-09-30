@@ -5,7 +5,7 @@
 //   automaticamente (não precisa confirmar).
 // - Pra criar outro tema, copie um objeto de THEMES e troque:
 //     vars    -> variáveis CSS que o tema sobrescreve no :root
-//     bg      -> (opcional) fundo próprio da partida: { kind:'leopard' | 'binary', ... }
+//     bg      -> (opcional) fundo próprio da partida: { kind:'leopard' | 'binary' | 'sea', ... }
 //                Sem `bg`, o tema usa o fundo de losangos (cores em preview.bga/bgb)
 //     preview -> cores usadas só no desenho de exemplo
 //     palette -> as bolinhas de cor do tema
@@ -67,6 +67,24 @@
       palette: [
         ['Fundo', '#000000'], ['Números', '#00ff41'], ['Feltro', '#0b100c'],
         ['Realce', '#1b2c1f'], ['Detalhe', '#00ff41'], ['Creme', '#fff8f0']
+      ]
+    },
+    {
+      id: 'mar',
+      name: 'Ondas do Mar',
+      tagline: 'Maré azul com ondas desenhadas à mão',
+      vars: {
+        '--felt-dark': '#04283f', '--felt': '#0a5478', '--felt-light': '#1a86ad',
+        '--wood-light': '#7fd8ff', '--wood-brown': '#08405e',
+        '--wood-brown-light': '#0f5a82', '--wood-brown-dark': '#031c2d',
+        '--ui-dark': '2,22,38', '--ui-chat': '4,30,48', '--ui-felt-dark': '4,40,63'
+      },
+      // fundo de ondas (camadas de azul com espuma), que balança como desenho à mão
+      bg: { kind: 'sea', base: '#0b4a75', tileW: 32, tileH: 24 },
+      preview: { bga: '#0b4a75', bgb: '#0b4a75', accent: '#7fd8ff', cream: '#fff8f0' },
+      palette: [
+        ['Fundo', '#0b4a75'], ['Onda', '#106da0'], ['Espuma', '#bfe9f5'],
+        ['Feltro', '#0a5478'], ['Realce', '#7fd8ff'], ['Creme', '#fff8f0']
       ]
     }
   ];
@@ -176,13 +194,43 @@
       out.join('') + "</g></svg>";
   }
 
+
+  // Fundo de mar: faixas de ondas em vários tons de azul, cada uma com uma
+  // linha de espuma clara na crista. Repete sem emenda (as ondas têm um número
+  // inteiro de ciclos por tile e o ciclo de cores fecha no fim). A cada quadro
+  // as ondas mudam um pouquinho de fase/altura — o tremido "hand drawn".
+  function seaSvg(bg, frame) {
+    var W = 400, H = 300, rows = 10, gap = H / rows, step = 5;
+    var r = rng(5), jr = rng(SEEDS[frame % SEEDS.length] * 211 + 5);
+    var shades = ['#0b4a75', '#0d5b8a', '#106da0', '#0d5b8a', '#0b4a75'];   // 5 divide 10: fecha o ciclo
+    var out = [];
+    for (var i = -1; i < rows; i++) {
+      var y0 = i * gap + 14, k = (i % 2 === 0) ? 4 : 5;
+      var A = (4 + r() * 2.5) * (1 + (jr() - 0.5) * 0.3);
+      var ph = r() * 6.283 + (jr() - 0.5) * 0.6, ph2 = r() * 6.283 + (jr() - 0.5) * 0.9;
+      var pts = [];
+      for (var x = 0; x <= W; x += step) {
+        var a = x / W * 6.283185;
+        var y = y0 + A * Math.sin(k * a + ph) + A * 0.28 * Math.sin(2 * k * a + ph2);
+        pts.push(f(x) + ',' + f(y));
+      }
+      var curve = 'M' + pts.join(' L');
+      var col = shades[((i % 5) + 5) % 5];
+      out.push("<path d='" + curve + " L" + W + "," + (H + 40) + " L0," + (H + 40) + " Z' fill='" + col + "'/>");
+      out.push("<path d='" + curve + "' fill='none' stroke='#bfe9f5' stroke-opacity='" + (0.35 + r() * 0.25).toFixed(2) +
+               "' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/>");
+    }
+    return "<svg xmlns='http://www.w3.org/2000/svg' width='" + W + "' height='" + H + "' viewBox='0 0 " + W + " " + H + "'>" +
+      "<rect width='" + W + "' height='" + H + "' fill='" + shades[4] + "'/>" + out.join('') + "</svg>";
+  }
+
   // Fundo do tema: losangos (Drácula) ou estampa própria (`bg`).
   function bgImage(t, frame) {
     var svg;
     if (t.bg) {
       frame = (frame || 0) % SEEDS.length;
       t._svg = t._svg || [];
-      svg = t._svg[frame] || (t._svg[frame] = (t.bg.kind === 'binary' ? binarySvg : leopardSvg)(t.bg, frame));
+      svg = t._svg[frame] || (t._svg[frame] = (t.bg.kind === 'binary' ? binarySvg : t.bg.kind === 'sea' ? seaSvg : leopardSvg)(t.bg, frame));
     } else {
       var p = t.preview;
       svg = "<svg xmlns='http://www.w3.org/2000/svg' width='70' height='120' viewBox='0 0 70 120'>" +
