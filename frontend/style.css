@@ -1959,14 +1959,14 @@ html.noise-js body::after { display: none; }
 /* SVG do background-image (%230a0612 e %23231046).                        */
 /* ==================================================================== */
 .game-bg {
-  --tile-w: 7rem;
-  --tile-h: 12rem;
+  --tile-w: var(--theme-tile-w, 7rem);
+  --tile-h: var(--theme-tile-h, 12rem);
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  background: #0a0612;
+  background: var(--theme-bg-color, #0a0612);
 }
 .game-bg::before {
   content: '';
@@ -1974,7 +1974,7 @@ html.noise-js body::after { display: none; }
   top: 0; bottom: 0;
   left: calc(var(--tile-w) * -1);
   width: calc(100% + var(--tile-w));
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='120' viewBox='0 0 70 120'%3E%3Crect width='70' height='120' fill='%23231046'/%3E%3Cg fill='%230a0612'%3E%3Cpolygon points='0,-60 35,0 0,60 -35,0'/%3E%3Cpolygon points='70,-60 105,0 70,60 35,0'/%3E%3Cpolygon points='0,60 35,120 0,180 -35,120'/%3E%3Cpolygon points='70,60 105,120 70,180 35,120'/%3E%3C/g%3E%3C/svg%3E");
+  background-image: var(--theme-bg-image, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='120' viewBox='0 0 70 120'%3E%3Crect width='70' height='120' fill='%23231046'/%3E%3Cg fill='%230a0612'%3E%3Cpolygon points='0,-60 35,0 0,60 -35,0'/%3E%3Cpolygon points='70,-60 105,0 70,60 35,0'/%3E%3Cpolygon points='0,60 35,120 0,180 -35,120'/%3E%3Cpolygon points='70,60 105,120 70,180 35,120'/%3E%3C/g%3E%3C/svg%3E"));
   background-size: var(--tile-w) var(--tile-h);
   animation: gameBgSlide 8s linear infinite; /* menor = mais rápido */
   will-change: transform;
@@ -2126,6 +2126,8 @@ html.bgfx-js,
 html.bgfx-js body { background-image: none; animation: none; }
 html.bgfx-js body { background-color: transparent; }
 html.bgfx-js .game-bg { display: none; }
+/* temas com fundo próprio (ex.: Onça Cinza): o fundo em CSS cobre o canvas WebGL na partida */
+html.bgfx-js.theme-bg .game-bg { display: block; }
 
 
 /* ==================================================================== */
@@ -2271,6 +2273,12 @@ html.bgfx-js .game-bg { display: none; }
 .theme-nav-prev:hover { transform: translateY(-50%) translateX(-0.2rem); }
 .theme-nav-next:hover { transform: translateY(-50%) translateX(0.2rem); }
 .theme-nav:active { transform: translateY(-50%) scale(0.92); }
+
+/* botão Selecionar / Sair, bem no meio embaixo */
+.theme-select-btn {
+  position: absolute; left: 0; right: 0; bottom: 1.5rem; margin: 0 auto;
+  width: max-content; min-width: 12rem; z-index: 2; cursor: pointer;
+}
 
 /* ---- o exemplo: o fundo REAL do tema, animado (losangos deslizando) ---- */
 .tb {
