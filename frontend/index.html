@@ -8,7 +8,7 @@
 <!-- ícone estático (reserva); o favicon.js troca por quadros animados -->
 <link rel="icon" type="image/png" href="assets/personagem.png" />
 <link rel="apple-touch-icon" href="assets/personagem.png" />
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css?v=2" />
 <script>
 try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentElement.classList.add('colorblind'); } catch (e) {}
 try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documentElement.classList.add('leaving-intro'); } catch (e) {}
@@ -391,6 +391,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
           <div class="editor-tabs">
             <button type="button" class="editor-tab-btn active" data-tab="desenho"><svg class="ic" aria-hidden="true"><use href="#i-brush"/></svg> Desenho</button>
             <button type="button" class="editor-tab-btn" data-tab="pele"><svg class="ic" aria-hidden="true"><use href="#i-droplet"/></svg> Pele</button>
+            <button type="button" class="editor-tab-btn" data-tab="extras"><svg class="ic" aria-hidden="true"><use href="#i-crown"/></svg> Extras</button>
           </div>
 
           <div class="editor-tab-panel active" data-tab-panel="desenho">
@@ -401,6 +402,12 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
               <button type="button" class="color-swatch" data-color="#ffd23f" style="background:#ffd23f"></button>
               <button type="button" class="color-swatch" data-color="#2e86ff" style="background:#2e86ff"></button>
               <button type="button" class="color-swatch" data-color="#2ecc71" style="background:#2ecc71"></button>
+              <button type="button" class="color-swatch" data-color="#ff7a00" style="background:#ff7a00"></button>
+              <button type="button" class="color-swatch" data-color="#9b59ff" style="background:#9b59ff"></button>
+              <button type="button" class="color-swatch" data-color="#ff8fb8" style="background:#ff8fb8"></button>
+              <button type="button" class="color-swatch" data-color="#00d1c1" style="background:#00d1c1"></button>
+              <button type="button" class="color-swatch" data-color="#8b5a2b" style="background:#8b5a2b"></button>
+              <button type="button" class="color-swatch" data-color="#9aa0a6" style="background:#9aa0a6"></button>
               <input type="color" id="character-color-picker" value="#0a0a0a" title="Cor personalizada" />
             </div>
 
@@ -418,9 +425,22 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
           </div>
 
           <div class="editor-tab-panel" data-tab-panel="pele">
-            <p class="character-hint skin-hint">Escolha o tom do boneco.</p>
-            <input type="range" id="character-skin-hue" class="skin-hue-slider" min="0" max="360" value="0" />
+            <p class="character-hint skin-hint">Tons de pele</p>
             <div class="skin-presets" id="skin-presets"></div>
+            <p class="character-hint skin-hint">Cores divertidas</p>
+            <div class="skin-presets" id="skin-presets-fun"></div>
+            <p class="character-hint skin-hint">Ajuste fino da cor</p>
+            <input type="range" id="character-skin-hue" class="skin-hue-slider" min="0" max="360" value="0" />
+          </div>
+
+          <div class="editor-tab-panel" data-tab-panel="extras">
+            <p class="character-hint skin-hint">Escolha um item e clique no boneco pra colocar. Usa a cor selecionada.</p>
+            <div class="color-swatches" id="extras-swatches"></div>
+            <div class="brush-row">
+              <label for="character-stamp-size">Tamanho</label>
+              <input type="range" id="character-stamp-size" min="30" max="220" value="90" />
+            </div>
+            <div class="stamp-grid" id="stamp-grid"></div>
           </div>
 
           <button type="button" id="btn-character-save" class="btn btn-primary character-save-btn"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> Salvar personagem</button>
@@ -661,7 +681,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="noise.js"></script>
   <script src="seat-zoom.js"></script>
   <script src="stats.js"></script>
-  <script src="audio.js?v=5"></script>
+  <script src="audio.js?v=6"></script>
   <script src="radio.js"></script>
   <script src="settings.js"></script>
   <script src="glass-sweep.js"></script>
@@ -669,6 +689,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="favicon.js"></script>
   <script src="tutorial.js"></script>
   <script src="terminal.js?v=3"></script>
-  <script src="client.js?v=6"></script>
+  <script src="client.js?v=7"></script>
 </body>
 </html>

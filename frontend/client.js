@@ -172,7 +172,7 @@ function getSavedCharacter() {
 
   let drawing = false;
   let currentColor = colorPicker.value;
-  let currentTool = 'pen'; // 'pen' | 'eraser'
+  let currentTool = 'pen'; // 'pen' | 'eraser' | 'stamp'
   let lastX = 0, lastY = 0;
   const undoStack = [];
 
@@ -185,7 +185,6 @@ function getSavedCharacter() {
   const skinPresetsWrap = document.getElementById('skin-presets');
   const tabButtons = document.querySelectorAll('.editor-tab-btn');
   const tabPanels = document.querySelectorAll('.editor-tab-panel');
-  let skinHue = 0;
 
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -197,9 +196,33 @@ function getSavedCharacter() {
     });
   });
 
-  // Usa um canvas de 1x1 pra descobrir a cor real que o navegador produz
-  // ao aplicar hue-rotate — assim as bolinhas de tom batem exatamente
-  // com o resultado que vai aparecer no boneco.
+  // O tom é { h, s, b } = hue-rotate(h graus) + saturate(s) + brightness(b).
+  // Os tons naturais abaixo foram calculados pra cair em cores de pele reais
+  // a partir do rosa original do boneco (#ff0042); `c` é a cor da bolinha.
+  const SKIN_NATURAL = [
+    { n: 'Porcelana',    c: '#ffe3d0', h: 48, s: 0.16, b: 3.8 },
+    { n: 'Clara',        c: '#f8d2b6', h: 72, s: 0.16, b: 3.2 },
+    { n: 'Bege',         c: '#f1c27d', h: 75, s: 0.36, b: 2.8 },
+    { n: 'Dourada',      c: '#e0ac69', h: 75, s: 0.4,  b: 2.6 },
+    { n: 'Morena clara', c: '#c68642', h: 75, s: 0.55, b: 2.1 },
+    { n: 'Morena',       c: '#a8683a', h: 69, s: 0.5,  b: 1.65 },
+    { n: 'Canela',       c: '#8d5524', h: 72, s: 0.6,  b: 1.35 },
+    { n: 'Café',         c: '#6b3e26', h: 66, s: 0.45, b: 1.05 },
+    { n: 'Escura',       c: '#4a2c1a', h: 66, s: 0.45, b: 0.7 },
+    { n: 'Ébano',        c: '#2f1b10', h: 66, s: 0.45, b: 0.45 }
+  ];
+  const SKIN_FUN_DEGS = [0, 25, 55, 100, 150, 190, 230, 270, 310];
+  let skin = { h: 0, s: 1, b: 1 };
+
+  function skinFilter(k) {
+    const p = [];
+    if (k.h) p.push(`hue-rotate(${k.h}deg)`);
+    if (k.s !== 1) p.push(`saturate(${k.s})`);
+    if (k.b !== 1) p.push(`brightness(${k.b})`);
+    return p.join(' ');
+  }
+
+  // Cor da bolinha de um tom "divertido" (só hue): canvas 1x1 com o mesmo filtro.
   function hueRotatedColor(deg) {
     const c = document.createElement('canvas');
     c.width = 1; c.height = 1;
@@ -211,33 +234,198 @@ function getSavedCharacter() {
     return `rgb(${d[0]}, ${d[1]}, ${d[2]})`;
   }
 
-  function setSkinHue(deg) {
-    skinHue = deg;
-    skinHueSlider.value = deg;
-    characterBase.style.filter = (deg ? `hue-rotate(${deg}deg) ` : '') + 'url(#boil-lg)'; // boil-lg = tremida animada (boil.js)
-    skinPresetsWrap.querySelectorAll('.skin-preset').forEach(b => {
-      b.classList.toggle('active', Number(b.dataset.hue) === deg);
+  // Aplica o tom num canvas (usa ctx.filter; se o navegador não suporta, faz
+  // a mesma conta pixel a pixel).
+  function drawSkinned(targetCtx, img, w, h) {
+    const f = skinFilter(skin);
+    if (!f) { targetCtx.drawImage(img, 0, 0, w, h); return; }
+    if ('filter' in targetCtx) {
+      targetCtx.filter = f;
+      targetCtx.drawImage(img, 0, 0, w, h);
+      targetCtx.filter = 'none';
+      return;
+    }
+    const t = document.createElement('canvas'); t.width = w; t.height = h;
+    const tc = t.getContext('2d');
+    tc.drawImage(img, 0, 0, w, h);
+    const id = tc.getImageData(0, 0, w, h), d = id.data;
+    const a = skin.h * Math.PI / 180, co = Math.cos(a), si = Math.sin(a), sv = skin.s;
+    const H = [
+      0.213 + co * 0.787 - si * 0.213, 0.715 - co * 0.715 - si * 0.715, 0.072 - co * 0.072 + si * 0.928,
+      0.213 - co * 0.213 + si * 0.143, 0.715 + co * 0.285 + si * 0.140, 0.072 - co * 0.072 - si * 0.283,
+      0.213 - co * 0.213 - si * 0.787, 0.715 - co * 0.715 + si * 0.715, 0.072 + co * 0.928 + si * 0.072
+    ];
+    const S = [
+      0.213 + 0.787 * sv, 0.715 - 0.715 * sv, 0.072 - 0.072 * sv,
+      0.213 - 0.213 * sv, 0.715 + 0.285 * sv, 0.072 - 0.072 * sv,
+      0.213 - 0.213 * sv, 0.715 - 0.715 * sv, 0.072 + 0.928 * sv
+    ];
+    const clamp = (v) => Math.min(255, Math.max(0, v));
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i + 1], bl = d[i + 2];
+      const r1 = clamp(H[0] * r + H[1] * g + H[2] * bl), g1 = clamp(H[3] * r + H[4] * g + H[5] * bl), b1 = clamp(H[6] * r + H[7] * g + H[8] * bl);
+      const r2 = clamp(S[0] * r1 + S[1] * g1 + S[2] * b1), g2 = clamp(S[3] * r1 + S[4] * g1 + S[5] * b1), b2 = clamp(S[6] * r1 + S[7] * g1 + S[8] * b1);
+      d[i] = clamp(r2 * skin.b); d[i + 1] = clamp(g2 * skin.b); d[i + 2] = clamp(b2 * skin.b);
+    }
+    targetCtx.putImageData(id, 0, 0);
+  }
+
+  const skinFunWrap = document.getElementById('skin-presets-fun');
+
+  function setSkin(k) {
+    skin = { h: k.h || 0, s: k.s === undefined ? 1 : k.s, b: k.b === undefined ? 1 : k.b };
+    skinHueSlider.value = skin.h;
+    const f = skinFilter(skin);
+    characterBase.style.filter = (f ? f + ' ' : '') + 'url(#boil-lg)'; // boil-lg = tremida animada (boil.js)
+    document.querySelectorAll('.skin-preset').forEach(btn => {
+      btn.classList.toggle('active',
+        Number(btn.dataset.h) === skin.h && Number(btn.dataset.s) === skin.s && Number(btn.dataset.b) === skin.b);
     });
   }
 
-  const SKIN_PRESET_DEGS = [0, 25, 55, 100, 150, 190, 230, 270, 310];
-  SKIN_PRESET_DEGS.forEach(deg => {
+  function addPreset(wrap, k, color, title) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'skin-preset';
+    btn.dataset.h = String(k.h); btn.dataset.s = String(k.s); btn.dataset.b = String(k.b);
+    btn.style.background = color;
+    btn.title = title;
+    btn.setAttribute('aria-label', title);
+    btn.addEventListener('click', () => setSkin(k));
+    wrap.appendChild(btn);
+  }
+  SKIN_NATURAL.forEach(t => addPreset(skinPresetsWrap, t, t.c, t.n));
+  SKIN_FUN_DEGS.forEach(deg => addPreset(skinFunWrap || skinPresetsWrap, { h: deg, s: 1, b: 1 }, hueRotatedColor(deg), deg === 0 ? 'Rosa original' : `Cor ${deg}°`));
+
+  skinHueSlider.addEventListener('input', () => setSkin({ h: Number(skinHueSlider.value), s: 1, b: 1 }));
+
+  setSkin({ h: 0, s: 1, b: 1 });
+  try {
+    const savedSkin = localStorage.getItem('trutec_personagem_skin');
+    if (savedSkin) setSkin(JSON.parse(savedSkin));
+    else {
+      const savedHue = localStorage.getItem('trutec_personagem_hue'); // formato antigo
+      if (savedHue !== null) setSkin({ h: Number(savedHue), s: 1, b: 1 });
+    }
+  } catch (e) { /* localStorage indisponível, ignora */ }
+
+  // ------------------------------------------------------------------
+  // Aba "Extras": itens que se carimbam em cima do boneco (desenhados em
+  // código, usam a cor escolhida). u = tamanho; (x,y) = centro do item.
+  // ------------------------------------------------------------------
+  const stampSize = document.getElementById('character-stamp-size');
+  const stampGrid = document.getElementById('stamp-grid');
+  let currentStamp = 'oculos';
+
+  const STAMPS = {
+    oculos: { n: 'Óculos', f(c, u) {
+      c.lineWidth = Math.max(3, u * 0.07);
+      c.beginPath(); c.arc(-u * 0.42, 0, u * 0.3, 0, 7); c.stroke();
+      c.beginPath(); c.arc(u * 0.42, 0, u * 0.3, 0, 7); c.stroke();
+      c.beginPath(); c.moveTo(-u * 0.12, -u * 0.04); c.quadraticCurveTo(0, -u * 0.12, u * 0.12, -u * 0.04); c.stroke();
+      c.beginPath(); c.moveTo(-u * 0.72, -u * 0.04); c.lineTo(-u * 0.95, -u * 0.12); c.moveTo(u * 0.72, -u * 0.04); c.lineTo(u * 0.95, -u * 0.12); c.stroke();
+    } },
+    sol: { n: 'Óculos escuros', f(c, u) {
+      c.lineWidth = Math.max(3, u * 0.07);
+      c.beginPath(); c.ellipse(-u * 0.4, 0, u * 0.34, u * 0.26, 0, 0, 7); c.fill();
+      c.beginPath(); c.ellipse(u * 0.4, 0, u * 0.34, u * 0.26, 0, 0, 7); c.fill();
+      c.beginPath(); c.moveTo(-u * 0.08, -u * 0.06); c.lineTo(u * 0.08, -u * 0.06); c.stroke();
+      c.beginPath(); c.moveTo(-u * 0.74, -u * 0.06); c.lineTo(-u * 1.0, -u * 0.14); c.moveTo(u * 0.74, -u * 0.06); c.lineTo(u * 1.0, -u * 0.14); c.stroke();
+    } },
+    bigode: { n: 'Bigode', f(c, u) {
+      c.beginPath();
+      c.moveTo(0, -u * 0.05);
+      c.bezierCurveTo(-u * 0.25, -u * 0.3, -u * 0.7, -u * 0.2, -u * 0.95, u * 0.1);
+      c.bezierCurveTo(-u * 0.6, u * 0.05, -u * 0.3, u * 0.12, 0, u * 0.1);
+      c.bezierCurveTo(u * 0.3, u * 0.12, u * 0.6, u * 0.05, u * 0.95, u * 0.1);
+      c.bezierCurveTo(u * 0.7, -u * 0.2, u * 0.25, -u * 0.3, 0, -u * 0.05);
+      c.fill();
+    } },
+    sorriso: { n: 'Sorriso', f(c, u) {
+      c.lineWidth = Math.max(3, u * 0.08); c.lineCap = 'round';
+      c.beginPath(); c.arc(0, -u * 0.15, u * 0.5, Math.PI * 0.15, Math.PI * 0.85); c.stroke();
+    } },
+    bochechas: { n: 'Bochechas', f(c, u) {
+      c.globalAlpha = 0.6;
+      c.beginPath(); c.arc(-u * 0.7, 0, u * 0.22, 0, 7); c.fill();
+      c.beginPath(); c.arc(u * 0.7, 0, u * 0.22, 0, 7); c.fill();
+      c.globalAlpha = 1;
+    } },
+    sobrancelhas: { n: 'Sobrancelhas', f(c, u) {
+      c.lineWidth = Math.max(4, u * 0.1); c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-u * 0.7, u * 0.05); c.lineTo(-u * 0.15, -u * 0.1); c.moveTo(u * 0.7, u * 0.05); c.lineTo(u * 0.15, -u * 0.1); c.stroke();
+    } },
+    coroa: { n: 'Coroa', f(c, u) {
+      c.beginPath();
+      c.moveTo(-u * 0.6, u * 0.35); c.lineTo(-u * 0.7, -u * 0.35); c.lineTo(-u * 0.3, -u * 0.05);
+      c.lineTo(0, -u * 0.5); c.lineTo(u * 0.3, -u * 0.05); c.lineTo(u * 0.7, -u * 0.35); c.lineTo(u * 0.6, u * 0.35);
+      c.closePath(); c.fill();
+    } },
+    cartola: { n: 'Cartola', f(c, u) {
+      c.beginPath(); c.rect(-u * 0.4, -u * 0.7, u * 0.8, u * 0.9); c.fill();
+      c.beginPath(); c.ellipse(0, u * 0.2, u * 0.75, u * 0.16, 0, 0, 7); c.fill();
+    } },
+    laco: { n: 'Gravata borboleta', f(c, u) {
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(-u * 0.7, -u * 0.38); c.lineTo(-u * 0.7, u * 0.38); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(0, 0); c.lineTo(u * 0.7, -u * 0.38); c.lineTo(u * 0.7, u * 0.38); c.closePath(); c.fill();
+      c.beginPath(); c.arc(0, 0, u * 0.14, 0, 7); c.fill();
+    } },
+    coracao: { n: 'Coração', f(c, u) {
+      c.beginPath();
+      c.moveTo(0, u * 0.55);
+      c.bezierCurveTo(-u * 1.0, -u * 0.05, -u * 0.5, -u * 0.8, 0, -u * 0.3);
+      c.bezierCurveTo(u * 0.5, -u * 0.8, u * 1.0, -u * 0.05, 0, u * 0.55);
+      c.fill();
+    } },
+    estrela: { n: 'Estrela', f(c, u) {
+      c.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 ? u * 0.28 : u * 0.7, a = -Math.PI / 2 + i * Math.PI / 5;
+        c[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r);
+      }
+      c.closePath(); c.fill();
+    } },
+    lagrima: { n: 'Lágrima', f(c, u) {
+      c.beginPath();
+      c.moveTo(0, -u * 0.5);
+      c.bezierCurveTo(u * 0.5, u * 0.05, u * 0.4, u * 0.5, 0, u * 0.5);
+      c.bezierCurveTo(-u * 0.4, u * 0.5, -u * 0.5, u * 0.05, 0, -u * 0.5);
+      c.fill();
+    } }
+  };
+
+  function drawStamp(name, x, y, u, color) {
+    const st = STAMPS[name];
+    if (!st) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.translate(x, y);
+    ctx.fillStyle = color; ctx.strokeStyle = color;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    st.f(ctx, u / 2);
+    ctx.restore();
+  }
+
+  function clearStampActive() {
+    stampGrid.querySelectorAll('.stamp-btn').forEach(b => b.classList.remove('active'));
+  }
+  Object.keys(STAMPS).forEach(key => {
     const b = document.createElement('button');
     b.type = 'button';
-    b.className = 'skin-preset' + (deg === 0 ? ' active' : '');
-    b.dataset.hue = String(deg);
-    b.style.background = hueRotatedColor(deg);
-    b.title = deg === 0 ? 'Tom original' : `Tom ${deg}°`;
-    b.addEventListener('click', () => setSkinHue(deg));
-    skinPresetsWrap.appendChild(b);
+    b.className = 'tool-btn stamp-btn';
+    b.dataset.stamp = key;
+    b.textContent = STAMPS[key].n;
+    b.addEventListener('click', () => {
+      currentTool = 'stamp';
+      currentStamp = key;
+      clearStampActive();
+      b.classList.add('active');
+      btnPen.classList.remove('active');
+      btnEraser.classList.remove('active');
+    });
+    stampGrid.appendChild(b);
   });
 
-  skinHueSlider.addEventListener('input', () => setSkinHue(Number(skinHueSlider.value)));
-
-  try {
-    const savedHue = localStorage.getItem('trutec_personagem_hue');
-    if (savedHue !== null) setSkinHue(Number(savedHue));
-  } catch (e) { /* localStorage indisponível, ignora */ }
 
   function pushUndoState() {
     undoStack.push(canvas.toDataURL());
@@ -256,6 +444,12 @@ function getSavedCharacter() {
 
   function startDraw(e) {
     e.preventDefault();
+    if (currentTool === 'stamp') {            // carimbo: coloca o item e pronto
+      pushUndoState();
+      const sp = pointerPos(e);
+      drawStamp(currentStamp, sp.x, sp.y, Number(stampSize.value), currentColor);
+      return;
+    }
     drawing = true;
     pushUndoState();
     const p = pointerPos(e);
@@ -296,33 +490,39 @@ function getSavedCharacter() {
   canvas.addEventListener('touchmove', moveDraw, { passive: false });
   canvas.addEventListener('touchend', endDraw);
 
-  document.querySelectorAll('.color-swatch').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentColor = btn.dataset.color;
-      colorPicker.value = currentColor;
+  // Extras: copia as bolinhas de cor pra aba "Extras" (todas ficam sincronizadas)
+  const extrasSw = document.getElementById('extras-swatches');
+  if (extrasSw) {
+    document.querySelectorAll('.color-swatches .color-swatch').forEach(b0 => extrasSw.appendChild(b0.cloneNode(false)));
+  }
+
+  function setColor(c) {
+    currentColor = c;
+    colorPicker.value = c;
+    document.querySelectorAll('.color-swatch').forEach(b => {
+      b.classList.toggle('active', (b.dataset.color || '').toLowerCase() === String(c).toLowerCase());
+    });
+    if (currentTool === 'eraser') {            // escolher cor volta pra caneta (carimbo continua carimbo)
       currentTool = 'pen';
       btnPen.classList.add('active');
       btnEraser.classList.remove('active');
-    });
+    }
+  }
+  document.querySelectorAll('.color-swatch').forEach(btn => {
+    btn.addEventListener('click', () => setColor(btn.dataset.color));
   });
 
-  colorPicker.addEventListener('input', () => {
-    currentColor = colorPicker.value;
-    document.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('active'));
-    currentTool = 'pen';
-    btnPen.classList.add('active');
-    btnEraser.classList.remove('active');
-  });
+  colorPicker.addEventListener('input', () => setColor(colorPicker.value));
 
   btnPen.addEventListener('click', () => {
+    clearStampActive();
     currentTool = 'pen';
     btnPen.classList.add('active');
     btnEraser.classList.remove('active');
   });
 
   btnEraser.addEventListener('click', () => {
+    clearStampActive();
     currentTool = 'eraser';
     btnEraser.classList.add('active');
     btnPen.classList.remove('active');
@@ -351,15 +551,13 @@ function getSavedCharacter() {
     merged.height = canvas.height;
     const mctx = merged.getContext('2d');
     const baseImg = document.getElementById('character-base');
-    mctx.filter = skinHue ? `hue-rotate(${skinHue}deg)` : 'none';
-    mctx.drawImage(baseImg, 0, 0, merged.width, merged.height);
-    mctx.filter = 'none';
+    drawSkinned(mctx, baseImg, merged.width, merged.height);
     mctx.drawImage(canvas, 0, 0);
     const dataUrl = merged.toDataURL('image/png');
 
     try {
       localStorage.setItem('trutec_meu_personagem', dataUrl);
-      localStorage.setItem('trutec_personagem_hue', String(skinHue));
+      localStorage.setItem('trutec_personagem_skin', JSON.stringify(skin));
     } catch (e) {
       console.warn('Não foi possível salvar no localStorage:', e);
     }

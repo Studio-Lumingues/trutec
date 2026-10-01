@@ -118,7 +118,7 @@
   // qual faixa deve estar tocando agora (ou null = silêncio)
   function wantedTrack() {
     if (muted || matchStarted || radioOn) return null;
-    if (currentScreen === 'screen-character-editor') return drawingDone ? null : 'jungle';
+    if (currentScreen === 'screen-character-editor') return null; // editor de avatar: sem música
     if (currentScreen === 'screen-lobby' || currentScreen === 'screen-waiting') return 'song';
     return null;
   }
