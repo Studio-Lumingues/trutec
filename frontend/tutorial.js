@@ -109,8 +109,7 @@
       'filter:url(#boil-sm);opacity:.95}',
       '.tut-spot.tut-none .tut-ring{display:none}',
       '.tut-panel{--gh:clamp(10rem,44vh,23rem);position:fixed;left:0;top:0;display:flex;align-items:flex-start;gap:.5rem;pointer-events:none;',
-      'width:max-content;max-width:calc(100vw - 1.5rem);transition:transform .8s cubic-bezier(.3,1.3,.5,1);will-change:transform}',
-      '@supports (transition-timing-function:linear(0,0.227,0.445,0.637,0.794,0.915,1,1.055,1.085,1.096,1.094,1.084,1.069,1.054,1.039,1.025,1.014,1.006,1,0.996,0.994,0.993,0.993,0.994,0.995,0.996,0.997,0.998,0.999,1,1,1,1,1,1,1,1)){.tut-panel{transition-timing-function:linear(0,0.175,0.375,0.577,0.762,0.919,1.042,1.129,1.181,1.205,1.204,1.186,1.156,1.121,1.085,1.051,1.021,0.997,0.98,0.969,0.964,0.963,0.966,0.971,0.977,0.983,0.989,0.995,1,1.003,1.005,1.006,1.007,1.006,1.006,1.004,1)}}',
+      'width:max-content;max-width:calc(100vw - 1.5rem);transition:transform .6s cubic-bezier(.3,1.08,.5,1);will-change:transform}',
             '.tut-panel.tut-right{flex-direction:row-reverse}',
       '.tut-guide{flex:none;pointer-events:auto;cursor:pointer;animation:tutBob 2.4s ease-in-out infinite}',
       '.tut-guide img{display:block;height:var(--gh);width:auto;filter:url(#boil-lg);user-select:none;-webkit-user-select:none}',
@@ -172,6 +171,7 @@
   var root, block, mandatory = false, pending = false, spot, panel, guideImg, bubble, typed, full, countEl, btnNext, btnBack, btnSkip;
   var idx = 0, running = false, raf = 0, typeTimer = null, moveTimer = 0, relayoutTimer = 0;
   var nodes = [], texts = [], cursor = 0, total = 0, plain = '';
+  var settleAt = 0, dirty = false;
   var entering = false, enterTimer = 0, lastX = 0, lastY = 0, lastWig = 0, curCand = -1, curCandN = 0, lastRect = '', firstLayout = true, t0 = 0;
 
   function resolve(t) {
@@ -184,13 +184,14 @@
   var PAD = 8;
   function track() {
     raf = requestAnimationFrame(track);
+    if (dirty && Date.now() - settleAt > 160) { dirty = false; layout(); }   // modal parou de animar: posiciona UMA vez
     var el = resolve(STEPS[idx].target);
     if (!el) {
       spot.classList.add('tut-none');
       spot.style.left = innerWidth / 2 + 'px'; spot.style.top = innerHeight / 2 + 'px';
       spot.style.width = '2px'; spot.style.height = '2px';
       block.style.clipPath = '';
-      if (lastRect !== 'none') { lastRect = 'none'; layout(); }
+      if (lastRect !== 'none') { lastRect = 'none'; markDirty(); }
       return;
     }
     spot.classList.remove('tut-none');
@@ -204,14 +205,17 @@
       ? 'polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,' + l + 'px ' + t + 'px,' + l + 'px ' + bb + 'px,' + rr + 'px ' + bb + 'px,' + rr + 'px ' + t + 'px,' + l + 'px ' + t + 'px)'
       : '';
     var rk = [l, t, rr, bb].map(Math.round).join();
-    if (rk !== lastRect) { lastRect = rk; layout(); }   // o modal ainda está animando: acompanha com transição suave
+    if (rk !== lastRect) { lastRect = rk; markDirty(); }   // o modal ainda está animando: espera ele assentar
   }
+
+  function markDirty() { settleAt = Date.now(); dirty = true; }
 
   // coloca o guia no canto que menos tapa o que está iluminado
   function layout(snap) {
     if (!panel) return;
     var entrance = firstLayout; firstLayout = false;
     var el = resolve(STEPS[idx].target);
+    if (!el && STEPS[idx].target && !entrance) return;   // modal ainda abrindo: fica onde está (antes ia pro centro e voltava)
     var vw = innerWidth, vh = innerHeight, m = 12;
     var w = panel.offsetWidth, h = panel.offsetHeight, x, y, right = false;
     if (!el) { x = (vw - w) / 2; y = (vh - h) / 2; panel.classList.remove('tut-right'); curCand = -1; }
@@ -228,6 +232,8 @@
       var best = 0;
       areas.forEach(function (a, i) { if (a < areas[best]) best = i; });
       var pick = best;
+      // histerese: só troca de canto se o atual estiver bem pior (evita ficar pulando cima/baixo)
+      if (curCand >= 0 && curCandN === cand.length && areas[curCand] <= areas[best] + 4000) pick = curCand;
       curCand = pick; curCandN = cand.length;
       x = cand[pick][0]; y = cand[pick][1]; right = cand[pick][2];
       panel.classList.toggle('tut-right', right);
@@ -370,8 +376,8 @@
     btnSkip.textContent = s.skip || 'Pular';
     btnSkip.hidden = mandatory || idx === STEPS.length - 1;     // 1ª vez: tutorial obrigatório, sem "pular"
     syncAsk();
-    layout();
-    clearTimeout(relayoutTimer); relayoutTimer = setTimeout(layout, 480);   // depois do modal terminar de abrir
+    markDirty();                                       // depois do modal terminar de abrir, o track() posiciona
+    if (!s.target) layout();                           // passo sem alvo: centraliza já
     if (s.ask && window.matchMedia && matchMedia('(hover: hover)').matches) setTimeout(function () { var i = nameInput(); if (running && idx === STEPS.indexOf(s) && i) i.focus({ preventScroll: true }); }, 900);
     else btnNext.focus({ preventScroll: true });
   }
