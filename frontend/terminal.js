@@ -25,7 +25,7 @@
   var state = 'user';            // 'user' | 'pass' | 'shell'
   var authed = false, pendingUser = '';
   var hist = [], hidx = 0, saved = null;
-  var adminKey = '';             // chave do `auth` (só na memória; some ao recarregar/sair)
+  var adminKey = '';             // chave do `auth` (memória + sessionStorage: sobrevive a reload, some ao fechar a aba)
   var ADMIN_NAME = 'Matheus Luna';
   var PHOTO_KEY = 'trutec-admin-photo';      // foto final (JPEG 320x320) que vai pro servidor
   var PHOTO_SRC_KEY = 'trutec-admin-photo-src'; // imagem original (reduzida) pra poder ajustar depois
@@ -262,7 +262,7 @@
       sock.emit('admin', p, function (res) {
         if (done) return; done = true; clearTimeout(to);
         res = res || { ok: false, error: 'erro' };
-        if (!res.ok && /Chave/.test(res.error || '')) { adminKey = ''; hideBadge(); }
+        if (!res.ok && /Chave/.test(res.error || '')) { clearAdminKey(); hideBadge(); }
         resolve(res);
       });
     });
@@ -325,6 +325,12 @@
   function lsGet(k) { try { return localStorage.getItem(k) || null; } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
   function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+  // chave do `auth` fica no sessionStorage: sobrevive ao location.reload() de
+  // "sair da partida/sala" e some ao fechar a aba (ou com `auth sair` / `exit`)
+  var ADMINKEY_SS = 'trutec-admin-key';
+  function saveAdminKey(k) { try { sessionStorage.setItem(ADMINKEY_SS, k); } catch (e) {} }
+  function clearAdminKey() { adminKey = ''; try { sessionStorage.removeItem(ADMINKEY_SS); } catch (e) {} }
 
   // reduz a imagem escolhida (lado maior <= 900px) pra guardar a "original" sem estourar o localStorage
   function loadFileAsSource(file) {
@@ -726,6 +732,7 @@
         adminKey = args.join(' ');
         return call({ op: 'login' }).then(function (res) {
           if (!res.ok) return fail(res);
+          saveAdminKey(adminKey);
           out('');
           out(c('g b', 'Bem-vindo, ' + ADMIN_NAME + '!') + c('d', '  (digite ') + c('y', 'auth') + c('d', ' pra ver as opções)'));
           out('');
@@ -759,7 +766,7 @@
         out(c('d', 'Chegar a 12 encerra a partida.'));
       }
       if (!sub) return usage();
-      if (sub === 'sair' || sub === 'logout') { adminKey = ''; hideBadge(); return out(c('g', '✔ ') + 'saiu do modo admin'); }
+      if (sub === 'sair' || sub === 'logout') { clearAdminKey(); hideBadge(); return out(c('g', '✔ ') + 'saiu do modo admin'); }
 
       if (sub === 'nome' || sub === 'name') {
         var want = (args[1] || '').toLowerCase();
@@ -817,7 +824,7 @@
     out('');
     out(c('d', '[Process completed]'));
     authed = false;
-    adminKey = '';
+    clearAdminKey();
     hideBadge();
     setTimeout(function () {
       hideWin();
@@ -992,4 +999,32 @@
   }, true);
 
   window.TruTerminal = { open: showWin, close: hideWin };
+
+  // ---------------------------------------------------------------- restaura o `auth` após recarregar a página
+  function restoreAdmin() {
+    var saved = null;
+    try { saved = sessionStorage.getItem(ADMINKEY_SS); } catch (e) {}
+    if (!saved) return;
+    adminKey = saved;
+    showBadge();               // já mostra o selo; some sozinho se o servidor recusar a chave
+    function run() {
+      adminCall({ op: 'login' }).then(function (res) {
+        if (!res.ok) {
+          // servidor dormindo/sem resposta: mantém a chave e tenta no próximo connect;
+          // chave errada: adminCall já limpou
+          if (adminKey) hookReconnect();
+          return;
+        }
+        hookReconnect();
+        var fx = lsGet(NAMEFX_KEY), photo = readPhoto();
+        if (fx) adminCall({ op: 'name_fx', fx: fx });
+        if (photo) adminCall({ op: 'photo', photo: photo });
+      });
+    }
+    var sock = typeof socket !== 'undefined' ? socket : null;
+    if (!sock) return;
+    if (sock.connected) run(); else sock.once('connect', run);
+  }
+  if (document.readyState === 'complete') restoreAdmin();
+  else window.addEventListener('load', restoreAdmin);
 })();
