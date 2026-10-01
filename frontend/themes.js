@@ -5,7 +5,7 @@
 //   automaticamente (não precisa confirmar).
 // - Pra criar outro tema, copie um objeto de THEMES e troque:
 //     vars    -> variáveis CSS que o tema sobrescreve no :root
-//     bg      -> (opcional) fundo próprio da partida: { kind:'leopard' | 'binary' | 'sea' | 'image' | 'frames', ... }
+//     bg      -> (opcional) fundo próprio da partida: { kind:'leopard' | 'binary' | 'sea' | 'lattice' | 'image' | 'frames', ... }
 //                Sem `bg`, o tema usa o fundo de losangos (cores em preview.bga/bgb)
 //     preview -> cores usadas só no desenho de exemplo
 //     palette -> as bolinhas de cor do tema
@@ -106,6 +106,25 @@
       palette: [
         ['Fundo', '#000000'], ['Linha', '#ffffff'], ['Feltro', '#0c0c0c'],
         ['Realce', '#262626'], ['Detalhe', '#ffffff'], ['Creme', '#fff8f0']
+      ]
+    },
+    {
+      id: 'carmesim',
+      name: 'Rei Carmesim',
+      tagline: 'O tempo foi apagado… só o resultado existe',
+      vars: {
+        '--felt-dark': '#3a0516', '--felt': '#8a0f30', '--felt-light': '#c4234f',
+        '--wood-light': '#e6d2dc', '--wood-brown': '#4a0f22',
+        '--wood-brown-light': '#7a1d3a', '--wood-brown-dark': '#1e0610',
+        '--ui-dark': '26,4,12', '--ui-chat': '36,8,18', '--ui-felt-dark': '58,5,22'
+      },
+      // fundo em rede: losangos carmesim cortados por faixas claras (a "malha" do corpo do King Crimson),
+      // deslizando como os outros temas e com o tremido hand drawn
+      bg: { kind: 'lattice', base: '#c4153f', mid: '#9c0f33', band: '#dccbd5', edge: '#2b1522', tileW: 16, tileH: 24 },
+      preview: { bga: '#c4153f', bgb: '#c4153f', accent: '#e6d2dc', cream: '#fff8f0' },
+      palette: [
+        ['Carmesim', '#c4153f'], ['Sombra', '#9c0f33'], ['Faixa', '#dccbd5'],
+        ['Contorno', '#2b1522'], ['Olhos', '#3fd35a'], ['Creme', '#fff8f0']
       ]
     },
     {
@@ -298,6 +317,50 @@
       "<rect width='" + W + "' height='" + H + "' fill='" + shades[4] + "'/>" + out.join('') + "</svg>";
   }
 
+  // Fundo "rede" (King Crimson): losangos carmesim (com um miolo mais escuro) separados por
+  // faixas claras com contorno escuro, em duas diagonais que se cruzam. O deslocamento do
+  // tremido é um campo PERIÓDICO (senos com frequência inteira no tile), então a estampa
+  // continua repetindo sem emenda em todos os quadros.
+  function latticeSvg(bg, frame) {
+    var W = 240, H = 360, cw = 60, ch = 90, TAU = 6.283185;
+    var r = rng(33), jr = rng(SEEDS[frame % SEEDS.length] * 173 + 11);
+    var p1 = jr() * TAU, p2 = jr() * TAU, p3 = jr() * TAU, p4 = jr() * TAU;
+    function dx(x, y) { return 2.2 * Math.sin(TAU * (2 * x / W + 3 * y / H) + p1) + 1.1 * Math.sin(TAU * (5 * x / W - 4 * y / H) + p2); }
+    function dy(x, y) { return 2.2 * Math.sin(TAU * (3 * x / W - 2 * y / H) + p3) + 1.1 * Math.sin(TAU * (4 * x / W + 5 * y / H) + p4); }
+    function pt(x, y) { return f(x + dx(x, y)) + ',' + f(y + dy(x, y)); }
+
+    var cells = [], edge = [], band = [], y, k, n, j;
+    // miolo escuro de cada losango
+    for (n = -3; n < 11; n++) {
+      for (j = -3; j < 11; j++) {
+        if ((((n + j) % 2) + 2) % 2 !== 1) continue;
+        var cx = n * cw / 2, cy = j * ch / 2, s = 0.66;
+        cells.push("<polygon points='" + pt(cx - cw / 2 * s, cy) + ' ' + pt(cx, cy - ch / 2 * s) + ' ' +
+          pt(cx + cw / 2 * s, cy) + ' ' + pt(cx, cy + ch / 2 * s) + "'/>");
+      }
+    }
+    // faixas: duas famílias de diagonais (a cada ponto o campo de tremido é o mesmo)
+    function family(sign, k0, k1) {
+      for (k = k0; k <= k1; k++) {
+        var pts = [];
+        for (y = -ch; y <= H + ch; y += 15) pts.push(pt(cw * (k + sign * y / ch), y));
+        var d = 'M' + pts.join(' L');
+        edge.push("<path d='" + d + "'/>");
+        band.push("<path d='" + d + "'/>");
+      }
+    }
+    family(-1, -2, 11);
+    family(1, -11, 4);
+
+    var jitterW = (0.9 + r() * 0.2);
+    return "<svg xmlns='http://www.w3.org/2000/svg' width='" + W + "' height='" + H + "' viewBox='0 0 " + W + " " + H + "'>" +
+      "<rect width='" + W + "' height='" + H + "' fill='" + bg.base + "'/>" +
+      "<g fill='" + bg.mid + "' fill-opacity='0.85'>" + cells.join('') + "</g>" +
+      "<g fill='none' stroke='" + bg.edge + "' stroke-width='" + (13 * jitterW).toFixed(1) + "' stroke-linecap='round' stroke-linejoin='round'>" + edge.join('') + "</g>" +
+      "<g fill='none' stroke='" + bg.band + "' stroke-width='" + (8 * jitterW).toFixed(1) + "' stroke-linecap='round' stroke-linejoin='round'>" + band.join('') + "</g></svg>";
+  }
+
+
   // Fundo do tema: losangos (Drácula) ou estampa própria (`bg`).
   function bgImage(t, frame) {
     var svg;
@@ -308,7 +371,7 @@
     } else if (t.bg) {
       frame = (frame || 0) % SEEDS.length;
       t._svg = t._svg || [];
-      svg = t._svg[frame] || (t._svg[frame] = (t.bg.kind === 'binary' ? binarySvg : t.bg.kind === 'sea' ? seaSvg : leopardSvg)(t.bg, frame));
+      svg = t._svg[frame] || (t._svg[frame] = (t.bg.kind === 'binary' ? binarySvg : t.bg.kind === 'sea' ? seaSvg : t.bg.kind === 'lattice' ? latticeSvg : leopardSvg)(t.bg, frame));
     } else {
       var p = t.preview;
       svg = "<svg xmlns='http://www.w3.org/2000/svg' width='70' height='120' viewBox='0 0 70 120'>" +
