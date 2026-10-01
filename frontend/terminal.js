@@ -275,7 +275,7 @@
   }
 
   // ---------------------------------------------------------------- selo no canto superior direito
-  var badge = null;
+  var badge = null, lobbyObs = null;
   function initials() {
     return ADMIN_NAME.split(/\s+/).map(function (w) { return w.charAt(0); }).join('').slice(0, 2).toUpperCase();
   }
@@ -298,10 +298,27 @@
       badge.addEventListener('click', openPhotoEditor);
       document.body.appendChild(badge);
     }
-    badge.hidden = false;
     paintBadge();
+    syncBadge();
+    // o selo (e o editor) só existem no lobby: acompanha a tela ativa
+    var lobby = document.getElementById('screen-lobby');
+    if (lobby && !lobbyObs && window.MutationObserver) {
+      lobbyObs = new MutationObserver(syncBadge);
+      lobbyObs.observe(lobby, { attributes: true, attributeFilter: ['class'] });
+    }
   }
-  function hideBadge() { if (badge) badge.hidden = true; }
+  function hideBadge() { if (badge) badge.hidden = true; if (phEd) phEd.close(); }
+  function inLobby() {
+    var el = document.getElementById('screen-lobby');
+    return !!(el && el.classList.contains('active'));
+  }
+  // visível só com o modo admin ativo E no lobby (nunca dentro da partida / sala de espera)
+  function syncBadge() {
+    if (!badge) return;
+    var show = !!adminKey && inLobby();
+    badge.hidden = !show;
+    if (!show && phEd) phEd.close();
+  }
 
   // ---------------------------------------------------------------- editor da foto (arrastar + zoom)
   var phEd = null;
@@ -514,6 +531,7 @@
     ov.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
 
     return {
+      close: close,
       open: function () {
         ov.hidden = false; say(''); markChips();
         var src = lsGet(PHOTO_SRC_KEY) || lsGet(PHOTO_KEY);
@@ -524,7 +542,7 @@
     };
   }
   function openPhotoEditor() {
-    if (!adminKey) return;
+    if (!adminKey || !inLobby()) return;
     if (!phEd) phEd = buildPhotoEditor();
     phEd.open();
   }
@@ -728,7 +746,7 @@
       var sub = (args[0] || '').toLowerCase();
       function usage() {
         out(c('c b', 'auth') + c('d', ' — modo admin ativo'));
-        out('  ' + c('g b', pad('foto', 22)) + c('d', 'abre o ajuste da foto (também no canto superior direito); todos veem no lugar do seu personagem'));
+        out('  ' + c('g b', pad('foto', 22)) + c('d', 'abre o ajuste da foto (só no lobby); todos veem no lugar do seu personagem'));
         out('  ' + c('g b', pad('foto off', 22)) + c('d', 'tira a foto e volta pro personagem'));
         out('  ' + c('g b', pad('nome', 22)) + c('d', 'lista os efeitos do nome (fogo, neon, arco-iris...)'));
         out('  ' + c('g b', pad('nome <efeito>', 22)) + c('d', 'aplica o efeito no seu nome pra todo mundo ver'));
@@ -750,7 +768,7 @@
           FX_LIST.forEach(function (d) {
             out((d[0] === curFx ? c('g b', '* ') : '  ') + '<span class="nfx nfx-' + d[0] + '">' + esc(d[1]) + '</span>' + c('d', '   auth nome ' + d[0]));
           });
-          return out(c('d', 'Também dá pra escolher clicando no seu selo (canto superior direito).'));
+          return out(c('d', 'Também dá pra escolher clicando no seu selo (canto superior direito, só no lobby).'));
         }
         if (want === 'off' || want === 'nenhum') {
           return setNameFx(null).then(function (res) { out(res.ok ? c('g', '✔ ') + 'efeito removido' : c('r', '✘ ') + esc(res.error)); });
@@ -770,6 +788,7 @@
             out(res.ok ? c('g', '✔ ') + 'foto removida' : c('r', '✘ ') + esc(res.error));
           });
         }
+        if (!inLobby()) return out(c('y', 'O editor de perfil só abre no lobby (tela inicial).'));
         openPhotoEditor();
         return out(c('d', 'editor da foto aberto.'));
       }
