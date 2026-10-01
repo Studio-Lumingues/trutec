@@ -242,6 +242,7 @@
     ['server', '', 'testa o servidor (/health)'],
     ['auth', '<chave>', 'modo admin: placar, foto, efeito do nome (veja `auth`)'],
     ['settings', '', 'abre as configurações'],
+    ['desenhar', '', 'desenha o boneco sem limite de tempo e baixa em JPG'],
     ['colors', '', 'paleta de cores do terminal'],
     ['ls', '', 'lista os arquivos do projeto'],
     ['whoami', '', 'quem é você'],
@@ -569,6 +570,236 @@
       if (fx) sock.emit('admin', { key: adminKey, op: 'name_fx', fx: fx }, function () {});
     });
   }
+  // ---------------------------------------------------------------- `desenhar`: editor livre do boneco
+  // Tela cheia, SEM limite de tempo (diferente do editor da partida). Desenha em cima do boneco
+  // (assets/personagem.svg), muda o tom da pele e o fundo, e baixa tudo em JPG (1000x1000).
+  // Os traços ficam guardados como lista de pontos: dá pra desfazer/refazer à vontade.
+  var drawUi = null;
+  function openDraw(onClose) {
+    if (drawUi) return;
+    var W = 1000;                                   // resolução interna do desenho (e do JPG)
+    var strokes = [], redo = [], cur = null;
+    var tool = 'pen', color = '#0a0a0a', size = 10, hue = 0, bg = '#ffffff', showBase = true;
+    var SW = ['#0a0a0a', '#ffffff', '#ff2e63', '#ffd23f', '#2e86ff', '#2ecc71', '#ff8a00', '#9b51e0'];
+
+    if (!document.getElementById('tt-draw-css')) {
+      var st = document.createElement('style');
+      st.id = 'tt-draw-css';
+      st.textContent =
+        '.tt-draw{position:fixed;inset:0;z-index:9990;display:flex;gap:1.25rem;align-items:center;justify-content:center;padding:1rem;' +
+        'background:rgba(10,10,14,.95);color:#e8e8ec;font:600 .85rem/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;overflow:auto}' +
+        '.tt-draw *{box-sizing:border-box}' +
+        '.tt-dr-side{flex:none;width:15rem;display:flex;flex-direction:column;gap:.7rem;padding:1rem;border-radius:.9rem;' +
+        'background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14)}' +
+        '.tt-dr-side h3{margin:0;font-size:1.05rem}.tt-dr-side small{opacity:.65;font-weight:500}' +
+        '.tt-dr-row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}' +
+        '.tt-dr-row label{flex:1 0 100%;opacity:.8;font-size:.78rem}' +
+        '.tt-dr-sw{width:1.55rem;height:1.55rem;border-radius:50%;border:2px solid rgba(255,255,255,.35);padding:0;cursor:pointer}' +
+        '.tt-dr-sw.on{border-color:#fff;box-shadow:0 0 0 2px #ff7700}' +
+        '.tt-dr-side input[type=color]{width:2rem;height:1.7rem;padding:0;border:0;background:none;cursor:pointer}' +
+        '.tt-dr-side input[type=range]{flex:1;min-width:0}' +
+        '.tt-dr-btn{flex:1 1 auto;padding:.5rem .7rem;border-radius:.55rem;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);' +
+        'color:inherit;font:inherit;cursor:pointer}' +
+        '.tt-dr-btn:hover{background:rgba(255,255,255,.2)}.tt-dr-btn.on{background:#ff7700;border-color:#ff7700;color:#111}' +
+        '.tt-dr-btn:disabled{opacity:.4;cursor:default}' +
+        '.tt-dr-dl{background:#2ecc71;border-color:#2ecc71;color:#06210f;font-weight:800}.tt-dr-dl:hover{background:#4ddc8a}' +
+        '.tt-dr-chk{display:flex;gap:.45rem;align-items:center;font-weight:500;cursor:pointer}' +
+        '.tt-dr-stage{position:relative;flex:none;width:min(88vh,calc(100vw - 19rem));aspect-ratio:1;border-radius:.8rem;overflow:hidden;' +
+        'box-shadow:0 1rem 2.5rem rgba(0,0,0,.6);touch-action:none}' +
+        '.tt-dr-stage img,.tt-dr-stage canvas{position:absolute;inset:0;width:100%;height:100%;user-select:none;-webkit-user-select:none}' +
+        '.tt-dr-stage canvas{cursor:crosshair;touch-action:none}' +
+        '@media (max-width:760px){.tt-draw{flex-direction:column-reverse;justify-content:flex-start}' +
+        '.tt-dr-side{width:100%}.tt-dr-stage{width:min(94vw,70vh)}}';
+      document.head.appendChild(st);
+    }
+
+    var root = document.createElement('div');
+    root.className = 'tt-draw';
+    root.setAttribute('role', 'dialog');
+    root.setAttribute('aria-label', 'Desenhar o personagem');
+    root.innerHTML =
+      '<div class="tt-dr-side">' +
+        '<h3>Desenhar personagem<br><small>sem limite de tempo</small></h3>' +
+        '<div class="tt-dr-row" data-sw><label>Cor</label></div>' +
+        '<div class="tt-dr-row"><label>Pincel: <span data-sz-val></span></label><input type="range" data-sz min="2" max="80" value="10"></div>' +
+        '<div class="tt-dr-row"><button type="button" class="tt-dr-btn on" data-tool="pen">Caneta</button>' +
+          '<button type="button" class="tt-dr-btn" data-tool="eraser">Borracha</button></div>' +
+        '<div class="tt-dr-row"><button type="button" class="tt-dr-btn" data-undo>Desfazer</button>' +
+          '<button type="button" class="tt-dr-btn" data-redo>Refazer</button>' +
+          '<button type="button" class="tt-dr-btn" data-clear>Limpar</button></div>' +
+        '<div class="tt-dr-row"><label>Tom da pele</label><input type="range" data-hue min="0" max="360" value="0"></div>' +
+        '<div class="tt-dr-row"><label>Cor do fundo do JPG</label><input type="color" data-bg value="#ffffff"></div>' +
+        '<label class="tt-dr-chk"><input type="checkbox" data-base checked> Mostrar o boneco</label>' +
+        '<button type="button" class="tt-dr-btn tt-dr-dl" data-dl>Baixar JPG</button>' +
+        '<button type="button" class="tt-dr-btn" data-close>Fechar (Esc)</button>' +
+      '</div>' +
+      '<div class="tt-dr-stage" data-stage><img data-img src="assets/personagem.svg" alt="" draggable="false"><canvas data-cv width="' + W + '" height="' + W + '"></canvas></div>';
+    document.body.appendChild(root);
+
+    function q(s) { return root.querySelector(s); }
+    var cv = q('[data-cv]'), ctx = cv.getContext('2d'), stage = q('[data-stage]'), img = q('[data-img]');
+    var btnUndo = q('[data-undo]'), btnRedo = q('[data-redo]');
+
+    // ---- desenho dos traços (curvas suaves pelos pontos médios) ----
+    function mid(a, b) { return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; }
+    function setup(x, s) {
+      x.globalCompositeOperation = s.tool === 'eraser' ? 'destination-out' : 'source-over';
+      x.strokeStyle = x.fillStyle = s.color; x.lineWidth = s.size; x.lineCap = x.lineJoin = 'round';
+    }
+    function drawAll(s) {
+      var p = s.pts, m;
+      setup(ctx, s);
+      if (p.length < 2) { ctx.beginPath(); ctx.arc(p[0][0], p[0][1], s.size / 2, 0, Math.PI * 2); ctx.fill(); return; }
+      ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]);
+      m = mid(p[0], p[1]); ctx.lineTo(m[0], m[1]);
+      for (var i = 1; i < p.length - 1; i++) { m = mid(p[i], p[i + 1]); ctx.quadraticCurveTo(p[i][0], p[i][1], m[0], m[1]); }
+      ctx.lineTo(p[p.length - 1][0], p[p.length - 1][1]);
+      ctx.stroke();
+    }
+    function repaint() {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.clearRect(0, 0, W, W);
+      strokes.forEach(function (s) { if (s.tool === 'clear') ctx.clearRect(0, 0, W, W); else drawAll(s); });
+      btnUndo.disabled = !strokes.length; btnRedo.disabled = !redo.length;
+    }
+    // desenha só o trecho novo enquanto o traço está sendo feito (mesma curva do repaint)
+    function addSeg(s) {
+      var p = s.pts, k = p.length - 1, a, b;
+      if (k < 1) return;
+      setup(ctx, s); ctx.beginPath();
+      if (k === 1) { b = mid(p[0], p[1]); ctx.moveTo(p[0][0], p[0][1]); ctx.lineTo(b[0], b[1]); }
+      else { a = mid(p[k - 2], p[k - 1]); b = mid(p[k - 1], p[k]); ctx.moveTo(a[0], a[1]); ctx.quadraticCurveTo(p[k - 1][0], p[k - 1][1], b[0], b[1]); }
+      ctx.stroke();
+    }
+    function pos(e) {
+      var r = cv.getBoundingClientRect();
+      return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * W / r.height];
+    }
+    cv.addEventListener('pointerdown', function (e) {
+      if (e.button > 0) return;
+      e.preventDefault();
+      try { cv.setPointerCapture(e.pointerId); } catch (x) {}
+      cur = { tool: tool, color: color, size: size, pts: [pos(e)] };
+      redo = [];
+      drawAll(cur);                                  // ponto (clique sem arrastar)
+      btnRedo.disabled = true;
+    });
+    cv.addEventListener('pointermove', function (e) {
+      if (!cur) return;
+      var list = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+      if (!list.length) list = [e];
+      list.forEach(function (ev) { cur.pts.push(pos(ev)); addSeg(cur); });
+    });
+    function end(e) {
+      if (!cur) return;
+      var p = cur.pts;
+      if (p.length > 1) {                             // fecha o último pedaço até o ponto final
+        var a = mid(p[p.length - 2], p[p.length - 1]);
+        setup(ctx, cur); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(p[p.length - 1][0], p[p.length - 1][1]); ctx.stroke();
+      }
+      strokes.push(cur); cur = null;
+      btnUndo.disabled = false;
+    }
+    cv.addEventListener('pointerup', end);
+    cv.addEventListener('pointercancel', end);
+
+    // ---- ferramentas ----
+    var swBox = q('[data-sw]'), picker = document.createElement('input');
+    function pickColor(col) {
+      color = col; tool = 'pen';
+      [].forEach.call(swBox.querySelectorAll('.tt-dr-sw'), function (b) { b.classList.toggle('on', b.dataset.c === col); });
+      setTool('pen');
+    }
+    SW.forEach(function (col) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'tt-dr-sw' + (col === color ? ' on' : ''); b.dataset.c = col; b.style.background = col;
+      b.addEventListener('click', function () { picker.value = col; pickColor(col); });
+      swBox.appendChild(b);
+    });
+    picker.type = 'color'; picker.value = color; picker.title = 'Cor personalizada';
+    picker.addEventListener('input', function () { pickColor(picker.value); });
+    swBox.appendChild(picker);
+
+    function setTool(t) {
+      tool = t;
+      [].forEach.call(root.querySelectorAll('[data-tool]'), function (b) { b.classList.toggle('on', b.dataset.tool === t); });
+    }
+    [].forEach.call(root.querySelectorAll('[data-tool]'), function (b) { b.addEventListener('click', function () { setTool(b.dataset.tool); }); });
+
+    var szIn = q('[data-sz]'), szVal = q('[data-sz-val]');
+    function paintSize() { size = +szIn.value; szVal.textContent = size; }
+    szIn.addEventListener('input', paintSize); paintSize();
+
+    function undo() { if (!strokes.length) return; redo.push(strokes.pop()); repaint(); }
+    function redoIt() { if (!redo.length) return; strokes.push(redo.pop()); repaint(); }
+    btnUndo.addEventListener('click', undo);
+    btnRedo.addEventListener('click', redoIt);
+    q('[data-clear]').addEventListener('click', function () { strokes.push({ tool: 'clear' }); redo = []; repaint(); });
+
+    q('[data-hue]').addEventListener('input', function (e) { hue = +e.target.value; img.style.filter = hue ? 'hue-rotate(' + hue + 'deg)' : ''; });
+    q('[data-bg]').addEventListener('input', function (e) { bg = e.target.value; stage.style.background = bg; });
+    q('[data-base]').addEventListener('change', function (e) { showBase = e.target.checked; img.style.visibility = showBase ? '' : 'hidden'; });
+    stage.style.background = bg;
+
+    // ---- baixar em JPG ----
+    function hueFallback(x, deg) {                    // Safari antigo não tem ctx.filter: gira o matiz na mão
+      var a = deg * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a);
+      var m = [0.213 + cs * 0.787 - sn * 0.213, 0.715 - cs * 0.715 - sn * 0.715, 0.072 - cs * 0.072 + sn * 0.928,
+               0.213 - cs * 0.213 + sn * 0.143, 0.715 + cs * 0.285 + sn * 0.140, 0.072 - cs * 0.072 - sn * 0.283,
+               0.213 - cs * 0.213 - sn * 0.787, 0.715 - cs * 0.715 + sn * 0.715, 0.072 + cs * 0.928 + sn * 0.072];
+      var d = x.getImageData(0, 0, W, W), p = d.data, i, r, g, b;
+      for (i = 0; i < p.length; i += 4) {
+        r = p[i]; g = p[i + 1]; b = p[i + 2];
+        p[i] = Math.max(0, Math.min(255, m[0] * r + m[1] * g + m[2] * b));
+        p[i + 1] = Math.max(0, Math.min(255, m[3] * r + m[4] * g + m[5] * b));
+        p[i + 2] = Math.max(0, Math.min(255, m[6] * r + m[7] * g + m[8] * b));
+      }
+      x.putImageData(d, 0, 0);
+    }
+    function download() {
+      var out = document.createElement('canvas'); out.width = out.height = W;
+      var x = out.getContext('2d');
+      x.fillStyle = bg; x.fillRect(0, 0, W, W);       // JPG não tem transparência: o fundo vai pintado
+      if (showBase && img.naturalWidth) {
+        if (hue && !('filter' in x)) {
+          var t = document.createElement('canvas'); t.width = t.height = W;
+          var tx = t.getContext('2d'); tx.drawImage(img, 0, 0, W, W); hueFallback(tx, hue);
+          x.drawImage(t, 0, 0);
+        } else {
+          x.filter = hue ? 'hue-rotate(' + hue + 'deg)' : 'none';
+          x.drawImage(img, 0, 0, W, W);
+          x.filter = 'none';
+        }
+      }
+      x.drawImage(cv, 0, 0);
+      out.toBlob(function (blob) {
+        if (!blob) return;
+        var url = URL.createObjectURL(blob), a = document.createElement('a');
+        a.href = url; a.download = 'personagem-trutec.jpg';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+      }, 'image/jpeg', 0.95);
+    }
+    q('[data-dl]').addEventListener('click', download);
+
+    // ---- fechar / atalhos ----
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+      else if (e.ctrlKey && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); }
+      else if (e.ctrlKey && (e.key === 'y' || e.key === 'Y' || (e.shiftKey && (e.key === 'z' || e.key === 'Z')))) { e.preventDefault(); redoIt(); }
+    }
+    function close() {
+      document.removeEventListener('keydown', onKey, true);
+      if (root.parentNode) root.parentNode.removeChild(root);
+      drawUi = null;
+      if (onClose) onClose();
+    }
+    document.addEventListener('keydown', onKey, true);
+    q('[data-close]').addEventListener('click', close);
+    repaint();
+    drawUi = { close: close };
+  }
+
   var COMMANDS = {
     help: function () {
       out(c('c b', 'Comandos disponíveis'));
@@ -580,6 +811,17 @@
     },
 
     clear: function () { body.innerHTML = ''; },
+
+    desenhar: function () {
+      if (drawUi) return out(c('y', 'o editor de desenho já está aberto.'));
+      out(c('g', '✔ ') + 'abrindo o editor de desenho… ' + c('d', '(Esc fecha e volta pro terminal)'));
+      setTimeout(function () {
+        hideWin();                                   // tira o terminal da frente
+        openDraw(function () { showWin(); });        // ao fechar o desenho, o terminal volta
+      }, 250);
+    },
+    draw: function () { return COMMANDS.desenhar(); },
+
 
     whoami: function () { out(c('g', USER)); },
     hostname: function () { out(c('m', HOST)); },
