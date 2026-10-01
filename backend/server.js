@@ -122,6 +122,39 @@ function sanitizeCharacter(character) {
 }
 
 // Foto do administrador (comando `auth foto`): JPEG pequeno, só base64 puro.
+// Link do SoundCloud (comando `auth musica`): só aceita hosts do SoundCloud.
+const SC_HOSTS = new Set(['soundcloud.com', 'www.soundcloud.com', 'm.soundcloud.com', 'on.soundcloud.com', 'api.soundcloud.com']);
+function sanitizeScUrl(u) {
+  if (typeof u !== 'string') return null;
+  let x;
+  try { x = new URL(u.trim().slice(0, 300)); } catch (e) { return null; }
+  if (x.protocol !== 'https:' && x.protocol !== 'http:') return null;
+  const h = x.hostname.toLowerCase();
+  if (!SC_HOSTS.has(h)) return null;
+  x.protocol = 'https:';
+  x.hash = '';
+  if (h === 'm.soundcloud.com' || h === 'www.soundcloud.com') x.hostname = 'soundcloud.com';
+  return x.toString();
+}
+// Links curtos (on.soundcloud.com/xxxx, do botão compartilhar do app) redirecionam pro link real.
+async function resolveScShortUrl(url) {
+  const x = new URL(url);
+  if (x.hostname !== 'on.soundcloud.com' || typeof fetch !== 'function') return url;
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(url, { redirect: 'manual', signal: ctrl.signal });
+    const loc = res.headers.get('location');
+    return (loc && sanitizeScUrl(new URL(loc, url).toString())) || null;
+  } catch (e) { return null; } finally { clearTimeout(to); }
+}
+
+// Quem entra (ou reconecta) numa sala com música tocando recebe a faixa já no ponto certo.
+function sendMusicTo(r, socket) {
+  if (!r || !r.music) return;
+  socket.emit('room_music', { action: 'play', url: r.music.url, offsetMs: Date.now() - r.music.startedAt, by: r.music.by });
+}
+
 function sanitizePhoto(photo) {
   if (typeof photo !== 'string') return null;
   if (photo.length > 300000) return null;
@@ -192,6 +225,7 @@ class Room {
     this.players = []; // { id (socketId), name, seat, team, connected, hand: [] }
     this.started = false;
     this.chatLog = [];
+    this.music = null; // { url, startedAt, by } — música do SoundCloud tocando na sala (`auth musica`)
     this.characterPhaseTimer = null; // setTimeout ativo durante os 45s de "desenhar o personagem"
     this.characterPhaseEndsAt = 0;
 
@@ -1132,6 +1166,7 @@ io.on('connection', (socket) => {
     p.connected = true;
     socket.join(r.code);
     currentRoomCode = r.code;
+    sendMusicTo(r, socket);
     reply({ ok: true, code: r.code, seat: p.seat, started: r.started });
     io.to(r.code).emit('lobby_update', r.lobbyState());
     if (r.started) {
@@ -1284,6 +1319,7 @@ io.on('connection', (socket) => {
     if (adminNameFx) player.nameFx = adminNameFx;   // ...e o efeito do nome
     r.players.push(player);
     socket.join(r.code);
+    sendMusicTo(r, socket);
     return player;
   }
 
@@ -1364,6 +1400,26 @@ io.on('connection', (socket) => {
       return reply({ ok: true, inRoom: !!room() });
     }
     if (p.op === 'photo_off') { adminPhoto = null; pushPhoto(); return reply({ ok: true }); }
+    if (p.op === 'music') {
+      const r0 = room();
+      if (!r0) return reply({ ok: false, error: 'Entre numa sala primeiro (a música toca pra quem está nela).' });
+      if (p.action === 'stop') {
+        r0.music = null;
+        io.to(r0.code).emit('room_music', { action: 'stop' });
+        return reply({ ok: true });
+      }
+      let url = sanitizeScUrl(p.url);
+      if (!url) return reply({ ok: false, error: 'Link inválido. Use um link do soundcloud.com.' });
+      resolveScShortUrl(url).then((real) => {
+        if (!real) return reply({ ok: false, error: 'Não consegui abrir esse link curto do SoundCloud.' });
+        if (rooms.get(r0.code) !== r0) return reply({ ok: false, error: 'A sala não existe mais.' });
+        const me0 = r0.playerBySocket(socket.id);
+        r0.music = { url: real, startedAt: Date.now(), by: me0 ? me0.name : '' };
+        io.to(r0.code).emit('room_music', { action: 'play', url: real, offsetMs: 0, by: r0.music.by });
+        reply({ ok: true });
+      });
+      return;
+    }
     if (p.op === 'name_fx') {
       const fx = p.fx === null || p.fx === '' ? null : String(p.fx);
       if (fx !== null && !NAME_FX.has(fx)) return reply({ ok: false, error: 'Efeito inexistente.' });

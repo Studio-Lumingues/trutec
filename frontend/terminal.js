@@ -758,6 +758,7 @@
         out('  ' + c('g b', pad('nome', 22)) + c('d', 'lista os efeitos do nome (fogo, neon, arco-iris...)'));
         out('  ' + c('g b', pad('nome <efeito>', 22)) + c('d', 'aplica o efeito no seu nome pra todo mundo ver'));
         out('  ' + c('g b', pad('nome off', 22)) + c('d', 'tira o efeito'));
+        out('  ' + c('g b', pad('musica <link>', 22)) + c('d', 'toca uma música do SoundCloud pra sala toda (musica stop para)'));
         out('  ' + c('g b', pad('show', 22)) + c('d', 'mostra o placar (dentro de uma partida)'));
         out('  ' + c('g b', pad('set <d1> <d2>', 22)) + c('d', 'define o placar (0 a 12)'));
         out('  ' + c('g b', pad('add <1|2> <n>', 22)) + c('d', 'soma n (pode ser negativo) à dupla 1 ou 2'));
@@ -784,6 +785,24 @@
         if (!known) return out(c('r', '✘ ') + 'efeito desconhecido. Digite ' + c('y', 'auth nome') + ' pra ver a lista.');
         return setNameFx(want).then(function (res) {
           out(res.ok ? c('g', '✔ ') + 'efeito ' + c('w b', want) + ' aplicado ' + c('d', res.inRoom ? '(todos na sala já veem)' : '(vale quando você entrar numa sala)') : c('r', '✘ ') + esc(res.error));
+        });
+      }
+
+      if (sub === 'musica' || sub === 'música' || sub === 'music' || sub === 'som') {
+        var arg = (args[1] || '').trim();
+        if (!arg) {
+          out(c('c b', 'auth musica') + c('d', ' — toca uma música do SoundCloud pra sala toda'));
+          out('  ' + c('g b', pad('musica <link>', 22)) + c('d', 'cola o link do SoundCloud (precisa estar numa sala)'));
+          out('  ' + c('g b', pad('musica stop', 22)) + c('d', 'para a música pra todo mundo'));
+          return;
+        }
+        if (/^(stop|parar|off|para)$/i.test(arg)) {
+          return call({ op: 'music', action: 'stop' }).then(function (res) {
+            out(res.ok ? c('g', '✔ ') + 'música parada' : c('r', '✘ ') + esc(res.error));
+          });
+        }
+        return call({ op: 'music', action: 'play', url: arg }).then(function (res) {
+          out(res.ok ? c('g', '✔ ') + 'tocando pra sala toda ' + c('d', '(o título aparece na plaquinha, canto inferior esquerdo)') : c('r', '✘ ') + esc(res.error));
         });
       }
 

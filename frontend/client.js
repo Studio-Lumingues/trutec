@@ -89,6 +89,8 @@ function tryRejoin() {
   });
 }
 socket.on('connect', tryRejoin);
+// música do SoundCloud da sala (comando `auth musica` do terminal; ver radio.js)
+socket.on('room_music', (m) => { if (window.TruRadio) TruRadio.handle(m); });
 socket.on('disconnect', () => {
   const t = document.getElementById('character-phase-timer');
   if (t && t.classList.contains('active')) { /* sem mensagem: só o tempo */ }
