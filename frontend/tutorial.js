@@ -19,6 +19,21 @@
   var GUIDE = 'assets/guia.png';
   var TYPE_MS = 18;                       // velocidade da "fala" (ms por letra)
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var FLIP_MS = 240;                      // o guia/balão viram de lado só depois que ele já saiu andando
+
+  // Mola de verdade (elástico) pro guia quando ele vai pra outro canto: massa-mola amortecida
+  // amostrada em 48 pontos e usada como easing `linear(...)`. Navegador sem suporte usa um
+  // cubic-bezier com overshoot forte (bem parecido, só com 1 "balanço").
+  var SP = (function () {
+    var z = 0.5, wd = 9.4, w = wd / Math.sqrt(1 - z * z), n = 48, pts = [], i;
+    for (i = 0; i <= n; i++) {
+      var t = i / n;
+      pts.push(i === n ? 1 : +(1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + (z * w / wd) * Math.sin(wd * t))).toFixed(4));
+    }
+    var lin = 'linear(' + pts.join(',') + ')';
+    try { if (window.CSS && CSS.supports && CSS.supports('transition-timing-function', lin)) return { ease: lin, dur: '1s' }; } catch (e) {}
+    return { ease: 'cubic-bezier(.34,1.56,.64,1)', dur: '.7s' };
+  })();
 
   // ---- passos --------------------------------------------------------------
   // target: seletor (ou função) do que fica claro · ui: qual modal fica aberto
@@ -109,15 +124,15 @@
       'filter:url(#boil-sm);opacity:.95}',
       '.tut-spot.tut-none .tut-ring{display:none}',
       '.tut-panel{--gh:clamp(10rem,44vh,23rem);position:fixed;left:0;top:0;display:flex;align-items:flex-start;gap:.5rem;pointer-events:none;',
-      'width:max-content;max-width:calc(100vw - 1.5rem);transition:transform .6s cubic-bezier(.3,1.08,.5,1);will-change:transform}',
+      'width:max-content;max-width:calc(100vw - 1.5rem);transition:transform ' + SP.dur + ' ' + SP.ease + ';will-change:transform}',
             '.tut-panel.tut-right{flex-direction:row-reverse}',
       '.tut-guide{flex:none;pointer-events:auto;cursor:pointer;animation:tutBob 2.4s ease-in-out infinite}',
       '.tut-guide img{display:block;height:var(--gh);width:auto;filter:url(#boil-lg);user-select:none;-webkit-user-select:none}',
       // wiggle ao trocar de lugar: o boneco balança e o balão faz um "squash" de borracha
       '.tut-panel.tut-wiggle .tut-guide img{transform-origin:50% 100%;animation:tutWig .9s ease-out}',
       '.tut-panel.tut-wiggle .tut-bubble{transform-origin:var(--wo,0 50%);animation:tutJelly .8s ease-out}',
-      '@keyframes tutWig{0%{transform:rotate(0)}15%{transform:rotate(-9deg) scale(1.03,.96)}35%{transform:rotate(7deg) scale(.98,1.03)}55%{transform:rotate(-4deg)}75%{transform:rotate(2deg)}100%{transform:rotate(0)}}',
-      '@keyframes tutJelly{0%{transform:scale(1,1)}20%{transform:scale(1.05,.94) rotate(-1deg)}45%{transform:scale(.97,1.04) rotate(.8deg)}70%{transform:scale(1.015,.99)}100%{transform:scale(1,1)}}',
+      '@keyframes tutWig{0%{transform:rotate(0)}15%{transform:rotate(calc(var(--lean,1) * -10deg)) scale(1.04,.95)}35%{transform:rotate(calc(var(--lean,1) * 7deg)) scale(.97,1.04)}55%{transform:rotate(calc(var(--lean,1) * -4deg))}75%{transform:rotate(calc(var(--lean,1) * 2deg))}100%{transform:rotate(0)}}',
+      '@keyframes tutJelly{0%{transform:scale(1,1) skewX(0deg)}20%{transform:scale(1.06,.94) skewX(calc(var(--lean,1) * -3deg))}45%{transform:scale(.97,1.04) skewX(calc(var(--lean,1) * 2deg))}70%{transform:scale(1.015,.99) skewX(0deg)}100%{transform:scale(1,1) skewX(0deg)}}',
       '.tut-panel.tut-talk .tut-guide{animation:tutTalk .32s ease-in-out infinite}',
       '@keyframes tutBob{50%{transform:translateY(-.25rem) rotate(-1.5deg)}}',
       '@keyframes tutTalk{25%{transform:translateY(-.3rem) rotate(2deg)}75%{transform:translateY(-.1rem) rotate(-2deg)}}',
@@ -172,6 +187,7 @@
   var idx = 0, running = false, raf = 0, typeTimer = null, moveTimer = 0, relayoutTimer = 0;
   var nodes = [], texts = [], cursor = 0, total = 0, plain = '';
   var settleAt = 0, dirty = false;
+  var started = false, flipTimer = 0, flipTo = null;
   var entering = false, enterTimer = 0, lastX = 0, lastY = 0, lastWig = 0, curCand = -1, curCandN = 0, lastRect = '', firstLayout = true, t0 = 0;
 
   function resolve(t) {
@@ -184,6 +200,7 @@
   var PAD = 8;
   function track() {
     raf = requestAnimationFrame(track);
+    if (!started) return;
     if (dirty && Date.now() - settleAt > 160) { dirty = false; layout(); }   // modal parou de animar: posiciona UMA vez
     var el = resolve(STEPS[idx].target);
     if (!el) {
@@ -218,7 +235,7 @@
     if (!el && STEPS[idx].target && !entrance) return;   // modal ainda abrindo: fica onde está (antes ia pro centro e voltava)
     var vw = innerWidth, vh = innerHeight, m = 12;
     var w = panel.offsetWidth, h = panel.offsetHeight, x, y, right = false;
-    if (!el) { x = (vw - w) / 2; y = (vh - h) / 2; panel.classList.remove('tut-right'); curCand = -1; }
+    if (!el) { x = (vw - w) / 2; y = (vh - h) / 2; curCand = -1; }
     else {
       var r = el.getBoundingClientRect();
       var tr = { l: r.left - PAD, t: r.top - PAD, r: r.right + PAD, b: r.bottom + PAD };
@@ -236,9 +253,13 @@
       if (curCand >= 0 && curCandN === cand.length && areas[curCand] <= areas[best] + 4000) pick = curCand;
       curCand = pick; curCandN = cand.length;
       x = cand[pick][0]; y = cand[pick][1]; right = cand[pick][2];
-      panel.classList.toggle('tut-right', right);
     }
     var tf = 'translate(' + Math.round(Math.max(0, x)) + 'px,' + Math.round(Math.max(0, y)) + 'px)';
+    var hasRight = panel.classList.contains('tut-right');
+    if (entrance || snap) {                           // sem animação: já vira de lado na hora
+      clearTimeout(flipTimer); flipTo = null;
+      panel.classList.toggle('tut-right', right);
+    }
     if (entrance) {                                   // entrada: começa FORA da tela, embaixo, e sobe até o lugar com a mola
       panel.style.transition = 'none';
       panel.style.transform = 'translate(' + Math.round(Math.max(0, x)) + 'px,' + (vh + 30) + 'px)';
@@ -248,10 +269,27 @@
       lastX = x; lastY = y; lastWig = Date.now();
       clearTimeout(enterTimer);
       enterTimer = setTimeout(function () { if (running) wiggle(right); }, 380);   // balança quando chega
-    } else {
+    } else if (snap) {                                // resize: acompanha a janela sem "elástico"
+      panel.style.transition = 'none';
       panel.style.transform = tf;
-      var now = Date.now();
-      if (Math.hypot(x - lastX, y - lastY) > 30 && now - lastWig > 350) { lastWig = now; wiggle(right); }
+      void panel.offsetWidth;
+      panel.style.transition = '';
+      lastX = x; lastY = y;
+    } else {
+      var now = Date.now(), moved = Math.hypot(x - lastX, y - lastY) > 30;
+      panel.style.transform = tf;                     // a mola (transition do CSS) faz o resto
+      if (moved) panel.style.setProperty('--lean', x >= lastX ? 1 : -1);
+      if (flipTo !== null && right === hasRight) { clearTimeout(flipTimer); flipTo = null; }
+      if (right !== hasRight && flipTo !== right) {
+        // trocou de lado: vira o guia/balão no meio do caminho (e não de uma vez, no ponto de partida)
+        clearTimeout(flipTimer); flipTo = right;
+        flipTimer = setTimeout(function () {
+          flipTo = null;
+          if (!running || !panel) return;
+          panel.classList.toggle('tut-right', right);
+          lastWig = Date.now(); wiggle(right);
+        }, FLIP_MS);
+      } else if (flipTo === null && moved && now - lastWig > 350) { lastWig = now; wiggle(right); }
       lastX = x; lastY = y;
     }
   }
@@ -335,6 +373,7 @@
   }
   function say(html) {
     clearInterval(typeTimer);
+    panel.classList.remove('tut-talk');
     full.innerHTML = html; typed.innerHTML = html;
     nodes = collect(typed); texts = nodes.map(function (n) { return n.nodeValue; });
     total = texts.reduce(function (a, s) { return a + s.length; }, 0);
@@ -388,6 +427,7 @@
   }
   function onNameInput() { syncAsk(); }
   function next() {
+    if (!started) return;
     if (finishTyping()) return;
     if (STEPS[idx].ask && !nameNow()) {               // sem nome não passa: balança o crachá e foca
       var bd = document.querySelector('.name-badge'), i = nameInput();
@@ -398,7 +438,7 @@
     if (idx >= STEPS.length - 1) return stop(true);
     show(idx + 1);
   }
-  function back() { if (idx > 0) show(idx - 1); }
+  function back() { if (started && idx > 0) show(idx - 1); }
 
   function onKey(e) {
     if (!running) return;
@@ -450,11 +490,10 @@
     btnBack.addEventListener('click', back);
     btnSkip.addEventListener('click', function () { stop(false); });
     guideImg.addEventListener('click', finishTyping);
-    var gi = guideImg.querySelector('img');
-    if (gi && !gi.complete) gi.addEventListener('load', function () { layout(); });
+    panel.style.visibility = 'hidden';                // só aparece quando a imagem do guia carregou (senão a largura é medida errada)
   }
 
-  function onResize() { layout(); }
+  function onResize() { layout(true); }
   function seenFlag() { try { return !!localStorage.getItem(FLAG); } catch (e) { return false; } }
 
   function inLobby() {
@@ -475,7 +514,7 @@
     if (running || !inLobby()) return false;
     closeAll();
     mandatory = !seenFlag();
-    running = true; ui = 'none';
+    running = true; ui = 'none'; started = false; flipTo = null;
     curCand = -1; lastRect = ''; firstLayout = true; entering = true; t0 = Date.now();
     build();
     syncFab();
@@ -484,7 +523,16 @@
     var ni = nameInput(); if (ni) ni.addEventListener('input', onNameInput);
     var ac = voiceCtx(); if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }   // se veio de um clique, já libera o som
     raf = requestAnimationFrame(track);
-    show(0);
+    var r = root, gi = guideImg.querySelector('img'), done = false, to = 0;
+    function go() {
+      if (done) return; done = true; clearTimeout(to);
+      if (!running || root !== r) return;
+      started = true;
+      show(0);                                        // a entrada mede o painel já com a imagem carregada
+      panel.style.visibility = '';
+    }
+    if (gi.complete && gi.naturalWidth) go();
+    else { gi.addEventListener('load', go); gi.addEventListener('error', go); to = setTimeout(go, 1500); }
     return true;
   }
 
@@ -492,9 +540,9 @@
     if (!running) return;
     if (done === true) { try { localStorage.setItem(FLAG, '1'); } catch (e) {} }   // só conta como "visto" quando termina
     pending = false;
-    running = false;
+    running = false; started = false; flipTo = null;
     var ni = nameInput(); if (ni) ni.removeEventListener('input', onNameInput);
-    clearInterval(typeTimer); clearTimeout(moveTimer); clearTimeout(relayoutTimer); clearTimeout(enterTimer);
+    clearInterval(typeTimer); clearTimeout(moveTimer); clearTimeout(relayoutTimer); clearTimeout(enterTimer); clearTimeout(flipTimer);
     cancelAnimationFrame(raf);
     window.removeEventListener('keydown', onKey, true);
     window.removeEventListener('resize', onResize);
