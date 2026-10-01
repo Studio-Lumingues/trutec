@@ -2719,3 +2719,82 @@ html[data-theme="casa"] .table-disc::before {
 @media (prefers-reduced-motion: reduce) {
   .btn-glass.sweep::after { animation: none; }
 }
+
+
+/* ==========================================================================
+   Seletor de cor personalizada (círculo arco-íris em vez do quadrado)
+   ========================================================================== */
+#character-color-picker {
+  -webkit-appearance: none; appearance: none;
+  width: 2.125rem; height: 2.125rem;
+  border-radius: 50%;
+  border: 0.125rem solid rgba(255,255,255,0.25);
+  padding: 0;
+  cursor: pointer;
+  background: conic-gradient(#ff3b3b, #ffd23f, #2ecc71, #00d1c1, #2e86ff, #9b59ff, #ff3b9a, #ff3b3b);
+  transition: transform .1s, border-color .15s;
+}
+#character-color-picker::-webkit-color-swatch-wrapper { padding: 0; }
+#character-color-picker::-webkit-color-swatch { border: none; border-radius: 50%; opacity: 0; }
+#character-color-picker::-moz-color-swatch { border: none; border-radius: 50%; opacity: 0; }
+#character-color-picker:hover { transform: scale(1.12); }
+#character-color-picker.active {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 0 0.1875rem rgba(255,255,255,0.3);
+  background:
+    radial-gradient(circle, var(--picked, #0a0a0a) 0 36%, rgba(255,255,255,0.9) 38% 44%, transparent 46%),
+    conic-gradient(#ff3b3b, #ffd23f, #2ecc71, #00d1c1, #2e86ff, #9b59ff, #ff3b9a, #ff3b3b);
+}
+#screen-character-editor #character-color-picker { width: 2.125rem; height: 2.125rem; }
+
+/* ==========================================================================
+   Coleção de avatares (3 espaços) + modal "Salvar avatar"
+   ========================================================================== */
+.avatar-slots { display: flex; gap: 0.625rem; justify-content: center; }
+.avatar-slot {
+  position: relative;
+  width: 3.75rem; height: 3.75rem;
+  padding: 0;
+  border-radius: 0.875rem;
+  border: 0.125rem solid rgba(255,255,255,0.25);
+  background: #fff8f0;
+  color: #fff;
+  font-size: 1.6rem; line-height: 1;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .1s, border-color .15s, box-shadow .15s;
+}
+.avatar-slot.empty { background: rgba(255,255,255,0.08); border-style: dashed; }
+.avatar-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.avatar-slot:hover { transform: scale(1.06); }
+.avatar-slot.editing { border-color: #fff; }
+.avatar-slot.active { border-color: var(--gold-bright); box-shadow: 0 0 0 0.1875rem rgba(255,255,255,0.3); }
+.avatar-slot .slot-num {
+  position: absolute; left: 0.25rem; bottom: 0.2rem;
+  min-width: 1.1rem; padding: 0 0.25rem;
+  border-radius: 0.5rem;
+  background: rgba(0,0,0,0.65); color: #fff;
+  font: 700 0.7rem/1.1rem system-ui, sans-serif; text-align: center;
+}
+.avatar-slot:focus-visible, .slot-choice:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.slot-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 0.5rem; }
+.slot-choice {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 0.4rem 0.6rem;
+  border-radius: 0.875rem;
+  border: 0.125rem solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.06);
+  color: #fff; cursor: pointer;
+  transition: transform .1s, border-color .15s, background .15s;
+}
+.slot-choice:hover { transform: translateY(-2px); border-color: var(--gold-bright); background: rgba(255,255,255,0.12); }
+.slot-thumb {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 100%; aspect-ratio: 1 / 1;
+  border-radius: 0.6rem; overflow: hidden;
+  background: #fff8f0; font-size: 2rem; color: rgba(255,255,255,0.8);
+}
+.slot-choice.empty .slot-thumb { background: rgba(255,255,255,0.08); border: 0.125rem dashed rgba(255,255,255,0.3); }
+.slot-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.slot-label { font-size: 0.85rem; font-weight: 600; text-align: center; }

@@ -153,7 +153,7 @@ function getSavedCharacter() {
 }
 
 // ------------------------------------------------------------------
-// PAINEL: CRIAR PERSONAGEM (desenhar em cima do boneco)
+// PAINEL: CRIAR AVATAR (desenhar em cima do boneco)
 // ------------------------------------------------------------------
 (function initCharacterEditor() {
   const canvas = document.getElementById('character-canvas');
@@ -180,7 +180,7 @@ function getSavedCharacter() {
   // Aba "Pele": tom/cor do boneco via hue-rotate (o boneco é um SVG de
   // cor sólida, então rotacionar o matiz é suficiente pra trocar o tom).
   // ------------------------------------------------------------------
-  const CHARACTER_BASE_COLOR = '#ff0042'; // cor original do svg do personagem
+  const CHARACTER_BASE_COLOR = '#ff0042'; // cor original do svg do avatar
   const skinHueSlider = document.getElementById('character-skin-hue');
   const skinPresetsWrap = document.getElementById('skin-presets');
   const tabButtons = document.querySelectorAll('.editor-tab-btn');
@@ -368,9 +368,15 @@ function getSavedCharacter() {
   function setColor(c) {
     currentColor = c;
     colorPicker.value = c;
+    let matched = false;
     document.querySelectorAll('.color-swatch').forEach(b => {
-      b.classList.toggle('active', (b.dataset.color || '').toLowerCase() === String(c).toLowerCase());
+      const on = (b.dataset.color || '').toLowerCase() === String(c).toLowerCase();
+      if (on) matched = true;
+      b.classList.toggle('active', on);
     });
+    // cor personalizada: o botão do seletor mostra a cor escolhida no centro
+    colorPicker.classList.toggle('active', !matched);
+    if (!matched) colorPicker.style.setProperty('--picked', c);
     if (currentTool === 'eraser') {            // escolher cor volta pra caneta
       currentTool = 'pen';
       btnPen.classList.add('active');
@@ -411,6 +417,164 @@ function getSavedCharacter() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   });
 
+  // ------------------------------------------------------------------
+  // COLEÇÃO: 3 espaços de avatar.
+  // Cada espaço guarda { img: avatar pronto (PNG), draw: só o desenho, skin }.
+  // O espaço "equipado" é o que aparece nas partidas (e fica também em
+  // 'trutec_meu_personagem', que o resto do site já lê).
+  // ------------------------------------------------------------------
+  const SLOTS_KEY = 'trutec_avatar_slots';
+  const ACTIVE_KEY = 'trutec_avatar_active';
+  const SLOT_COUNT = 3;
+  const slotsWrap = document.getElementById('avatar-slots');
+  const slotModal = document.getElementById('slot-modal');
+  const slotPick = document.getElementById('slot-pick');
+  const slotCancel = document.getElementById('slot-cancel');
+  const DEFAULT_SKIN = { h: 0, s: 1, b: 1 };
+  let slots = [];
+  let activeSlot = -1;     // equipado (usado nas partidas)
+  let editingSlot = -1;    // o que está carregado no editor agora
+  let pendingSave = null;  // { img, draw, skin } esperando a escolha do espaço
+
+  function readSlots() {
+    let arr = null;
+    try { arr = JSON.parse(localStorage.getItem(SLOTS_KEY)); } catch (e) {}
+    if (!Array.isArray(arr)) {
+      arr = [];
+      // migra o avatar antigo (um só) pro espaço 1
+      try {
+        const old = localStorage.getItem('trutec_meu_personagem');
+        if (old) {
+          let sk = DEFAULT_SKIN;
+          try { sk = JSON.parse(localStorage.getItem('trutec_personagem_skin')) || DEFAULT_SKIN; } catch (e) {}
+          arr[0] = { img: old, draw: null, skin: sk };
+          localStorage.setItem(ACTIVE_KEY, '0');
+        }
+      } catch (e) {}
+    }
+    const out = [];
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const it = arr[i];
+      out.push(it && typeof it.img === 'string' ? it : null);
+    }
+    return out;
+  }
+  function writeSlots() {
+    try { localStorage.setItem(SLOTS_KEY, JSON.stringify(slots)); return true; }
+    catch (e) { console.warn('Não foi possível salvar a coleção:', e); return false; }
+  }
+
+  function flash(txt, ms = 3500) {
+    saveMsg.textContent = txt;
+    setTimeout(() => { if (saveMsg.textContent === txt) saveMsg.textContent = ''; }, ms);
+  }
+
+  // Deixa este avatar como o "equipado": guarda, atualiza a prévia e manda pro servidor (se já está numa sala).
+  function applyActive(dataUrl, okMsg) {
+    try { localStorage.setItem('trutec_meu_personagem', dataUrl); } catch (e) { console.warn('localStorage:', e); }
+    const previewImg = document.getElementById('character-preview-img');
+    if (previewImg) previewImg.src = dataUrl;
+    if (!myRoomCode) return flash(okMsg);
+    if (!socket.connected) return flash('Sem conexão com o servidor. Aguarde reconectar e salve de novo.', 5000);
+    saveMsg.textContent = 'Salvando…';
+    socket.timeout(6000).emit('update_character', { character: dataUrl }, (err, res) => {
+      if (err) return flash('O servidor não respondeu. Ele pode estar acordando ou desatualizado — tente de novo.', 6000);
+      if (!res || !res.ok) return flash('Erro ao salvar: ' + ((res && res.error) || 'desconhecido'), 6000);
+      flash(okMsg);
+    });
+  }
+
+  function setActive(i) {
+    activeSlot = i;
+    try { localStorage.setItem(ACTIVE_KEY, String(i)); } catch (e) {}
+  }
+
+  function renderSlots() {
+    slotsWrap.innerHTML = '';
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'avatar-slot' + (slots[i] ? '' : ' empty') + (i === activeSlot ? ' active' : '') + (i === editingSlot ? ' editing' : '');
+      b.setAttribute('aria-label', `Avatar ${i + 1}` + (slots[i] ? (i === activeSlot ? ' (em uso)' : '') : ' (vazio)'));
+      b.title = slots[i] ? (i === activeSlot ? `Avatar ${i + 1} (em uso)` : `Usar e editar o avatar ${i + 1}`) : `Espaço ${i + 1} vazio: começar um avatar novo`;
+      if (slots[i]) { const im = document.createElement('img'); im.src = slots[i].img; im.alt = ''; im.draggable = false; b.appendChild(im); }
+      else b.textContent = '+';
+      const n = document.createElement('span'); n.className = 'slot-num'; n.textContent = String(i + 1);
+      b.appendChild(n);
+      b.addEventListener('click', () => onSlotClick(i));
+      slotsWrap.appendChild(b);
+    }
+  }
+
+  function loadDrawing(dataUrl) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!dataUrl) return;
+    const im = new Image();
+    im.onload = () => { ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(im, 0, 0, canvas.width, canvas.height); };
+    im.src = dataUrl;
+  }
+
+  function onSlotClick(i) {
+    undoStack.length = 0;
+    editingSlot = i;
+    const it = slots[i];
+    if (it) {
+      setSkin(it.skin || DEFAULT_SKIN);
+      loadDrawing(it.draw);
+      setActive(i);
+      applyActive(it.img, `Avatar ${i + 1} em uso!`);
+    } else {                       // espaço vazio: começa um avatar novo
+      setSkin(DEFAULT_SKIN);
+      loadDrawing(null);
+      flash('Avatar novo. Desenhe e clique em salvar.');
+    }
+    renderSlots();
+  }
+
+  // ---- escolher onde salvar ----
+  function openSlotModal() {
+    slotPick.innerHTML = '';
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'slot-choice' + (slots[i] ? '' : ' empty');
+      const thumb = document.createElement('span'); thumb.className = 'slot-thumb';
+      if (slots[i]) { const im = document.createElement('img'); im.src = slots[i].img; im.alt = ''; im.draggable = false; thumb.appendChild(im); }
+      else thumb.textContent = '+';
+      const lab = document.createElement('span'); lab.className = 'slot-label';
+      lab.textContent = `Espaço ${i + 1}` + (slots[i] ? ' · substituir' : ' · vazio');
+      b.appendChild(thumb); b.appendChild(lab);
+      b.addEventListener('click', () => doSave(i));
+      slotPick.appendChild(b);
+    }
+    slotModal.classList.remove('hidden');
+    const first = slotPick.querySelector('.slot-choice'); if (first) first.focus();
+  }
+  function closeSlotModal() { slotModal.classList.add('hidden'); pendingSave = null; btnSave.focus(); }
+  slotCancel.addEventListener('click', closeSlotModal);
+  slotModal.addEventListener('click', (e) => { if (e.target === slotModal) closeSlotModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !slotModal.classList.contains('hidden')) closeSlotModal();
+  });
+
+  function doSave(i) {
+    if (!pendingSave) return closeSlotModal();
+    const prev = slots[i];
+    slots[i] = pendingSave;
+    if (!writeSlots()) {            // sem espaço no navegador: desfaz
+      slots[i] = prev;
+      slotModal.classList.add('hidden'); pendingSave = null;
+      return flash('Não deu pra salvar: o armazenamento do navegador está cheio.', 6000);
+    }
+    const it = pendingSave;
+    slotModal.classList.add('hidden'); pendingSave = null;
+    editingSlot = i;
+    setActive(i);
+    try { localStorage.setItem('trutec_personagem_skin', JSON.stringify(it.skin)); } catch (e) {}
+    renderSlots();
+    applyActive(it.img, `Avatar salvo no espaço ${i + 1}!`);
+  }
+
   btnSave.addEventListener('click', () => {
     // Junta o boneco base (com o tom escolhido na aba "Pele") + o desenho num único PNG.
     const merged = document.createElement('canvas');
@@ -420,47 +584,33 @@ function getSavedCharacter() {
     const baseImg = document.getElementById('character-base');
     drawSkinned(mctx, baseImg, merged.width, merged.height);
     mctx.drawImage(canvas, 0, 0);
-    const dataUrl = merged.toDataURL('image/png');
-
-    try {
-      localStorage.setItem('trutec_meu_personagem', dataUrl);
-      localStorage.setItem('trutec_personagem_skin', JSON.stringify(skin));
-    } catch (e) {
-      console.warn('Não foi possível salvar no localStorage:', e);
-    }
-
-    // Atualiza a prévia grande do personagem lá no lobby.
-    const previewImg = document.getElementById('character-preview-img');
-    if (previewImg) previewImg.src = dataUrl;
-
-    // Se já estamos numa sala, manda pro servidor e só diz "salvo" quando ele confirmar.
-    const flash = (txt, ms = 3500) => {
-      saveMsg.textContent = txt;
-      setTimeout(() => { if (saveMsg.textContent === txt) saveMsg.textContent = ''; }, ms);
+    pendingSave = {
+      img: merged.toDataURL('image/png'),
+      draw: canvas.toDataURL('image/png'),
+      skin: { h: skin.h, s: skin.s, b: skin.b }
     };
-    if (!myRoomCode) return flash('Personagem salvo!');
-    if (!socket.connected) return flash('Sem conexão com o servidor. Aguarde reconectar e salve de novo.', 5000);
-    saveMsg.textContent = 'Salvando…';
-    socket.timeout(6000).emit('update_character', { character: dataUrl }, (err, res) => {
-      if (err) return flash('O servidor não respondeu. Ele pode estar acordando ou desatualizado — tente de novo.', 6000);
-      if (!res || !res.ok) return flash('Erro ao salvar: ' + ((res && res.error) || 'desconhecido'), 6000);
-      flash('Personagem salvo!');
-    });
+    openSlotModal();
   });
 
-  // Carrega um personagem salvo anteriormente, se existir, e mostra na prévia do lobby.
-  try {
-    const saved = localStorage.getItem('trutec_meu_personagem');
-    if (saved) {
-      saveMsg.textContent = 'Você já tem um personagem salvo.';
-      const previewImg = document.getElementById('character-preview-img');
-      if (previewImg) previewImg.src = saved;
-    }
-  } catch (e) { /* localStorage indisponível, ignora */ }
+  // ---- inicialização: carrega a coleção e o avatar em uso ----
+  slots = readSlots();
+  try { const a = parseInt(localStorage.getItem(ACTIVE_KEY), 10); activeSlot = isFinite(a) && slots[a] ? a : -1; } catch (e) {}
+  if (activeSlot < 0) activeSlot = slots.findIndex(x => x);
+  if (activeSlot >= 0) {
+    editingSlot = activeSlot;
+    const it = slots[activeSlot];
+    setSkin(it.skin || DEFAULT_SKIN);
+    loadDrawing(it.draw);
+    saveMsg.textContent = 'Você já tem um avatar salvo.';
+    const previewImg = document.getElementById('character-preview-img');
+    if (previewImg) previewImg.src = it.img;
+    try { localStorage.setItem('trutec_meu_personagem', it.img); } catch (e) {}
+  }
+  renderSlots();
 })();
 
 // ------------------------------------------------------------------
-// Abrir/fechar a tela de edição do personagem a partir do lobby
+// Abrir/fechar a tela de edição do avatar a partir do lobby
 // ------------------------------------------------------------------
 document.getElementById('btn-open-character-editor')?.addEventListener('click', () => {
   showScreen('screen-character-editor');
@@ -1026,10 +1176,10 @@ document.getElementById('btn-copy-code').addEventListener('click', (e) => {
 let matchIntroPlayed = false;
 let phaseWatchdog = null;
 
-// Não existe mais a fase de desenho de 45s antes da partida: o personagem é feito na
-// seção "Personagem" da tela inicial. Quando o host inicia, o servidor ainda abre a
-// "fase de personagem" (character_phase_start); aqui a gente responde na hora com o
-// personagem que a pessoa já salvou (ou o boneco padrão), e todo mundo fica "pronto"
+// Não existe mais a fase de desenho de 45s antes da partida: o avatar é feito na
+// seção "Avatar" da tela inicial. Quando o host inicia, o servidor ainda abre a
+// "fase de avatar" (character_phase_start); aqui a gente responde na hora com o
+// avatar que a pessoa já salvou (ou o boneco padrão), e todo mundo fica "pronto"
 // sozinho — a partida começa sem ninguém precisar desenhar nem esperar.
 function sendMyCharacter() {
   const send = (dataUrl) => socket.emit('update_character', { character: dataUrl }, () => {});

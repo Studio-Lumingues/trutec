@@ -617,10 +617,10 @@
     var root = document.createElement('div');
     root.className = 'tt-draw';
     root.setAttribute('role', 'dialog');
-    root.setAttribute('aria-label', 'Desenhar o personagem');
+    root.setAttribute('aria-label', 'Desenhar o avatar');
     root.innerHTML =
       '<div class="tt-dr-side">' +
-        '<h3>Desenhar personagem<br><small>sem limite de tempo</small></h3>' +
+        '<h3>Desenhar avatar<br><small>sem limite de tempo</small></h3>' +
         '<div class="tt-dr-row" data-sw><label>Cor</label></div>' +
         '<div class="tt-dr-row"><label>Pincel: <span data-sz-val></span></label><input type="range" data-sz min="2" max="80" value="10"></div>' +
         '<div class="tt-dr-row"><button type="button" class="tt-dr-btn on" data-tool="pen">Caneta</button>' +
@@ -776,7 +776,7 @@
       out.toBlob(function (blob) {
         if (!blob) return;
         var url = URL.createObjectURL(blob), a = document.createElement('a');
-        a.href = url; a.download = 'personagem-trutec.jpg';
+        a.href = url; a.download = 'avatar-trutec.jpg';
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
       }, 'image/jpeg', 0.95);
@@ -1009,7 +1009,7 @@
           });
           var photo = readPhoto();
           if (photo) return call({ op: 'photo', photo: photo }).then(function (r2) {
-            out(r2.ok ? c('g', '✔ ') + 'foto salva aplicada ' + c('d', '(todos veem no lugar do seu personagem; ajuste pelo canto superior direito)') : c('r', '✘ ') + esc(r2.error));
+            out(r2.ok ? c('g', '✔ ') + 'foto salva aplicada ' + c('d', '(todos veem no lugar do seu avatar; ajuste pelo canto superior direito)') : c('r', '✘ ') + esc(r2.error));
           });
         });
       }
@@ -1017,8 +1017,8 @@
       var sub = (args[0] || '').toLowerCase();
       function usage() {
         out(c('c b', 'auth') + c('d', ' — modo admin ativo'));
-        out('  ' + c('g b', pad('foto', 22)) + c('d', 'abre o ajuste da foto (só no lobby); todos veem no lugar do seu personagem'));
-        out('  ' + c('g b', pad('foto off', 22)) + c('d', 'tira a foto e volta pro personagem'));
+        out('  ' + c('g b', pad('foto', 22)) + c('d', 'abre o ajuste da foto (só no lobby); todos veem no lugar do seu avatar'));
+        out('  ' + c('g b', pad('foto off', 22)) + c('d', 'tira a foto e volta pro avatar'));
         out('  ' + c('g b', pad('nome', 22)) + c('d', 'lista os efeitos do nome (fogo, neon, arco-iris...)'));
         out('  ' + c('g b', pad('nome <efeito>', 22)) + c('d', 'aplica o efeito no seu nome pra todo mundo ver'));
         out('  ' + c('g b', pad('nome off', 22)) + c('d', 'tira o efeito'));

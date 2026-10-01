@@ -8,7 +8,7 @@
 <!-- ícone estático (reserva); o favicon.js troca por quadros animados -->
 <link rel="icon" type="image/png" href="assets/personagem.png" />
 <link rel="apple-touch-icon" href="assets/personagem.png" />
-<link rel="stylesheet" href="style.css?v=3" />
+<link rel="stylesheet" href="style.css?v=4" />
 <script>
 try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentElement.classList.add('colorblind'); } catch (e) {}
 try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documentElement.classList.add('leaving-intro'); } catch (e) {}
@@ -44,7 +44,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
         <feTurbulence data-boil type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="1" result="n"/>
         <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G"/>
       </filter>
-      <!-- grande: editor de personagem (boneco + desenho do jogador) -->
+      <!-- grande: editor de avatar (boneco + desenho do jogador) -->
       <filter id="boil-lg" x="-3%" y="-3%" width="106%" height="106%" color-interpolation-filters="sRGB">
         <feTurbulence data-boil type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="1" result="n"/>
         <feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/>
@@ -224,7 +224,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
           <ul>
             <li><b>Criar sala:</b> escolha 1 vs 1 ou 2 vs 2 e mande o <b>código</b> de 5 letras pros amigos.</li>
             <li><b>Jogar:</b> digite o código da sala que um amigo te passou.</li>
-            <li>Antes da partida você <b>desenha seu personagem</b> (o tempo é curto, então salve a tempo!).</li>
+            <li>Antes da partida você pode <b>criar até 3 avatares</b> na tela inicial e escolher qual usar.</li>
           </ul>
         </details>
 
@@ -379,15 +379,29 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
     </div>
   </div>
 
-  <!-- ===================== TELA: EDITAR PERSONAGEM ===================== -->
+  <!-- ===================== SALVAR AVATAR: escolher o espaço ===================== -->
+  <div id="slot-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="slot-title">
+    <div class="settings-card">
+      <h2 id="slot-title">Salvar avatar</h2>
+      <p class="modal-hint">Em qual espaço você quer salvar? Ele passa a ser o avatar em uso.</p>
+      <div class="slot-pick" id="slot-pick"></div>
+      <div class="modal-actions">
+        <button id="slot-cancel" type="button" class="btn btn-secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== TELA: EDITAR AVATAR ===================== -->
   <div id="screen-character-editor" class="screen">
     <div class="character-panel character-panel-wide">
-      <h3 class="character-title">Editar personagem</h3>
-      <p class="character-hint">Desenhe em cima do boneco pra deixar do seu jeito. Ao salvar, ele aparece em todas as suas partidas.</p>
+      <h3 class="character-title">Editar avatar</h3>
+      <p class="character-hint">Desenhe em cima do boneco pra deixar do seu jeito. Você tem 3 espaços: o avatar que estiver em uso aparece nas suas partidas.</p>
 
       <div class="character-editor-layout">
 
         <div class="character-toolbar">
+          <div class="avatar-slots" id="avatar-slots" role="group" aria-label="Meus avatares"></div>
+
           <div class="editor-tabs">
             <button type="button" class="editor-tab-btn active" data-tab="desenho"><svg class="ic" aria-hidden="true"><use href="#i-brush"/></svg> Desenho</button>
             <button type="button" class="editor-tab-btn" data-tab="pele"><svg class="ic" aria-hidden="true"><use href="#i-droplet"/></svg> Pele</button>
@@ -429,14 +443,14 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
             <input type="range" id="character-skin-hue" class="skin-hue-slider" min="0" max="360" value="0" />
           </div>
 
-          <button type="button" id="btn-character-save" class="btn btn-primary character-save-btn"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> Salvar personagem</button>
+          <button type="button" id="btn-character-save" class="btn btn-primary character-save-btn"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> Salvar avatar</button>
           <p id="character-save-msg" class="character-save-msg"></p>
 
           <button type="button" id="btn-close-character-editor" class="btn btn-ghost character-back-btn btn-back-arrow" aria-label="Voltar" title="Voltar"><svg class="ic ic-only" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
         </div>
 
         <div class="character-canvas-wrap">
-          <img id="character-base" src="assets/personagem.svg" alt="Personagem" draggable="false" />
+          <img id="character-base" src="assets/personagem.svg" alt="Avatar" draggable="false" />
           <canvas id="character-canvas" width="500" height="500"></canvas>
         </div>
 
@@ -675,6 +689,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="favicon.js"></script>
   <script src="tutorial.js"></script>
   <script src="terminal.js?v=3"></script>
-  <script src="client.js?v=8"></script>
+  <script src="client.js?v=9"></script>
 </body>
 </html>

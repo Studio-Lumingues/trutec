@@ -3,7 +3,7 @@
 // - assets/song.wav toca no lobby principal e na sala de espera.
 // - A jungle acende uma luz colorida nos cantos da tela no ritmo da música
 //   (bumbo = rosa embaixo, caixa/chimbal = roxo em cima).
-// - assets/jungle.wav toca SÓ na tela de fazer o personagem (editor). Quando o
+// - assets/jungle.wav toca SÓ na tela de fazer o avatar (editor). Quando o
 //   desenho termina (todo mundo pronto / a partida começa / a pessoa sai do
 //   editor), ela some em fade out. Ao trocar de tela, uma faixa some enquanto
 //   a outra entra. Na mesa do jogo não toca música.
@@ -41,7 +41,7 @@
   // Música: Web Audio API (o <audio loop> do navegador deixa um vazinho na
   // volta do loop; aqui o fim emenda direto no começo).
   // Duas faixas: "song" (lobby / sala de espera) e "jungle" (só no editor de
-  // personagem). Cada uma tem seu fade; `max` compensa a diferença de volume
+  // avatar). Cada uma tem seu fade; `max` compensa a diferença de volume
   // entre os arquivos (a jungle é bem mais baixa que a song).
   var tracks = {
     song:   { src: 'assets/song.wav',   max: 0.2, fadeOut: 1, buffer: null, source: null, fade: null, timer: null, loading: false, failed: false },

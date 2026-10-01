@@ -1,5 +1,5 @@
 // ============================================================================
-// TUTORIAL COM O GUIA DO TRUTEC (personagem "hand drawn")
+// TUTORIAL COM O GUIA DO TRUTEC (avatar "hand drawn")
 // O Jailson (assets/guia.png), o guia, aparece com um balão de fala e ensina, passo a passo:
 // criar sala, entrar numa sala, Ajuda, Configurações (com o nome) e Temas.
 // - A tela inteira escurece; só a parte de que ele está falando fica clara
