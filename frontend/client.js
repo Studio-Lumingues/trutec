@@ -1921,8 +1921,11 @@ function nameFxHtml(name, fx) {
 }
 // escreve o nome num elemento só quando algo mudou (recriar a cada atualização reiniciaria a animação)
 function setNameEl(el, name, suffix, fx) {
+  name = (name === undefined || name === null || String(name).trim() === '') ? 'Jogador' : name;
   const sig = name + '|' + (suffix || '') + '|' + (fx || '');
-  if (el.dataset.sig === sig) return;
+  // só pula a escrita se o elemento realmente já mostra esse nome
+  // (se estiver com o placeholder "—", escreve de novo)
+  if (el.dataset.sig === sig && el.textContent.trim() !== '—') return;
   el.dataset.sig = sig;
   el.innerHTML = nameFxHtml(name, fx) + escapeHtml(suffix || '');
 }
