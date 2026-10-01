@@ -1399,6 +1399,9 @@ function updateVoteUI(state) {
 document.querySelectorAll('#vote-overlay .vote-btn').forEach(btn => {
   btn.addEventListener('click', () => socket.emit('mao11_vote', { choice: btn.dataset.choice }));
 });
+socket.on('score_changed', ({ score }) => {
+  setBanner('Placar alterado pelo administrador: ' + score[0] + ' x ' + score[1], 2600);
+});
 socket.on('mao11_result', ({ team, blind }) => {
   const mine = team === myTeam;
   if (blind) setBanner(mine ? 'Mão de 11: vocês jogam ÀS CEGAS!' : 'Mão de 11: a dupla adversária joga ÀS CEGAS!', 3000);

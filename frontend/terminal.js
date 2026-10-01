@@ -25,6 +25,7 @@
   var state = 'user';            // 'user' | 'pass' | 'shell'
   var authed = false, pendingUser = '';
   var hist = [], hidx = 0, saved = null;
+  var adminKey = '';             // chave do `score auth` (só na memória; some ao recarregar/sair)
 
   // ---------------------------------------------------------------- estilo
   var CSS = [
@@ -191,6 +192,7 @@
     ['stats', '', 'suas vitórias e derrotas'],
     ['volume', '[music|sfx] [0-100]', 'vê ou muda o volume'],
     ['server', '', 'testa o servidor (/health)'],
+    ['score', 'auth|show|set|add|reset', 'mexe na pontuação da partida (veja `score`)'],
     ['settings', '', 'abre as configurações'],
     ['colors', '', 'paleta de cores do terminal'],
     ['ls', '', 'lista os arquivos do projeto'],
@@ -347,6 +349,50 @@
         });
     },
 
+    score: function (args) {
+      var sock = typeof socket !== 'undefined' ? socket : null;
+      if (!sock) return out(c('r', 'sem conexão com o servidor.'));
+      var sub = (args[0] || '').toLowerCase();
+      function usage() {
+        out(c('c b', 'score') + c('d', ' — só dentro de uma partida em andamento'));
+        out('  ' + c('g b', pad('auth <chave>', 22)) + c('d', 'informa a chave de admin (fica só na memória)'));
+        out('  ' + c('g b', pad('show', 22)) + c('d', 'mostra o placar'));
+        out('  ' + c('g b', pad('set <d1> <d2>', 22)) + c('d', 'define o placar (0 a 12)'));
+        out('  ' + c('g b', pad('add <1|2> <n>', 22)) + c('d', 'soma n (pode ser negativo) à dupla 1 ou 2'));
+        out('  ' + c('g b', pad('reset', 22)) + c('d', 'zera os dois lados'));
+        out(c('d', 'Chegar a 12 encerra a partida. A chave é a variável TRUTEC_ADMIN_KEY do servidor.'));
+      }
+      if (!sub) return usage();
+      if (sub === 'auth') {
+        if (!args[1]) return out(c('y', 'Uso: score auth <chave>'));
+        adminKey = args.slice(1).join(' ');
+        return out(c('g', '✔ ') + 'chave guardada nesta sessão ' + c('d', '(o servidor confere a cada comando)'));
+      }
+      var p;
+      if (sub === 'show' || sub === 'reset') p = { op: sub };
+      else if (sub === 'set' && args.length === 3) p = { op: 'set', a: args[1], b: args[2] };
+      else if (sub === 'add' && args.length === 3 && (args[1] === '1' || args[1] === '2')) p = { op: 'add', team: +args[1] - 1, n: args[2] };
+      else return usage();
+      if (!adminKey) return out(c('y', 'Faça primeiro: score auth <chave>'));
+      p.key = adminKey;
+      return new Promise(function (resolve) {
+        var done = false;
+        var to = setTimeout(function () { if (!done) { done = true; out(c('r', '✘ servidor não respondeu.')); resolve(); } }, 8000);
+        sock.emit('admin_score', p, function (res) {
+          if (done) return; done = true; clearTimeout(to);
+          if (!res || !res.ok) {
+            if (res && /Chave/.test(res.error || '')) adminKey = '';
+            out(c('r', '✘ ') + esc((res && res.error) || 'erro'));
+          } else {
+            var me = (typeof myTeam !== 'undefined' && myTeam !== null) ? myTeam : -1;
+            out(c('g', '✔ ') + 'Dupla 1 ' + c('w b', res.score[0]) + c('d', ' x ') + c('w b', res.score[1]) + ' Dupla 2' +
+              (me >= 0 ? c('d', '   (você está na dupla ' + (me + 1) + ')') : ''));
+          }
+          resolve();
+        });
+      });
+    },
+
     sudo: function () { out(c('r', USER + ' is not in the sudoers file. This incident will be reported.')); },
     rm: function () { out(c('r', 'rm: permission denied') + c('d', ' — boa tentativa 😏')); },
 
@@ -358,6 +404,7 @@
     out('');
     out(c('d', '[Process completed]'));
     authed = false;
+    adminKey = '';
     setTimeout(function () {
       hideWin();
       body.innerHTML = '';   // na próxima abertura mostra o login de novo
@@ -371,7 +418,7 @@
 
   function runShell(v) {
     var raw = v.trim();
-    if (raw) hist.push(raw);
+    if (raw) hist.push(/^score\s+auth\b/i.test(raw) ? 'score auth ****' : raw);
     hidx = hist.length;
     if (!raw) return showPrompt();
     var parts = raw.split(/\s+/), name = parts[0].toLowerCase(), args = parts.slice(1), r;
@@ -394,6 +441,9 @@
     else if (words[0].toLowerCase() === 'theme' && words.length === 2) {
       pool = themeList().map(function (t) { return t.id; }).concat('list');
       prefix = words[1]; head = words[0] + ' ';
+    } else if (words[0].toLowerCase() === 'score' && words.length === 2) {
+      pool = ['auth', 'show', 'set', 'add', 'reset'];
+      prefix = words[1]; head = words[0] + ' ';
     } else return;
     var m = pool.filter(function (n) { return n.indexOf(prefix.toLowerCase()) === 0; });
     if (!m.length) return;
@@ -407,7 +457,7 @@
     if (k === 'Enter') {
       e.preventDefault();
       var v = inp.value;
-      if (state === 'shell') { freeze(v); runShell(v); }
+      if (state === 'shell') { freeze(/^\s*score\s+auth\b/i.test(v) ? 'score auth ****' : v); runShell(v); }
       else onLoginEnter(v);
     } else if (e.ctrlKey && (k === 'c' || k === 'C')) {
       e.preventDefault();

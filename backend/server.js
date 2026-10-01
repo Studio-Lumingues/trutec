@@ -1270,6 +1270,61 @@ io.on('connection', (socket) => {
     doRespondTruco(r, r.playerBySocket(socket.id), action, tell);
   });
 
+  // ---- Terminal do admin: manipular o placar --------------------------
+  // Só funciona se a variável de ambiente TRUTEC_ADMIN_KEY estiver definida
+  // no servidor (Render > Environment). O login adm/123 do terminal.js roda
+  // no navegador e é público, então NÃO protege nada: a chave de verdade é
+  // conferida aqui. Sem a variável, o comando fica desligado pra todo mundo.
+  let adminFails = 0, adminLockUntil = 0;
+  function adminKeyOk(key) {
+    const real = process.env.TRUTEC_ADMIN_KEY;
+    if (!real || typeof key !== 'string') return false;
+    const a = crypto.createHash('sha256').update(key).digest();
+    const b = crypto.createHash('sha256').update(real).digest();
+    return crypto.timingSafeEqual(a, b);
+  }
+  socket.on('admin_score', (p, cb) => {
+    const reply = (o) => { if (typeof cb === 'function') cb(o); };
+    p = p || {};
+    if (!process.env.TRUTEC_ADMIN_KEY) return reply({ ok: false, error: 'Comando desligado no servidor (defina TRUTEC_ADMIN_KEY).' });
+    if (Date.now() < adminLockUntil) return reply({ ok: false, error: 'Muitas tentativas. Espere um minuto.' });
+    if (!adminKeyOk(p.key)) {
+      if (++adminFails >= 5) { adminFails = 0; adminLockUntil = Date.now() + 60000; }
+      return reply({ ok: false, error: 'Chave incorreta.' });
+    }
+    adminFails = 0;
+    const r = room();
+    if (!r || !r.started || r.gameOver) return reply({ ok: false, error: 'Você precisa estar numa partida em andamento.' });
+    if (p.op === 'show') return reply({ ok: true, score: r.score.slice() });
+
+    const num = (v) => { v = parseInt(v, 10); return isFinite(v) ? v : null; };
+    const clamp = (v) => Math.max(0, Math.min(12, v));
+    const next = r.score.slice();
+    if (p.op === 'set') {
+      const a = num(p.a), b = num(p.b);
+      if (a === null || b === null) return reply({ ok: false, error: 'Valores inválidos.' });
+      next[0] = clamp(a); next[1] = clamp(b);
+    } else if (p.op === 'add') {
+      const t = num(p.team), n = num(p.n);
+      if ((t !== 0 && t !== 1) || n === null) return reply({ ok: false, error: 'Valores inválidos.' });
+      next[t] = clamp(next[t] + n);
+    } else if (p.op === 'reset') {
+      next[0] = 0; next[1] = 0;
+    } else {
+      return reply({ ok: false, error: 'Operação inválida.' });
+    }
+    r.score = next;
+    io.to(r.code).emit('score_changed', { score: next.slice() });
+    const winner = next[0] >= 12 ? 0 : next[1] >= 12 ? 1 : null;
+    if (winner !== null) {
+      r.gameOver = true;
+      endGame(r, winner);
+    } else {
+      r.broadcastState(io);
+    }
+    reply({ ok: true, score: next.slice() });
+  });
+
   // Mão de 11: voto da dupla ("cegas" ou "normal"). Quem escolhe "normal"
   // decide na hora (já não há unanimidade); "cegas" espera o parceiro humano.
   socket.on('mao11_vote', ({ choice } = {}) => {
