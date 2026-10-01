@@ -129,26 +129,6 @@
       ]
     },
     {
-      id: 'renda',
-      name: 'Renda',
-      tagline: 'Bordada à mão, linha por linha',
-      vars: {
-        '--felt-dark': '#064557', '--felt': '#0e7f9c', '--felt-light': '#27b7d6',
-        '--wood-light': '#ff8fb8', '--wood-brown': '#8c0f3d',
-        '--wood-brown-light': '#c4185a', '--wood-brown-dark': '#4a0620',
-        '--ui-dark': '3,30,41', '--ui-chat': '5,40,54', '--ui-felt-dark': '6,69,87'
-      },
-      // fundo = renda magenta sobre turquesa. É uma estampa que repete (assets/renda/1..6.jpg, 6 versões
-      // com o traço levemente deslocado = tremido hand drawn) e desliza como os outros temas (kind 'tiles').
-      // O tile mede 705x1418 px na imagem original, por isso tileH = tileW * 1418 / 705.
-      bg: { kind: 'tiles', frames: ['assets/renda/1.jpg', 'assets/renda/2.jpg', 'assets/renda/3.jpg', 'assets/renda/4.jpg', 'assets/renda/5.jpg', 'assets/renda/6.jpg'], base: '#1fb5d6', tileW: 22, tileH: 44.25 },
-      preview: { bga: '#1fb5d6', bgb: '#1fb5d6', accent: '#ff8fb8', cream: '#fff8f0' },
-      palette: [
-        ['Turquesa', '#1fb5d6'], ['Renda', '#d4145a'], ['Fio', '#ff8fb8'],
-        ['Feltro', '#0e7f9c'], ['Realce', '#27b7d6'], ['Creme', '#fff8f0']
-      ]
-    },
-    {
       id: 'damasco',
       name: 'Damasco',
       tagline: 'Papel de parede que não para de descer',
