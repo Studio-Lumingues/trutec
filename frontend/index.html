@@ -508,6 +508,19 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
 
       <!-- mensagens de jogo (rodada ganha, pontos, avisos): centralizada na tela -->
       <div id="banner" class="banner-toast"></div>
+      <div id="peek-timer" class="peek-timer hidden" aria-live="polite"></div>
+      <!-- mão de 11: votação às cegas / normal -->
+      <div id="vote-overlay" class="call-overlay hidden">
+        <div class="call-box">
+          <p><b>Mão de 11!</b> Como a dupla vai jogar? <span id="vote-secs" class="peek-secs"></span></p>
+          <div class="call-buttons">
+            <button class="btn btn-secondary vote-btn" data-choice="cegas">Às cegas</button>
+            <button class="btn btn-primary vote-btn" data-choice="normal">Normal</button>
+          </div>
+          <p class="vote-hint">Às cegas: ninguém da dupla vê as próprias cartas (os dois precisam votar assim). Normal: vocês veem as cartas um do outro por 10s.</p>
+          <p id="vote-status" class="vote-status"></p>
+        </div>
+      </div>
 
     </div>
   </div>

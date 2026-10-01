@@ -73,6 +73,11 @@ const NEXT_CALL_NAME = { 1: 'truco', 3: 'seis', 6: 'nove', 9: 'doze' };
 /** @type {Map<string, Room>} */
 const rooms = new Map();
 
+// Mão de 11: quanto tempo a dupla com 11 pontos tem pra ver as cartas uma da outra (ms).
+const PEEK_MS = 10000;
+// Mão de 11: tempo da votação "às cegas" ou "normal" antes da mão começar (ms).
+const VOTE_MS = 10000;
+
 function genRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code;
@@ -190,6 +195,14 @@ class Room {
     this.queuedPlay = false; // já existe uma jogada adiantada aguardando o intervalo
     this.handOver = false; // true entre o fim de uma mão e o começo da próxima (ninguém joga nesse intervalo)
     this._botTimer = null; // timer do bot (ver botKick)
+    this.peekTeam = null; // mão de 11: dupla que pode ver as cartas uma da outra
+    this.peekUntil = 0; // mão de 11: timestamp (ms) em que a janela de 10s acaba
+    this._peekTimer = null;
+    this.voteTeam = null; // mão de 11: dupla que está votando (null = sem votação)
+    this.voteUntil = 0;
+    this._votes = {}; // seat -> 'cegas' | 'normal'
+    this._voteTimer = null;
+    this.blindTeam = null; // mão de 11: dupla que decidiu jogar às cegas (não vê as próprias cartas)
     this._botFails = 0;
     this._botSig = '';
   }
@@ -330,6 +343,79 @@ class Room {
 
     this.leaderSeat = (this.dealerSeat + 1) % n;
     this.turnSeat = this.leaderSeat;
+
+    // Mão de 11 (só 2v2): se UMA dupla está com 11 pontos, ela VOTA antes da
+    // mão: "às cegas" (ninguém da dupla vê as próprias cartas) ou "normal"
+    // (a dupla vê as cartas uma da outra por PEEK_MS). Se as duas estão com
+    // 11 ("mão de ferro"), não há votação nem peek.
+    this.clearPeek();
+    if (this.mode === '2v2' && n === 4) {
+      const t11 = [0, 1].filter(t => this.score[t] === 11);
+      if (t11.length === 1) this.startVote(t11[0]);
+    }
+  }
+
+  startVote(team) {
+    const humans = this.players.filter(p => p.team === team && !p.isBot && p.connected);
+    if (!humans.length) { this.startPeek(team); return; } // ninguém pra votar: segue o normal
+    this.voteTeam = team;
+    this.voteUntil = Date.now() + VOTE_MS;
+    this._votes = {};
+    this.nextPlayAt = this.voteUntil;
+    const code = this.code;
+    this._voteTimer = setTimeout(() => {
+      this._voteTimer = null;
+      if (rooms.get(code) !== this) return;
+      this.resolveVote(true);
+    }, VOTE_MS);
+  }
+
+  // Às cegas só vale se TODOS os humanos da dupla votaram "cegas" (bots não votam).
+  // Empate, voto faltando ou tempo esgotado = normal.
+  resolveVote(doBroadcast) {
+    if (this.voteTeam === null) return;
+    const team = this.voteTeam;
+    if (this._voteTimer) { clearTimeout(this._voteTimer); this._voteTimer = null; }
+    const humans = this.players.filter(p => p.team === team && !p.isBot && p.connected);
+    const blind = humans.length > 0 && humans.every(p => this._votes[p.seat] === 'cegas');
+    this.voteTeam = null; this.voteUntil = 0; this._votes = {};
+    if (blind) { this.blindTeam = team; this.nextPlayAt = 0; }
+    else this.startPeek(team);
+    if (doBroadcast) {
+      io.to(this.code).emit('mao11_result', { team, blind });
+      this.broadcastState(io);
+    }
+  }
+
+  startPeek(team) {
+    this.peekTeam = team;
+    this.peekUntil = Date.now() + PEEK_MS;
+    this.nextPlayAt = this.peekUntil;
+    const code = this.code;
+    this._peekTimer = setTimeout(() => {
+      this._peekTimer = null;
+      if (rooms.get(code) !== this) return;
+      this.peekTeam = null;
+      this.broadcastState(io); // manda o estado sem peek/peekHand e acorda o bot, se for a vez dele
+    }, PEEK_MS);
+  }
+
+  // qualquer fase da mão de 11 que trava as jogadas (votação ou peek)
+  holdActive() {
+    return this.voteTeam !== null || this.peekActive();
+  }
+
+  peekActive() {
+    return this.peekTeam !== null && Date.now() < this.peekUntil;
+  }
+
+  clearPeek() {
+    if (this._peekTimer) { clearTimeout(this._peekTimer); this._peekTimer = null; }
+    this.peekTeam = null;
+    this.peekUntil = 0;
+    if (this._voteTimer) { clearTimeout(this._voteTimer); this._voteTimer = null; }
+    this.voteTeam = null; this.voteUntil = 0; this._votes = {};
+    this.blindTeam = null;
   }
 
   advanceDealer() {
@@ -525,7 +611,19 @@ class Room {
 
   redactedStateFor(viewerSeat) {
     const n = this.players.length;
+    const peeking = this.peekActive();
+    const viewerTeam = this.seatTeam(viewerSeat);
+    const canPeek = peeking && viewerTeam === this.peekTeam; // só a dupla de 11 recebe as cartas
     return {
+      // todo mundo sabe que a janela está aberta (pra travar a jogada), mas só a dupla vê as cartas
+      peek: peeking ? { msLeft: Math.max(0, this.peekUntil - Date.now()), team: this.peekTeam } : undefined,
+      // votação da mão de 11: todos veem que existe; só a dupla vota (myVote = meu voto)
+      vote: this.voteTeam !== null ? {
+        msLeft: Math.max(0, this.voteUntil - Date.now()),
+        team: this.voteTeam,
+        myVote: viewerTeam === this.voteTeam ? (this._votes[viewerSeat] || null) : undefined
+      } : undefined,
+      blindTeam: this.blindTeam,
       code: this.code,
       mode: this.mode,
       maoNumber: this.maoNumber,
@@ -549,7 +647,11 @@ class Room {
         theme: p.theme || null,
         stats: p.stats || null,
         cardsLeft: p.hand.length,
-        hand: p.seat === viewerSeat ? p.hand : undefined
+        // às cegas: o dono recebe só os ids (sem naipe/valor), então nem pelo console dá pra ver
+        hand: p.seat === viewerSeat
+          ? ((this.blindTeam !== null && viewerTeam === this.blindTeam) ? p.hand.map(c => ({ id: c.id, blind: true })) : p.hand)
+          : undefined,
+        peekHand: (canPeek && p.seat !== viewerSeat && p.team === this.peekTeam) ? p.hand : undefined
       })),
       table: this.table.map(play => {
         if (play.hidden && play.seat !== viewerSeat && !play.revealed) {
@@ -610,7 +712,7 @@ function humansConnected(r) {
 
 // Quem precisa agir agora entre os bots (ou null).
 function botPendingActor(r) {
-  if (!r.started || r.gameOver || r.handOver || r.busy || !humansConnected(r)) return null;
+  if (!r.started || r.gameOver || r.handOver || r.busy || r.holdActive() || !humansConnected(r)) return null;
   const pc = r.pendingCall;
   if (pc) {
     const rp = pc.respondingSeat !== undefined ? r.playerBySeat(pc.respondingSeat) : null;
@@ -707,6 +809,7 @@ function resetRoomToLobby(r) {
   r.table = []; r.tricks = []; r.hiddenCardBySeat = {}; r.deck = []; r.vira = null; r.manilhaRank = null;
   r.readySeats = new Set(); r.characterPhaseEndsAt = 0;
   r.busy = false; r.handOver = false; r.nextPlayAt = 0; r.queuedPlay = false;
+  r.clearPeek();
 
   r.players.forEach(p => { if (!p.isBot) io.to(p.id).emit('back_to_room', { seat: p.seat }); });
   io.to(r.code).emit('lobby_update', r.lobbyState());
@@ -781,7 +884,7 @@ const TRICK_GAP_MS = 2400;  // depois que a vaza fecha (dá tempo de ver o resul
 function doPlayCard(r, player, payload, tell) {
   let { cardId, hidden } = payload || {};
   if (!r || !r.started || r.gameOver || !player) return;
-  if (r.handOver || r.busy || r.turnSeat !== player.seat || r.pendingCall) return tell('play_rejected'); // avisa o cliente pra desfazer a jogada instantânea
+  if (r.handOver || r.busy || r.holdActive() || r.turnSeat !== player.seat || r.pendingCall) return tell('play_rejected'); // avisa o cliente pra desfazer a jogada instantânea
 
   // Não pode esconder a carta na primeira rodada (vaza) da mão.
   if (r.tricks.length === 0) hidden = false;
@@ -869,7 +972,7 @@ function doPlayCard(r, player, payload, tell) {
 }
 
 function doCallTruco(r, player, level, tell) {
-  if (!r || !r.started || r.gameOver || r.handOver || r.busy || !player) return;
+  if (!r || !r.started || r.gameOver || r.handOver || r.busy || r.holdActive() || !player) return;
   const result = r.requestCall(player.seat, level);
   if (result.error) return tell('error_message', result.error);
   io.to(r.code).emit('call_announced', {
@@ -879,7 +982,7 @@ function doCallTruco(r, player, level, tell) {
 }
 
 function doRespondTruco(r, player, action, tell) {
-  if (!r || !r.started || r.gameOver || r.handOver || r.busy || !player) return;
+  if (!r || !r.started || r.gameOver || r.handOver || r.busy || r.holdActive() || !player) return;
   const result = r.respondCall(player.seat, action);
   if (result.error) return tell('error_message', result.error);
 
@@ -1167,6 +1270,20 @@ io.on('connection', (socket) => {
     doRespondTruco(r, r.playerBySocket(socket.id), action, tell);
   });
 
+  // Mão de 11: voto da dupla ("cegas" ou "normal"). Quem escolhe "normal"
+  // decide na hora (já não há unanimidade); "cegas" espera o parceiro humano.
+  socket.on('mao11_vote', ({ choice } = {}) => {
+    const r = room();
+    if (!r || !r.started || r.gameOver || r.voteTeam === null) return;
+    const me = r.playerBySocket(socket.id);
+    if (!me || me.isBot || me.team !== r.voteTeam) return;
+    if (choice !== 'cegas' && choice !== 'normal') return;
+    r._votes[me.seat] = choice;
+    const humans = r.players.filter(p => p.team === r.voteTeam && !p.isBot && p.connected);
+    if (choice === 'normal' || humans.every(p => r._votes[p.seat])) r.resolveVote(true);
+    else r.broadcastState(io); // mostra o meu voto pra mim e o parceiro continua votando
+  });
+
   // Sinal pro parceiro enquanto há um truco pendente contra a dupla.
   // Só os companheiros de dupla recebem (adversários nunca), e bots são ignorados.
   const PARTNER_SIGNALS = { vamos: 'Vamos!', nao: 'Não vamos...', algo: 'Tenho alguma coisa', nada: 'Não tenho nada' };
@@ -1189,7 +1306,7 @@ io.on('connection', (socket) => {
   socket.on('run_away', () => {
     const r = room();
     if (!r || !r.started || r.gameOver || r.handOver) return;
-    if (r.busy) return;
+    if (r.busy || r.holdActive()) return;
     const player = r.playerBySocket(socket.id);
     if (!player) return;
     if (r.pendingCall) return socket.emit('error_message', 'Há um pedido pendente — responda com Aceitar ou Fugir.');

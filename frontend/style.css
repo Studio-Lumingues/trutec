@@ -2352,3 +2352,51 @@ html[data-theme="carro"] .table-disc::before {
     0 2rem 3.75rem rgba(0, 0, 0, 0.5),
     inset 0 0 2.5rem rgba(0, 0, 0, 0.35);
 }
+
+
+/* --------------------------------------------------------------------
+   MÃO DE 11: cartas da dupla viradas pra cima + contagem de 10s
+   -------------------------------------------------------------------- */
+.opp-hand.peeking .card {
+  width: 3.25rem; height: 4.5rem;
+  margin-left: -1.1rem;
+  border-radius: 0.4rem;
+  pointer-events: none;
+}
+.opp-hand.peeking .card:first-child { margin-left: 0; }
+.opp-hand.peeking .card .rank { font-size: 1.05rem; }
+.opp-hand.peeking .card .suit { font-size: 1.05rem; }
+.opp-hand.peeking .card:nth-child(1) { transform: rotate(-8deg); }
+.opp-hand.peeking .card:nth-child(3) { transform: rotate(8deg); }
+
+.peek-timer {
+  position: fixed;
+  top: 0.75rem; left: 50%;
+  transform: translateX(-50%);
+  z-index: 19;
+  pointer-events: none;
+  background: rgba(10,10,10,0.85);
+  color: var(--gold-bright);
+  font-weight: 800;
+  font-size: 1rem;
+  text-align: center;
+  padding: 0.5rem 1.1rem;
+  border-radius: 0.75rem;
+  text-shadow: 0 0.125rem 0.375rem rgba(0,0,0,0.8);
+}
+.peek-timer.hidden { display: none; }
+.peek-timer .peek-secs { display: inline-block; min-width: 2ch; }
+
+
+/* mão de 11: votação e carta às cegas */
+.vote-overlay .vote-hint, .call-box .vote-hint { font-size: 0.8rem; font-weight: 600; color: #fff8f0; opacity: .8; margin: 1rem 0 0; }
+.call-box .vote-status { font-size: 0.9rem; margin: 0.5rem 0 0; min-height: 1.2em; }
+.vote-btn.sent { outline: 0.1875rem solid var(--gold-bright); outline-offset: 0.1rem; }
+.card.blind {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 0.125rem, transparent 0.125rem, transparent 0.5rem),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 0.125rem, transparent 0.125rem, transparent 0.5rem),
+    linear-gradient(135deg, var(--card-back), var(--card-back-dark));
+  border: 0.125rem solid #fff8f0;
+  color: #fff8f0;
+}

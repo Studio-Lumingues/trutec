@@ -1260,12 +1260,23 @@ function renderState(realState) {
       // só recria os elementos quando a quantidade de cartas muda de fato —
       // se recriarmos sempre, o navegador nunca vê um estado "anterior"
       // pra animar a transição de deitada -> de pé.
-      if (handEl.children.length !== p.cardsLeft) {
+      // Mão de 11: o servidor manda `peekHand` (cartas da minha dupla) só pra
+      // quem pode ver, e só durante a janela de 10s. Aí as cartas aparecem
+      // viradas pra cima; quando acaba, voltam a ser costas.
+      const peekCards = Array.isArray(p.peekHand) && p.peekHand.length ? p.peekHand : null;
+      const peekSig = peekCards ? peekCards.map(c => c.id).join(',') : '';
+      if (handEl.dataset.peek !== peekSig || handEl.children.length !== p.cardsLeft) {
+        handEl.dataset.peek = peekSig;
+        handEl.classList.toggle('peeking', !!peekCards);
         handEl.innerHTML = '';
-        for (let i = 0; i < p.cardsLeft; i++) {
-          const back = document.createElement('div');
-          back.className = 'card-back';
-          handEl.appendChild(back);
+        if (peekCards) {
+          peekCards.forEach(c => handEl.appendChild(buildCardEl(c, state.manilhaRank)));
+        } else {
+          for (let i = 0; i < p.cardsLeft; i++) {
+            const back = document.createElement('div');
+            back.className = 'card-back';
+            handEl.appendChild(back);
+          }
         }
       }
       handEl.classList.toggle('active-turn', isActive);
@@ -1334,7 +1345,7 @@ function renderState(realState) {
     if (keepIds.has(el.dataset.cardId)) existing.set(el.dataset.cardId, el);
     else el.remove();
   });
-  const myTurnNow = state.turnSeat === mySeat && !state.pendingCall;
+  const myTurnNow = state.turnSeat === mySeat && !state.pendingCall && !state.peek && !state.vote; // na mão de 11 ninguém joga durante a votação nem durante o peek
   myCards.forEach((card, i) => {
     let el = existing.get(String(card.id));
     if (!el) {
@@ -1350,11 +1361,87 @@ function renderState(realState) {
     if (handWrap.children[i] !== el) handWrap.insertBefore(el, handWrap.children[i] || null);
   });
 
+  // contagem dos 10s da mão de 11
+  updatePeekTimer(state);
+  updateVoteUI(state);
+
   // botões de ação
   updateActionButtons(state);
 
   // pedido pendente
   updateCallOverlay(state);
+}
+
+// ------------------------------------------------------------------
+// Mão de 11: votação "às cegas" ou "normal" (só a dupla de 11 vê e vota)
+// ------------------------------------------------------------------
+let voteEndsAt = 0, voteInterval = null;
+function updateVoteUI(state) {
+  const box = document.getElementById('vote-overlay');
+  if (!box) return;
+  const v = state.vote;
+  if (!v || v.team !== myTeam) {
+    clearInterval(voteInterval); voteInterval = null;
+    box.classList.add('hidden');
+    return;
+  }
+  voteEndsAt = Date.now() + Math.max(0, v.msLeft || 0);
+  const secs = document.getElementById('vote-secs');
+  const paint = () => { secs.textContent = Math.max(0, Math.ceil((voteEndsAt - Date.now()) / 1000)) + 's'; };
+  paint();
+  if (!voteInterval) voteInterval = setInterval(paint, 250);
+  box.querySelectorAll('.vote-btn').forEach(b => b.classList.toggle('sent', b.dataset.choice === v.myVote));
+  document.getElementById('vote-status').textContent = v.myVote === 'cegas'
+    ? 'Você votou ÀS CEGAS. Esperando o seu parceiro…'
+    : '';
+  box.classList.remove('hidden');
+}
+document.querySelectorAll('#vote-overlay .vote-btn').forEach(btn => {
+  btn.addEventListener('click', () => socket.emit('mao11_vote', { choice: btn.dataset.choice }));
+});
+socket.on('mao11_result', ({ team, blind }) => {
+  const mine = team === myTeam;
+  if (blind) setBanner(mine ? 'Mão de 11: vocês jogam ÀS CEGAS!' : 'Mão de 11: a dupla adversária joga ÀS CEGAS!', 3000);
+  else if (mine) setBanner('Mão de 11: normal — olhem as cartas da dupla!', 2400);
+});
+
+// ------------------------------------------------------------------
+// Mão de 11: janela de 10s pra ver as cartas da dupla
+// state.peek = { msLeft } enquanto a janela está aberta (só pra quem está
+// na dupla com 11 pontos). Usamos "tempo restante" e não horário absoluto
+// pra não depender do relógio do aparelho estar certo.
+// ------------------------------------------------------------------
+let peekEndsAt = 0, peekInterval = null;
+function updatePeekTimer(state) {
+  const el = document.getElementById('peek-timer');
+  if (!el) return;
+  if (state.vote && state.vote.team !== myTeam) { // adversário votando: só avisa
+    peekEndsAt = Date.now() + Math.max(0, state.vote.msLeft || 0);
+    const paintV = () => {
+      const left = Math.max(0, Math.ceil((peekEndsAt - Date.now()) / 1000));
+      el.innerHTML = '<b>Mão de 11</b> — a dupla adversária está votando: <span class="peek-secs">' + left + 's</span>';
+    };
+    paintV();
+    el.classList.remove('hidden');
+    clearInterval(peekInterval); peekInterval = setInterval(paintV, 250);
+    return;
+  }
+  if (!state.peek) {
+    clearInterval(peekInterval); peekInterval = null; peekEndsAt = 0;
+    el.classList.add('hidden');
+    return;
+  }
+  peekEndsAt = Date.now() + Math.max(0, state.peek.msLeft || 0);
+  const peekMine = state.peek.team === myTeam;
+  const paint = () => {
+    const left = Math.max(0, Math.ceil((peekEndsAt - Date.now()) / 1000));
+    el.innerHTML = '<b>Mão de 11</b> — ' + (peekMine
+      ? 'olhem as cartas um do outro: '
+      : 'a dupla adversária está vendo as cartas: ') + '<span class="peek-secs">' + left + 's</span>';
+  };
+  paint();
+  el.classList.remove('hidden');
+  if (!peekInterval) peekInterval = setInterval(paint, 250);
 }
 
 // Anima a carta "voando" da mão de quem jogou até a posição final na mesa
@@ -1404,6 +1491,12 @@ function renderMiniCard(el, card) {
 
 function buildCardEl(card, manilhaRank) {
   const el = document.createElement('div');
+  if (card.blind) { // mão de 11 às cegas: carta virada pra mim (só tenho o id)
+    el.className = 'card blind';
+    el.innerHTML = '<div class="card-face"><div class="rank">?</div></div>';
+    el.dataset.cardId = card.id;
+    return el;
+  }
   el.className = 'card ' + (SUIT_COLOR[card.suit] || '') + ' suit-' + card.suit;
   if (card.rank === manilhaRank) el.classList.add('manilha');
   const symbol = SUIT_SYMBOLS[card.suit];
@@ -1487,7 +1580,9 @@ function playSelectedCard() {
   const cardId = selectedCardId;
   const hidden = esconderAtivo && !isFirstRound(latestState);
   socket.emit('play_card', { cardId, hidden }); // manda pro servidor...
-  startOptimisticPlay(cardId, hidden);          // ...e já mostra na tela, sem esperar resposta
+  const myP = latestState && latestState.players.find(p => p.seat === mySeat);
+  const myC = myP && myP.hand ? myP.hand.find(x => x.id === cardId) : null;
+  if (!(myC && myC.blind)) startOptimisticPlay(cardId, hidden); // às cegas: não sei qual carta é, espera o servidor
   selectedCardId = null;
   esconderAtivo = false;
   document.getElementById('btn-esconder').classList.remove('esconder-active');
