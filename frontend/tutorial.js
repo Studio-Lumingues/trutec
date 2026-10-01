@@ -1,6 +1,6 @@
 // ============================================================================
 // TUTORIAL COM O GUIA DO TRUTEC (personagem "hand drawn")
-// O guia (assets/guia.png) aparece com um balão de fala e ensina, passo a passo:
+// O Jailson (assets/guia.png), o guia, aparece com um balão de fala e ensina, passo a passo:
 // nome, criar sala, entrar numa sala, Ajuda, Configurações e Temas.
 // - A tela inteira escurece; só a parte de que ele está falando fica clara
 //   (um "holofote" com contorno tremido, igual ao resto do site).
@@ -24,7 +24,7 @@
   // ui = none | create | join | help | settings | themes
   var STEPS = [
     { ui: 'none', next: 'Bora!', skip: 'Agora não',
-      text: 'Oi! Eu sou o <b>guia do TruTEC</b>. Vou te mostrar como o jogo funciona: criar sala, entrar numa sala, a <b>Ajuda</b>, as <b>Configurações</b> e os <b>Temas</b>. Bora?' },
+      text: 'Oi! Eu sou o <b>Jailson</b>, o guia do TruTEC. Vou te mostrar como o jogo funciona: criar sala, entrar numa sala, a <b>Ajuda</b>, as <b>Configurações</b> e os <b>Temas</b>. Bora?' },
     { ui: 'none', target: function () { var i = document.getElementById('input-name'); return i && (i.closest('.field') || i); },
       text: 'Primeiro, escreva seu <b>nome</b> aqui. É ele que os outros jogadores veem na mesa. Eu guardo o nome pra próxima vez!' },
     { ui: 'none', target: '#btn-create',
@@ -48,7 +48,7 @@
     { ui: 'themes', target: '#themes-modal .themes-card',
       text: 'Passe pelos temas com as <b>setas</b>. Cada um tem um fundo animado diferente e o que você escolher já vale na hora. Os outros jogadores também veem o seu tema quando passam o mouse (ou tocam) no seu boneco!' },
     { ui: 'none', next: 'Terminar',
-      text: 'Pronto! Agora é só <b>criar uma sala</b> ou <b>entrar numa</b> e jogar. Se precisar de mim de novo, clique no meu rostinho no canto da tela inicial. Boa partida!' }
+      text: 'Pronto! Agora é só <b>criar uma sala</b> ou <b>entrar numa</b> e jogar. Se precisar de mim de novo, chame o Jailson clicando no meu rostinho no canto da tela inicial. Boa partida!' }
   ];
 
   // ---- abrir/fechar os modais de verdade (clicando nos botões do próprio site) ----
@@ -88,7 +88,7 @@
       '.tut-panel.tut-move{transition:transform .4s cubic-bezier(.3,.9,.3,1)}',
       '.tut-panel.tut-right{flex-direction:row-reverse}',
       '.tut-guide{flex:none;pointer-events:auto;cursor:pointer;animation:tutBob 2.4s ease-in-out infinite}',
-      '.tut-guide img{display:block;height:clamp(6.5rem,24vh,11.5rem);width:auto;filter:url(#boil-lg);user-select:none;-webkit-user-select:none}',
+      '.tut-guide img{display:block;height:clamp(10rem,44vh,23rem);width:auto;filter:url(#boil-lg);user-select:none;-webkit-user-select:none}',
       '.tut-panel.tut-talk .tut-guide{animation:tutTalk .32s ease-in-out infinite}',
       '@keyframes tutBob{50%{transform:translateY(-.25rem) rotate(-1.5deg)}}',
       '@keyframes tutTalk{25%{transform:translateY(-.3rem) rotate(2deg)}75%{transform:translateY(-.1rem) rotate(-2deg)}}',
@@ -99,7 +99,10 @@
       '.tut-tail{position:absolute;bottom:1.6rem;width:1rem;height:1rem;z-index:-1;background:#fff8f0;border:3px solid #0a0a0a;filter:url(#boil-sm)}',
       '.tut-panel:not(.tut-right) .tut-tail{left:-.55rem;border-top:0;border-right:0;transform:rotate(45deg)}',
       '.tut-panel.tut-right .tut-tail{right:-.55rem;border-bottom:0;border-left:0;transform:rotate(45deg)}',
-      '.tut-text{position:relative;min-height:3.2rem}',
+      '.tut-name{position:absolute;left:1rem;top:-1rem;z-index:1;padding:.1rem .7rem .15rem;font-size:.9rem;font-weight:800;color:#0a0a0a;',
+      'background:#ffd23f;border:2.5px solid #0a0a0a;border-radius:.7rem .5rem .8rem .55rem/.55rem .8rem .5rem .7rem;transform:rotate(-3deg);',
+      'box-shadow:.1rem .12rem 0 rgba(0,0,0,.45)}',
+      '.tut-text{position:relative;min-height:3.2rem;margin-top:.25rem}',
       '.tut-full{visibility:hidden}',
       '.tut-typed{position:absolute;left:0;top:0;right:0}',
       '.tut-text b{font-weight:800}',
@@ -121,7 +124,7 @@
       '.tut-fab::after{content:"?";position:absolute;right:-.3rem;top:-.35rem;width:1.35rem;height:1.35rem;border-radius:50%;',
       'background:#ffd23f;border:2.5px solid #0a0a0a;font:800 .8rem/1.05rem system-ui,sans-serif;text-align:center;color:#0a0a0a}',
       '@media (max-width:600px){.tut-panel{width:calc(100vw - 1.5rem)}.tut-bubble{flex:1 1 auto;font-size:.92rem;padding:.75rem .9rem .7rem;margin-bottom:.9rem}',
-      '.tut-guide img{height:clamp(4.6rem,16vh,7rem)}}',
+      '.tut-guide img{height:clamp(7.5rem,25vh,12rem)}}',
       '@media (prefers-reduced-motion:reduce){.tut-guide,.tut-panel.tut-talk .tut-guide{animation:none}',
       '.tut-spot.tut-move,.tut-panel.tut-move{transition:none}}'
     ].join('');
@@ -255,13 +258,13 @@
     root = document.createElement('div');
     root.className = 'tut-root';
     root.setAttribute('role', 'dialog');
-    root.setAttribute('aria-label', 'Tutorial do TruTEC');
+    root.setAttribute('aria-label', 'Tutorial do TruTEC com o Jailson');
     root.innerHTML =
       '<div class="tut-spot tut-none"><div class="tut-ring"></div></div>' +
       '<div class="tut-panel">' +
-        '<div class="tut-guide" title="Clique pra acelerar a fala"><img src="' + GUIDE + '" alt="Guia do TruTEC" draggable="false"></div>' +
+        '<div class="tut-guide" title="Clique pra acelerar a fala"><img src="' + GUIDE + '" alt="Jailson, o guia do TruTEC" draggable="false"></div>' +
         '<div class="tut-bubble" aria-live="polite">' +
-          '<span class="tut-bg"></span><span class="tut-tail"></span>' +
+          '<span class="tut-bg"></span><span class="tut-tail"></span><span class="tut-name">Jailson</span>' +
           '<div class="tut-text"><div class="tut-full"></div><div class="tut-typed"></div></div>' +
           '<div class="tut-foot"><span class="tut-count"></span>' +
             '<button type="button" class="tut-skip">Pular</button>' +
@@ -333,8 +336,8 @@
     fab = document.createElement('button');
     fab.type = 'button';
     fab.className = 'tut-fab';
-    fab.title = 'Tutorial: o guia te ensina a jogar';
-    fab.setAttribute('aria-label', 'Abrir o tutorial');
+    fab.title = 'Tutorial: o Jailson te ensina a jogar';
+    fab.setAttribute('aria-label', 'Chamar o Jailson (tutorial)');
     fab.addEventListener('click', start);
     document.body.appendChild(fab);
     var lobby = document.getElementById('screen-lobby');
