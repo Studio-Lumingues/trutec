@@ -236,7 +236,7 @@
     ['help', '', 'mostra esta lista'],
     ['clear', '', 'limpa a tela (ou CTRL+L)'],
     ['neofetch', '', 'informações do TruTEC, coloridinho'],
-    ['theme', '[id]', 'lista os temas ou troca de tema'],
+    ['theme', '[id] [@nome]', 'lista os temas, troca o seu ou (admin) o de alguém'],
     ['stats', '', 'suas vitórias e derrotas'],
     ['volume', '[music|sfx] [0-100]', 'vê ou muda o volume'],
     ['server', '', 'testa o servidor (/health)'],
@@ -623,12 +623,26 @@
           out((t.id === curId ? c('g b', '* ') : '  ') +
             '<span style="color:' + col + '">●</span> ' + c('w b', pad(t.id, 9)) + c('d', t.name));
         });
-        out(c('d', 'Use: theme <id>'));
+        out(c('d', 'Use: theme <id>') + (adminKey ? c('d', '   ·   admin: theme <id> @nome (jogador da sala)') : ''));
         return;
       }
       var id = args[0].toLowerCase(), found = null;
       TruThemes.list.forEach(function (t) { if (t.id === id) found = t; });   // inclui os secretos
       if (!found) return out(c('r', 'tema não encontrado: ') + esc(id));
+
+      // theme <id> @nome  ->  (admin) troca o tema de outro jogador da sala
+      var at = -1;
+      for (var ai = 1; ai < args.length; ai++) { if (args[ai].charAt(0) === '@') { at = ai; break; } }
+      if (at > 0) {
+        var who = args.slice(at).join(' ').replace(/^@/, '').trim();
+        if (!adminKey) return out(c('r', '✘ ') + 'só quem está com ' + c('y', 'auth') + ' pode trocar o tema dos outros.');
+        if (!who) return out(c('d', 'Use: ') + c('y', 'theme <id> @nome'));
+        return adminCall({ op: 'set_theme', theme: found.id, target: who }).then(function (res) {
+          out(res.ok
+            ? c('g', '✔ ') + 'tema de ' + c('w b', esc(res.name)) + ' trocado para ' + c('m b', esc(found.name)) + c('d', '  (vale até ele recarregar a página)')
+            : c('r', '✘ ') + esc(res.error));
+        });
+      }
       if (!TruThemes.isAvailable(found.id)) {
         TruThemes.unlock(found.id);
         out(c('y b', '🔓 Tema secreto desbloqueado: ') + c('m b', found.name));

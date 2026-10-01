@@ -1400,6 +1400,27 @@ io.on('connection', (socket) => {
       return reply({ ok: true, inRoom: !!room() });
     }
     if (p.op === 'photo_off') { adminPhoto = null; pushPhoto(); return reply({ ok: true }); }
+    if (p.op === 'set_theme') {
+      // `theme <id> @nome`: troca o tema de um jogador da mesma sala
+      const r1 = room();
+      if (!r1) return reply({ ok: false, error: 'Entre numa sala primeiro (só dá pra trocar o tema de quem está nela).' });
+      const themeId = sanitizeTheme(p.theme);
+      if (!themeId) return reply({ ok: false, error: 'Tema inválido.' });
+      const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+      const want = norm(String(p.target || '').replace(/^@/, ''));
+      if (!want) return reply({ ok: false, error: 'Diga o jogador: theme <id> @nome' });
+      const humans = r1.players.filter(x => !x.isBot && x.connected);
+      let hits = humans.filter(x => norm(x.name) === want);
+      if (!hits.length) hits = humans.filter(x => norm(x.name).startsWith(want)); // começo do nome também serve
+      if (!hits.length) return reply({ ok: false, error: 'Não achei "' + String(p.target).slice(0, 24) + '" nesta sala. Jogadores: ' + (humans.map(x => x.name).join(', ') || '—') });
+      if (hits.length > 1) return reply({ ok: false, error: 'Mais de um jogador combina: ' + hits.map(x => x.name).join(', ') + '. Digite o nome inteiro.' });
+      const tgt = hits[0];
+      tgt.theme = themeId;
+      io.to(tgt.id).emit('force_theme', { id: themeId });
+      io.to(r1.code).emit('lobby_update', r1.lobbyState());   // o card de vitórias/derrotas mostra o tema novo
+      if (r1.started) r1.broadcastState(io);
+      return reply({ ok: true, name: tgt.name });
+    }
     if (p.op === 'music') {
       const r0 = room();
       if (!r0) return reply({ ok: false, error: 'Entre numa sala primeiro (a música toca pra quem está nela).' });

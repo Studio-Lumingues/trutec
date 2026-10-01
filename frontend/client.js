@@ -91,6 +91,12 @@ function tryRejoin() {
 socket.on('connect', tryRejoin);
 // música do SoundCloud da sala (comando `auth musica` do terminal; ver radio.js)
 socket.on('room_music', (m) => { if (window.TruRadio) TruRadio.handle(m); });
+// um admin (`theme <id> @nome` no terminal) trocou o meu tema: vale só nesta sessão
+socket.on('force_theme', (m) => {
+  if (!m || !window.TruThemes || !TruThemes.applyTemp) return;
+  const t = TruThemes.applyTemp(m.id);
+  if (t && typeof setBanner === 'function' && latestState) setBanner('Tema alterado para ' + t.name, 2600);
+});
 socket.on('disconnect', () => {
   const t = document.getElementById('character-phase-timer');
   if (t && t.classList.contains('active')) { /* sem mensagem: só o tempo */ }

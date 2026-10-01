@@ -321,9 +321,12 @@
 
   function setVar(k, v) { root.style.setProperty(k, v); appliedVars.push(k); }
 
-  function apply(id) {
+  // temp = true: tema imposto por um admin (`theme <id> @nome`). Vale só nesta
+  // sessão: não grava no localStorage e ignora o bloqueio dos temas secretos.
+  function apply(id, temp) {
     var t = byId(id);
-    if (!t || !isAvailable(t.id)) t = THEMES[0];   // tema secreto ainda bloqueado = Drácula
+    if (temp) { if (!t) return null; }
+    else if (!t || !isAvailable(t.id)) t = THEMES[0];   // tema secreto ainda bloqueado = Drácula
     appliedVars.forEach(function (k) { root.style.removeProperty(k); });
     appliedVars = [];
     Object.keys(t.vars || {}).forEach(function (k) { setVar(k, t.vars[k]); });
@@ -338,7 +341,7 @@
     root.classList.toggle('theme-bg', !!t.bg);
     if (t.bg) startBoil(t); else stopBoil();
     root.setAttribute('data-theme', t.id);
-    try { localStorage.setItem(KEY, t.id); } catch (e) {}
+    if (!temp) { try { localStorage.setItem(KEY, t.id); } catch (e) {} }
     return t;
   }
   // ---- miniatura (usada no card de vitórias/derrotas do adversário) ----
@@ -385,7 +388,7 @@
     return { tileW: t.bg.tileW, tileH: t.bg.tileH, urls: urls };
   }
 
-  window.TruThemes = { bgSpec: bgSpec, list: THEMES, available: available, isAvailable: isAvailable, unlock: unlock, apply: apply, current: currentId, nameOf: nameOf, mountThumb: mountThumb, unmountThumb: unmountThumb };
+  window.TruThemes = { bgSpec: bgSpec, list: THEMES, available: available, isAvailable: isAvailable, unlock: unlock, apply: apply, applyTemp: function (id) { return apply(id, true); }, current: currentId, nameOf: nameOf, mountThumb: mountThumb, unmountThumb: unmountThumb };
   apply(currentId());
 
   // ---------------------------------------------------------------- tela
