@@ -541,7 +541,7 @@ function playerCardHtml(p, draggable) {
   return `
     <div class="team-card${draggable ? ' team-card-draggable' : ''}" data-seat="${p.seat}">
       <div class="wp-avatar"><img src="${avatarSrc}" alt="" draggable="false" /></div>
-      <span class="wp-name">${escapeHtml(p.name)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
+      <span class="wp-name">${nameFxHtml(p.name, p.nameFx)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
       ${p.isBot && draggable ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}
     </div>
   `;
@@ -598,7 +598,7 @@ function renderClassicList(lobby, canEdit) {
       row.innerHTML = `
         <div class="wp-avatar"><img src="${avatarSrc}" alt="" draggable="false" /></div>
         <div class="wp-info">
-          <span class="wp-name">${escapeHtml(p.name)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
+          <span class="wp-name">${nameFxHtml(p.name, p.nameFx)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
           <span class="wp-team">Time ${p.team + 1}</span>
         </div>
         ${p.isBot && canEdit ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}
@@ -973,7 +973,7 @@ function renderCharacterReady(players) {
     info.className = 'ready-info';
     const nm = document.createElement('span');
     nm.className = 'ready-name';
-    nm.textContent = p.name + (p.seat === (mySeat !== null ? mySeat : myWaitingSeat) ? ' (você)' : '');
+    nm.innerHTML = nameFxHtml(p.name, p.nameFx) + escapeHtml(p.seat === (mySeat !== null ? mySeat : myWaitingSeat) ? ' (você)' : '');
     const st = document.createElement('span');
     st.className = 'ready-status';
     st.innerHTML = !p.connected ? 'desconectou' : (p.ready ? ICON('check') + ' Pronto' : ICON('pencil') + ' Desenhando…');
@@ -1251,9 +1251,7 @@ function renderState(realState) {
       if (p.theme) figEl.dataset.theme = p.theme; else delete figEl.dataset.theme;
     }
     if (nameEl) {
-      let label = p.name;
-      if (n === 4 && p.team === myTeam) label += ' (parceiro)';
-      nameEl.textContent = label;
+      setNameEl(nameEl, p.name, (n === 4 && p.team === myTeam) ? ' (parceiro)' : '', p.nameFx);
       nameEl.classList.toggle('active-turn', isActive);
     }
     if (handEl) {
@@ -1852,10 +1850,10 @@ function sendChat() {
   input.value = '';
 }
 
-socket.on('chat_message', ({ name, text, seat }) => {
+socket.on('chat_message', ({ name, text, seat, nameFx }) => {
   const wrap = document.getElementById('chat-messages');
   const row = document.createElement('div');
-  row.innerHTML = `<b>${escapeHtml(name)}:</b> ${escapeHtml(text)}`;
+  row.innerHTML = `<b>${nameFxHtml(name, nameFx)}:</b> ${escapeHtml(text)}`;
   wrap.appendChild(row);
   wrap.scrollTop = wrap.scrollHeight;
   if (seat !== undefined && seat !== null) showBubble(seat, text);
@@ -1911,4 +1909,17 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+// Efeitos de nome (só o admin tem; ver `auth nome`). A lista precisa bater com o servidor e o style.css.
+const NAME_FX = new Set(['fogo', 'arco-iris', 'neon', 'glitch', 'gelo', 'ouro', 'eletrico', 'galaxia', 'sangue', 'matrix']);
+function nameFxHtml(name, fx) {
+  return fx && NAME_FX.has(fx) ? `<span class="nfx nfx-${fx}">${escapeHtml(name)}</span>` : escapeHtml(name);
+}
+// escreve o nome num elemento só quando algo mudou (recriar a cada atualização reiniciaria a animação)
+function setNameEl(el, name, suffix, fx) {
+  const sig = name + '|' + (suffix || '') + '|' + (fx || '');
+  if (el.dataset.sig === sig) return;
+  el.dataset.sig = sig;
+  el.innerHTML = nameFxHtml(name, fx) + escapeHtml(suffix || '');
 }

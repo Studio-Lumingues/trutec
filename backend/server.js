@@ -136,6 +136,10 @@ function shownCharacter(p) {
   return p.adminPhoto || p.character || null;
 }
 
+// Efeitos de nome liberados (só o admin define, via `auth nome`).
+const NAME_FX = new Set(['fogo', 'arco-iris', 'neon', 'glitch', 'gelo', 'ouro', 'eletrico', 'galaxia', 'sangue', 'matrix']);
+function fxOf(p) { return p.isBot ? null : (p.nameFx || null); }
+
 function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -256,7 +260,7 @@ class Room {
   characterReadyState() {
     return this.players.map(p => ({
       seat: p.seat, name: p.name, team: p.team, connected: p.connected, isBot: !!p.isBot,
-      character: shownCharacter(p),
+      character: shownCharacter(p), nameFx: fxOf(p),
       ready: this.readySeats.has(p.seat)
     }));
   }
@@ -283,7 +287,7 @@ class Room {
       canStart: !this.started && this.players.length === this.maxPlayers && this.teamsReady(),
       teamsReady: this.teamsReady(),
       players: this.players.map(p => ({
-        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: shownCharacter(p), isBot: !!p.isBot,
+        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: shownCharacter(p), nameFx: fxOf(p), isBot: !!p.isBot,
         theme: p.theme || null, stats: p.stats || null
       }))
     };
@@ -684,6 +688,7 @@ class Room {
         connected: p.connected,
         isBot: !!p.isBot,
         character: shownCharacter(p),
+        nameFx: fxOf(p),
         theme: p.theme || null,
         stats: p.stats || null,
         cardsLeft: p.hand.length,
@@ -1276,6 +1281,7 @@ io.on('connection', (socket) => {
     const team = pickTeam(r, seat);
     const player = { id: socket.id, token: crypto.randomBytes(12).toString('hex'), name, seat, team, connected: true, hand: [], character: sanitizeCharacter(character), theme: sanitizeTheme(extra.theme), stats: sanitizeStats(extra.stats) };
     if (adminPhoto) player.adminPhoto = adminPhoto; // admin que já definiu a foto antes de entrar na sala
+    if (adminNameFx) player.nameFx = adminNameFx;   // ...e o efeito do nome
     r.players.push(player);
     socket.join(r.code);
     return player;
@@ -1325,19 +1331,21 @@ io.on('connection', (socket) => {
     return crypto.timingSafeEqual(a, b);
   }
   let adminPhoto = null; // foto definida por `auth foto` (vale pra este socket e vai pro jogador)
+  let adminNameFx = null; // efeito do nome definido por `auth nome`
 
   function pushPhoto() {
     const r = room();
     const me = r && r.playerBySocket(socket.id);
     if (!r || !me) return;
     if (adminPhoto) me.adminPhoto = adminPhoto; else delete me.adminPhoto;
+    if (adminNameFx) me.nameFx = adminNameFx; else delete me.nameFx;
     io.to(r.code).emit('lobby_update', r.lobbyState());
     if (r.characterPhaseTimer && !r.started) io.to(r.code).emit('character_ready_update', { players: r.characterReadyState() });
     if (r.started) r.broadcastState(io);
   }
 
   // `auth` do terminal: login + placar + foto, tudo por aqui.
-  // ops: login | show | set | add | reset | photo | photo_off
+  // ops: login | show | set | add | reset | photo | photo_off | name_fx
   socket.on('admin', (p, cb) => {
     const reply = (o) => { if (typeof cb === 'function') cb(o); };
     p = p || {};
@@ -1356,6 +1364,12 @@ io.on('connection', (socket) => {
       return reply({ ok: true, inRoom: !!room() });
     }
     if (p.op === 'photo_off') { adminPhoto = null; pushPhoto(); return reply({ ok: true }); }
+    if (p.op === 'name_fx') {
+      const fx = p.fx === null || p.fx === '' ? null : String(p.fx);
+      if (fx !== null && !NAME_FX.has(fx)) return reply({ ok: false, error: 'Efeito inexistente.' });
+      adminNameFx = fx; pushPhoto();
+      return reply({ ok: true, inRoom: !!room() });
+    }
 
     const r = room();
     if (!r || !r.started || r.gameOver) return reply({ ok: false, error: 'Você precisa estar numa partida em andamento.' });
@@ -1459,7 +1473,7 @@ io.on('connection', (socket) => {
     if (!r) return;
     const player = r.playerBySocket(socket.id);
     if (!player || !text) return;
-    const msg = { name: player.name, seat: player.seat, text: String(text).slice(0, 200), ts: Date.now() };
+    const msg = { name: player.name, nameFx: fxOf(player), seat: player.seat, text: String(text).slice(0, 200), ts: Date.now() };
     io.to(r.code).emit('chat_message', msg);
   });
 

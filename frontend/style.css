@@ -2412,3 +2412,107 @@ html[data-theme="carro"] .table-disc::before {
 .seat-avatar-img[src^="data:image/jpeg"],
 .wp-avatar img[src^="data:image/jpeg"],
 .ready-avatar[src^="data:image/jpeg"] { filter: none; }
+
+
+/* ====================================================================== */
+/* EFEITOS DE NOME (admin) — usados via <span class="nfx nfx-ID">            */
+/* ====================================================================== */
+.nfx { display: inline-block; font-weight: 800; }
+@keyframes nfx-slide { to { background-position: 300% 0; } }
+
+/* arco-íris: faixas de cor deslizando */
+.nfx-arco-iris {
+  background: linear-gradient(90deg, #ff3b3b, #ffb02e, #f4f93d, #3bff7a, #3bc9ff, #8a5cff, #ff4fd8, #ff3b3b);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent;
+  animation: nfx-slide 2.5s linear infinite;
+}
+
+/* fogo: chamas subindo e tremendo */
+@keyframes nfx-fire {
+  0%   { text-shadow: 0 0 2px #fff, 0 -2px 4px #ffe45e, 0 -4px 8px #ffb02e, 0 -7px 12px #ff7a1a, 0 -10px 16px #ff3d00, 0 -13px 20px #c21500; transform: translateY(0); }
+  50%  { text-shadow: 0 0 3px #fff, 0 -3px 5px #ffe45e, 0 -6px 9px #ffb02e, 0 -9px 14px #ff7a1a, 0 -13px 19px #ff3d00, 0 -17px 25px #c21500; transform: translateY(-1px); }
+  100% { text-shadow: 0 0 2px #fff, 0 -2px 3px #ffe45e, 0 -5px 7px #ffb02e, 0 -8px 11px #ff7a1a, 0 -11px 17px #ff3d00, 0 -15px 23px #c21500; transform: translateY(0); }
+}
+.nfx-fogo { color: #fff3c4; animation: nfx-fire .5s ease-in-out infinite alternate; }
+
+/* neon: rosa pulsando, com falha de vez em quando */
+@keyframes nfx-neon {
+  0%, 18%, 22%, 62%, 64%, 100% { opacity: 1; text-shadow: 0 0 3px #fff, 0 0 9px #ff2e97, 0 0 18px #ff2e97, 0 0 36px #ff2e97; }
+  20%, 63% { opacity: .55; text-shadow: none; }
+}
+.nfx-neon { color: #fff; animation: nfx-neon 3s linear infinite; }
+
+/* glitch: canais vermelho/ciano se separando e pulando */
+@keyframes nfx-glitch {
+  0%, 85%, 100% { text-shadow: -2px 0 #ff2e63, 2px 0 #08f7fe; transform: none; }
+  87% { text-shadow: 4px 0 #ff2e63, -4px 0 #08f7fe; transform: translateX(-2px) skewX(-10deg); }
+  90% { text-shadow: -5px 1px #ff2e63, 5px -1px #08f7fe; transform: translateX(2px) skewX(8deg); }
+  93% { text-shadow: 2px 0 #ff2e63, -2px 0 #08f7fe; transform: translateX(-1px); }
+}
+.nfx-glitch { color: #fff; animation: nfx-glitch 1.6s steps(1, end) infinite; }
+
+/* gelo: reflexo gelado passando */
+.nfx-gelo {
+  background: linear-gradient(100deg, #8fdcff 0%, #e9fbff 25%, #6cc7ff 50%, #ffffff 75%, #8fdcff 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 5px #56c8ff);
+  animation: nfx-slide 4s linear infinite;
+}
+
+/* ouro: brilho dourado varrendo */
+.nfx-ouro {
+  background: linear-gradient(100deg, #a8741a 0%, #ffd86b 20%, #fff7c2 35%, #e0a526 55%, #a8741a 75%, #ffd86b 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 4px rgba(255, 200, 60, .75));
+  animation: nfx-slide 3.2s linear infinite;
+}
+
+/* elétrico: faíscas piscando */
+@keyframes nfx-zap {
+  0%, 100% { color: #fffbd0; text-shadow: 0 0 4px #fff, 0 0 10px #ffe94d, 0 0 20px #3fa7ff; transform: none; }
+  8% { color: #fff; text-shadow: 0 0 6px #fff, 0 0 18px #3fa7ff, 0 0 34px #3fa7ff; transform: translate(1px, -1px); }
+  12% { color: #ffe94d; text-shadow: 0 0 2px #ffe94d; transform: translate(-1px, 1px); }
+  16% { color: #fffbd0; text-shadow: 0 0 4px #fff, 0 0 10px #ffe94d, 0 0 20px #3fa7ff; transform: none; }
+  55% { color: #fff; text-shadow: 0 0 6px #fff, 0 0 16px #3fa7ff, 0 0 30px #ffe94d; }
+  58% { text-shadow: none; }
+  61% { text-shadow: 0 0 5px #fff, 0 0 12px #3fa7ff; }
+}
+.nfx-eletrico { animation: nfx-zap 1.8s steps(1, end) infinite; }
+
+/* galáxia: nebulosa roxa/azul/rosa girando */
+.nfx-galaxia {
+  background: linear-gradient(90deg, #5b2bff, #b43cff, #ff4fd8, #2ec8ff, #5b2bff);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 5px rgba(180, 90, 255, .9));
+  animation: nfx-slide 5s linear infinite;
+}
+
+/* sangue: vermelho escuro pulsando como batimento */
+@keyframes nfx-blood {
+  0%, 100% { color: #d40f0f; text-shadow: 0 1px 0 #5c0000, 0 3px 4px #7a0000, 0 0 6px rgba(255, 0, 0, .4); }
+  15% { color: #ff2a2a; text-shadow: 0 1px 0 #5c0000, 0 4px 6px #9a0000, 0 0 14px rgba(255, 0, 0, .9); }
+  30% { color: #e01212; }
+  45% { color: #ff2a2a; text-shadow: 0 1px 0 #5c0000, 0 4px 6px #9a0000, 0 0 12px rgba(255, 0, 0, .8); }
+}
+.nfx-sangue { animation: nfx-blood 1.3s ease-in-out infinite; }
+
+/* matrix: verde hacker piscando */
+@keyframes nfx-matrix {
+  0%, 100% { opacity: 1; text-shadow: 0 0 6px #39ff14, 0 0 14px #1aa800; }
+  45% { opacity: .85; }
+  50% { opacity: .5; text-shadow: 0 0 2px #39ff14; }
+  55% { opacity: 1; }
+}
+.nfx-matrix { color: #39ff14; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .04em; animation: nfx-matrix 1.4s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nfx { animation: none !important; }
+}

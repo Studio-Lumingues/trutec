@@ -30,6 +30,9 @@
   var PHOTO_KEY = 'trutec-admin-photo';      // foto final (JPEG 320x320) que vai pro servidor
   var PHOTO_SRC_KEY = 'trutec-admin-photo-src'; // imagem original (reduzida) pra poder ajustar depois
   var PHOTO_TF_KEY = 'trutec-admin-photo-tf';   // último ajuste (zoom/posição)
+  var NAMEFX_KEY = 'trutec-admin-namefx';       // efeito do nome (localStorage)
+  var FX_LIST = [['fogo', 'Fogo'], ['arco-iris', 'Arco-íris'], ['neon', 'Neon'], ['glitch', 'Glitch'], ['gelo', 'Gelo'],
+    ['ouro', 'Ouro'], ['eletrico', 'Elétrico'], ['galaxia', 'Galáxia'], ['sangue', 'Sangue'], ['matrix', 'Matrix']];
   var reconnectHooked = false;
 
   // ---------------------------------------------------------------- estilo
@@ -96,6 +99,13 @@
     '.tt-ph-btn.main{background:#f4f99d;color:#0a0a0a;border-color:#f4f99d;}',
     '.tt-ph-btn.main:hover{background:#fffdb0;}',
     '.tt-ph-btn:disabled{opacity:.4;cursor:default;}',
+    '.tt-ph-card{max-height:92vh;overflow-y:auto;}',
+    '.tt-ph-fxh{margin:.1rem 0 .45rem;font-size:.78rem;font-weight:700;opacity:.85;}',
+    '.tt-ph-chips{display:flex;flex-wrap:wrap;gap:.4rem;justify-content:center;margin:0 0 .9rem;}',
+    '.tt-chip{padding:.4rem .65rem;border-radius:.55rem;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);',
+    'color:#fff8f0;font-family:inherit;font-size:.85rem;cursor:pointer;line-height:1.1;}',
+    '.tt-chip:hover{border-color:#fff8f0;}',
+    '.tt-chip.on{border-color:#f4f99d;box-shadow:0 0 0 .13rem rgba(244,249,157,.45);}',
     '.tt-ph-msg{min-height:1.1rem;margin:.65rem 0 0;font-size:.78rem;}'
   ].join('');
 
@@ -230,7 +240,7 @@
     ['stats', '', 'suas vitórias e derrotas'],
     ['volume', '[music|sfx] [0-100]', 'vê ou muda o volume'],
     ['server', '', 'testa o servidor (/health)'],
-    ['auth', '<chave>', 'modo admin: placar, foto... (veja `auth`)'],
+    ['auth', '<chave>', 'modo admin: placar, foto, efeito do nome (veja `auth`)'],
     ['settings', '', 'abre as configurações'],
     ['colors', '', 'paleta de cores do terminal'],
     ['ls', '', 'lista os arquivos do projeto'],
@@ -258,6 +268,12 @@
     });
   }
 
+  // aplica (ou tira) o efeito do nome: salva no localStorage e manda pro servidor
+  function setNameFx(fx) {
+    if (fx) lsSet(NAMEFX_KEY, fx); else lsDel(NAMEFX_KEY);
+    return adminCall({ op: 'name_fx', fx: fx || null }).then(function (res) { if (res.ok) paintBadge(); return res; });
+  }
+
   // ---------------------------------------------------------------- selo no canto superior direito
   var badge = null;
   function initials() {
@@ -265,6 +281,8 @@
   }
   function paintBadge() {
     if (!badge) return;
+    var fx = lsGet(NAMEFX_KEY), nm = badge.querySelector('.tt-badge-name');
+    nm.innerHTML = fx ? '<span class="nfx nfx-' + esc(fx) + '">' + esc(ADMIN_NAME) + '</span>' : esc(ADMIN_NAME);
     var photo = readPhoto(), box = badge.querySelector('.tt-badge-img');
     box.innerHTML = '';
     if (photo) { var im = document.createElement('img'); im.alt = ''; im.src = photo; box.appendChild(im); }
@@ -275,8 +293,8 @@
       badge = document.createElement('button');
       badge.type = 'button';
       badge.className = 'tt-badge';
-      badge.title = 'Alterar minha foto';
-      badge.innerHTML = '<span class="tt-badge-img"></span><span>' + esc(ADMIN_NAME) + '<small>Alterar foto</small></span>';
+      badge.title = 'Meu perfil: foto e efeito do nome';
+      badge.innerHTML = '<span class="tt-badge-img"></span><span><span class="tt-badge-name"></span><small>Perfil</small></span>';
       badge.addEventListener('click', openPhotoEditor);
       document.body.appendChild(badge);
     }
@@ -321,10 +339,12 @@
     ov.setAttribute('aria-label', 'Ajustar foto');
     ov.innerHTML =
       '<div class="tt-ph-card">' +
-        '<h3>Sua foto</h3>' +
-        '<p>Arraste pra posicionar e use o zoom. É assim que todos vão te ver.</p>' +
+        '<h3>Seu perfil</h3>' +
+        '<p>Arraste a foto pra posicionar e use o zoom. É assim que todos vão te ver.</p>' +
         '<div class="tt-ph-view"><div class="tt-ph-empty">Nenhuma imagem. Clique em “Escolher imagem”.</div></div>' +
         '<div class="tt-ph-zoom"><span>−</span><input type="range" min="100" max="400" value="100" step="1" aria-label="Zoom" /><span>+</span></div>' +
+        '<div class="tt-ph-fxh">Efeito do nome</div>' +
+        '<div class="tt-ph-chips"></div>' +
         '<div class="tt-ph-row">' +
           '<button type="button" class="tt-ph-btn" data-a="pick">Escolher imagem</button>' +
           '<button type="button" class="tt-ph-btn main" data-a="save">Salvar</button>' +
@@ -375,6 +395,29 @@
       im.src = src;
     }
     function say(t, bad) { msg.textContent = t || ''; msg.style.color = bad ? '#ff8a84' : '#5af78e'; }
+
+    // efeitos do nome: clicar aplica na hora (todos veem)
+    var chipsEl = ov.querySelector('.tt-ph-chips');
+    var chipDefs = [[null, 'Sem efeito']].concat(FX_LIST);
+    chipDefs.forEach(function (d) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'tt-chip'; b.setAttribute('data-fx', d[0] || '');
+      b.innerHTML = d[0] ? '<span class="nfx nfx-' + d[0] + '">' + esc(d[1]) + '</span>' : esc(d[1]);
+      chipsEl.appendChild(b);
+    });
+    function markChips() {
+      var cur = lsGet(NAMEFX_KEY) || '';
+      Array.prototype.forEach.call(chipsEl.children, function (b) { b.classList.toggle('on', b.getAttribute('data-fx') === cur); });
+    }
+    chipsEl.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('.tt-chip');
+      if (!b) return;
+      setNameFx(b.getAttribute('data-fx') || null).then(function (res) {
+        if (!res.ok) return say(res.error || 'erro', true);
+        markChips();
+        say(b.getAttribute('data-fx') ? 'Efeito aplicado!' : 'Efeito removido.');
+      });
+    });
 
     // arrastar
     var drag = null;
@@ -472,7 +515,7 @@
 
     return {
       open: function () {
-        ov.hidden = false; say('');
+        ov.hidden = false; say(''); markChips();
         var src = lsGet(PHOTO_SRC_KEY) || lsGet(PHOTO_KEY);
         var tf = null; try { tf = JSON.parse(lsGet(PHOTO_TF_KEY)); } catch (e) {}
         if (src) setImage(src, lsGet(PHOTO_SRC_KEY) ? tf : null);
@@ -496,9 +539,10 @@
     if (!sock || reconnectHooked) return;
     reconnectHooked = true;
     sock.on('connect', function () {
-      var photo = readPhoto();
-      if (!adminKey || !photo) return;
-      sock.emit('admin', { key: adminKey, op: 'photo', photo: photo }, function () {});
+      if (!adminKey) return;
+      var photo = readPhoto(), fx = lsGet(NAMEFX_KEY);
+      if (photo) sock.emit('admin', { key: adminKey, op: 'photo', photo: photo }, function () {});
+      if (fx) sock.emit('admin', { key: adminKey, op: 'name_fx', fx: fx }, function () {});
     });
   }
   var COMMANDS = {
@@ -670,6 +714,10 @@
           showBadge();
           hookReconnect();
           // foto salva de outras vezes: já aplica
+          var savedFx = lsGet(NAMEFX_KEY);
+          if (savedFx) call({ op: 'name_fx', fx: savedFx }).then(function (r3) {
+            if (r3.ok) out(c('g', '✔ ') + 'efeito do nome aplicado ' + c('d', '(' + esc(savedFx) + ')'));
+          });
           var photo = readPhoto();
           if (photo) return call({ op: 'photo', photo: photo }).then(function (r2) {
             out(r2.ok ? c('g', '✔ ') + 'foto salva aplicada ' + c('d', '(todos veem no lugar do seu personagem; ajuste pelo canto superior direito)') : c('r', '✘ ') + esc(r2.error));
@@ -682,6 +730,9 @@
         out(c('c b', 'auth') + c('d', ' — modo admin ativo'));
         out('  ' + c('g b', pad('foto', 22)) + c('d', 'abre o ajuste da foto (também no canto superior direito); todos veem no lugar do seu personagem'));
         out('  ' + c('g b', pad('foto off', 22)) + c('d', 'tira a foto e volta pro personagem'));
+        out('  ' + c('g b', pad('nome', 22)) + c('d', 'lista os efeitos do nome (fogo, neon, arco-iris...)'));
+        out('  ' + c('g b', pad('nome <efeito>', 22)) + c('d', 'aplica o efeito no seu nome pra todo mundo ver'));
+        out('  ' + c('g b', pad('nome off', 22)) + c('d', 'tira o efeito'));
         out('  ' + c('g b', pad('show', 22)) + c('d', 'mostra o placar (dentro de uma partida)'));
         out('  ' + c('g b', pad('set <d1> <d2>', 22)) + c('d', 'define o placar (0 a 12)'));
         out('  ' + c('g b', pad('add <1|2> <n>', 22)) + c('d', 'soma n (pode ser negativo) à dupla 1 ou 2'));
@@ -691,6 +742,25 @@
       }
       if (!sub) return usage();
       if (sub === 'sair' || sub === 'logout') { adminKey = ''; hideBadge(); return out(c('g', '✔ ') + 'saiu do modo admin'); }
+
+      if (sub === 'nome' || sub === 'name') {
+        var want = (args[1] || '').toLowerCase();
+        if (!want) {
+          var curFx = lsGet(NAMEFX_KEY);
+          FX_LIST.forEach(function (d) {
+            out((d[0] === curFx ? c('g b', '* ') : '  ') + '<span class="nfx nfx-' + d[0] + '">' + esc(d[1]) + '</span>' + c('d', '   auth nome ' + d[0]));
+          });
+          return out(c('d', 'Também dá pra escolher clicando no seu selo (canto superior direito).'));
+        }
+        if (want === 'off' || want === 'nenhum') {
+          return setNameFx(null).then(function (res) { out(res.ok ? c('g', '✔ ') + 'efeito removido' : c('r', '✘ ') + esc(res.error)); });
+        }
+        var known = FX_LIST.some(function (d) { return d[0] === want; });
+        if (!known) return out(c('r', '✘ ') + 'efeito desconhecido. Digite ' + c('y', 'auth nome') + ' pra ver a lista.');
+        return setNameFx(want).then(function (res) {
+          out(res.ok ? c('g', '✔ ') + 'efeito ' + c('w b', want) + ' aplicado ' + c('d', res.inRoom ? '(todos na sala já veem)' : '(vale quando você entrar numa sala)') : c('r', '✘ ') + esc(res.error));
+        });
+      }
 
       if (sub === 'foto' || sub === 'photo') {
         if ((args[1] || '').toLowerCase() === 'off') {
@@ -767,7 +837,7 @@
       pool = themeList().map(function (t) { return t.id; }).concat('list');
       prefix = words[1]; head = words[0] + ' ';
     } else if (words[0].toLowerCase() === 'auth' && words.length === 2 && adminKey) {
-      pool = ['foto', 'show', 'set', 'add', 'reset', 'sair'];
+      pool = ['foto', 'nome', 'show', 'set', 'add', 'reset', 'sair'];
       prefix = words[1]; head = words[0] + ' ';
     } else return;
     var m = pool.filter(function (n) { return n.indexOf(prefix.toLowerCase()) === 0; });
