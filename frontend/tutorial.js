@@ -6,10 +6,10 @@
 //   (um "holofote" com contorno tremido, igual ao resto do site).
 // - Ele abre os próprios modais de verdade (Criar sala, Jogar, Ajuda...) e fecha
 //   tudo no final, sem mexer em nada do seu perfil/tema.
-// - Abre sozinho na 1ª visita; depois pelo botão redondo no canto da tela inicial
+// - Na 1ª visita abre sozinho e é OBRIGATÓRIO (sem pular) — só termina depois que o jogador escreve o nome; depois pelo botão redondo no canto da tela inicial
 //   ou pelo comando `tutorial` do terminal.
 // - O Jailson fala com um "blip" por letra (estilo Animal Crossing), no volume de Efeitos sonoros.
-// - Teclas: → / Enter = próximo · ← = voltar · Esc = pular.
+// - Teclas: → / Enter = próximo · ← = voltar · Esc = pular (só depois da 1ª vez).
 // Pra mudar os textos ou a ordem, mexa na lista STEPS logo abaixo.
 // ============================================================================
 (function () {
@@ -40,17 +40,36 @@
       text: 'A Ajuda é o guia <b>Como jogar Truco</b>: o objetivo do jogo, a força das cartas, a vira e as manilhas, como pedir <b>truco, seis, nove e doze</b>, esconder a carta, os sinais pro parceiro… Clique em cada seção pra abrir. Vale ler antes da primeira partida!' },
     { ui: 'none', target: '#btn-settings',
       text: 'A engrenagem abre as <b>Configurações</b>.' },
-    { ui: 'settings', target: '.name-badge',
-      text: 'Este é o crachá <b>Olá, eu sou...</b>! Clique no espaço branco e escreva seu <b>nome</b>. É ele que os outros jogadores veem na mesa. Eu guardo o nome pra próxima vez!' },
     { ui: 'settings', target: '#settings-modal .settings-card',
       text: 'Aqui você ajusta o <b>volume da música</b> e dos <b>efeitos sonoros</b>, e pode ligar o <b>modo daltonismo</b>, que deixa as cores dos naipes e dos times mais fáceis de distinguir.' },
     { ui: 'settings', target: '#tab-temas',
       text: 'E nesta aba, <b>Temas</b>, você muda o visual do jogo.' },
     { ui: 'themes', target: '#themes-modal .themes-card',
       text: 'Passe pelos temas com as <b>setas</b>. Cada um tem um fundo animado diferente e o que você escolher já vale na hora. Os outros jogadores também veem o seu tema quando passam o mouse (ou tocam) no seu boneco!' },
+    { ui: 'settings', ask: true, target: '.name-badge', next: 'Pronto!',
+      text: function () {
+        var n = nameNow();
+        return n ? 'Pra fechar: seu nome é <b>' + esc(n) + '</b>? Se quiser mudar, é só escrever no crachá <b>Olá, eu sou...</b>. Depois clique em <b>Pronto!</b>'
+                 : 'Ah, e eu ainda não sei o seu nome! Clique no espaço branco do crachá <b>Olá, eu sou...</b> e escreva como você quer ser chamado.';
+      } },
     { ui: 'none', next: 'Terminar',
-      text: 'Pronto! Agora é só <b>criar uma sala</b> ou <b>entrar numa</b> e jogar. Se precisar de mim de novo, chame o Jailson clicando no meu rostinho no canto da tela inicial. Boa partida!' }
+      text: function () {
+        var n = esc(nameNow() || 'amigo');
+        var praise = [
+          'Que nome lindo, <b>' + n + '</b>! Combina demais com um mestre do truco.',
+          '<b>' + n + '</b>! Adorei esse nome. Já até imagino você cantando truco na mesa!',
+          'Uau, <b>' + n + '</b> é um nome de respeito! Os adversários já estão com medo.',
+          'Que nome bonito, <b>' + n + '</b>! Prazer em te conhecer!',
+          '<b>' + n + '</b>… nome de campeão! Anotei aqui e não esqueço mais.'
+        ];
+        return praise[Math.floor(Math.random() * praise.length)] +
+          ' Agora é só <b>criar uma sala</b> ou <b>entrar numa</b> e jogar. Se precisar de mim de novo, clique no meu rostinho no canto da tela inicial. Boa partida!';
+      } }
   ];
+
+  function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function nameInput() { return document.getElementById('input-name'); }
+  function nameNow() { var i = nameInput(); return i ? i.value.trim() : ''; }
 
   // ---- abrir/fechar os modais de verdade (clicando nos botões do próprio site) ----
   var OPEN = { create: ['#btn-create'], join: ['#btn-play'], help: ['#btn-help'], settings: ['#btn-settings'], themes: ['#btn-settings', '#tab-temas'] };
@@ -76,7 +95,11 @@
     var st = document.createElement('style');
     st.id = 'tut-css';
     st.textContent = [
-      '.tut-root{position:fixed;inset:0;z-index:9500;font-family:inherit;color:#0a0a0a;animation:tutFade .4s ease-out}',
+      '.tut-root{position:fixed;inset:0;z-index:9500;font-family:inherit;color:#0a0a0a;animation:tutFade .4s ease-out;pointer-events:none}',
+      '.tut-block{position:absolute;inset:0;pointer-events:auto}',
+      '.tut-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}',
+      '.tut-shake{animation:tutShake .4s}',
+      '@keyframes tutShake{20%,60%{transform:translateX(-.3rem)}40%,80%{transform:translateX(.3rem)}}',
       '@keyframes tutFade{from{opacity:0}to{opacity:1}}',
       '.tut-root[hidden]{display:none}',
       '.tut-spot{position:fixed;left:50%;top:50%;width:0;height:0;border-radius:1rem;pointer-events:none;',
@@ -146,7 +169,7 @@
   }
 
   // ---- estado do tutorial ----
-  var root, spot, panel, guideImg, bubble, typed, full, countEl, btnNext, btnBack, btnSkip;
+  var root, block, mandatory = false, pending = false, spot, panel, guideImg, bubble, typed, full, countEl, btnNext, btnBack, btnSkip;
   var idx = 0, running = false, raf = 0, typeTimer = null, moveTimer = 0, relayoutTimer = 0;
   var nodes = [], texts = [], cursor = 0, total = 0, plain = '';
   var entering = false, enterTimer = 0, lastX = 0, lastY = 0, lastWig = 0, curCand = -1, curCandN = 0, lastRect = '', firstLayout = true, t0 = 0;
@@ -166,6 +189,7 @@
       spot.classList.add('tut-none');
       spot.style.left = innerWidth / 2 + 'px'; spot.style.top = innerHeight / 2 + 'px';
       spot.style.width = '2px'; spot.style.height = '2px';
+      block.style.clipPath = '';
       if (lastRect !== 'none') { lastRect = 'none'; layout(); }
       return;
     }
@@ -175,6 +199,10 @@
     var rr = Math.min(innerWidth - 4, r.right + PAD), bb = Math.min(innerHeight - 4, r.bottom + PAD);
     spot.style.left = l + 'px'; spot.style.top = t + 'px';
     spot.style.width = Math.max(0, rr - l) + 'px'; spot.style.height = Math.max(0, bb - t) + 'px';
+    // passo da pergunta: o jogador precisa clicar/digitar no crachá, então abre um "buraco" no bloqueador
+    block.style.clipPath = STEPS[idx].ask
+      ? 'polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,' + l + 'px ' + t + 'px,' + l + 'px ' + bb + 'px,' + rr + 'px ' + bb + 'px,' + rr + 'px ' + t + 'px,' + l + 'px ' + t + 'px)'
+      : '';
     var rk = [l, t, rr, bb].map(Math.round).join();
     if (rk !== lastRect) { lastRect = rk; layout(); }   // o modal ainda está animando: acompanha com transição suave
   }
@@ -335,19 +363,33 @@
     setUi(s.ui || 'none');
     spot.classList.add('tut-move');
     clearTimeout(moveTimer); moveTimer = setTimeout(function () { spot.classList.remove('tut-move'); }, 450);
-    say(s.text);
+    say(typeof s.text === 'function' ? s.text() : s.text);
     countEl.textContent = (idx + 1) + ' / ' + STEPS.length;
     btnBack.hidden = idx === 0;
     btnNext.textContent = s.next || (idx === STEPS.length - 1 ? 'Terminar' : 'Próximo');
     btnSkip.textContent = s.skip || 'Pular';
-    btnSkip.hidden = idx === STEPS.length - 1;
+    btnSkip.hidden = mandatory || idx === STEPS.length - 1;     // 1ª vez: tutorial obrigatório, sem "pular"
+    syncAsk();
     layout();
     clearTimeout(relayoutTimer); relayoutTimer = setTimeout(layout, 480);   // depois do modal terminar de abrir
-    btnNext.focus({ preventScroll: true });
+    if (s.ask && window.matchMedia && matchMedia('(hover: hover)').matches) setTimeout(function () { var i = nameInput(); if (running && idx === STEPS.indexOf(s) && i) i.focus({ preventScroll: true }); }, 900);
+    else btnNext.focus({ preventScroll: true });
   }
+  // no passo da pergunta o "Pronto!" só libera depois que o nome é escrito
+  function syncAsk() {
+    if (!running) return;
+    btnNext.disabled = !!STEPS[idx].ask && !nameNow();
+  }
+  function onNameInput() { syncAsk(); }
   function next() {
     if (finishTyping()) return;
-    if (idx >= STEPS.length - 1) return stop();
+    if (STEPS[idx].ask && !nameNow()) {               // sem nome não passa: balança o crachá e foca
+      var bd = document.querySelector('.name-badge'), i = nameInput();
+      if (bd) { bd.classList.remove('tut-shake'); void bd.offsetWidth; bd.classList.add('tut-shake'); }
+      if (i) i.focus();
+      return;
+    }
+    if (idx >= STEPS.length - 1) return stop(true);
     show(idx + 1);
   }
   function back() { if (idx > 0) show(idx - 1); }
@@ -355,10 +397,19 @@
   function onKey(e) {
     if (!running) return;
     var k = e.key;
+    if (k === 'Escape') {                              // 1ª vez é obrigatório: Esc não pula
+      e.preventDefault(); e.stopPropagation();
+      if (!mandatory) stop(false);
+      return;
+    }
+    // digitando no crachá: as teclas são do campo (só Enter confirma)
+    if (e.target && e.target.tagName === 'INPUT' && !(e.target.closest && e.target.closest('.tut-root'))) {
+      if (k === 'Enter' && STEPS[idx].ask) { e.preventDefault(); e.stopPropagation(); next(); }
+      return;
+    }
     // Enter num botão do próprio tutorial (ex.: "Voltar") faz o que o botão diz
     if (k === 'Enter' && e.target && e.target.tagName === 'BUTTON' && e.target.closest && e.target.closest('.tut-root')) return;
-    if (k === 'Escape') { e.preventDefault(); e.stopPropagation(); stop(); }
-    else if (k === 'ArrowRight' || k === 'Enter') { e.preventDefault(); e.stopPropagation(); next(); }
+    if (k === 'ArrowRight' || k === 'Enter') { e.preventDefault(); e.stopPropagation(); next(); }
     else if (k === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); back(); }
   }
 
@@ -369,6 +420,7 @@
     root.setAttribute('role', 'dialog');
     root.setAttribute('aria-label', 'Tutorial do TruTEC com o Jailson');
     root.innerHTML =
+      '<div class="tut-block"></div>' +
       '<div class="tut-spot tut-none"><div class="tut-ring"></div></div>' +
       '<div class="tut-panel">' +
         '<div class="tut-guide" title="Clique pra acelerar a fala"><img src="' + GUIDE + '" alt="Jailson, o guia do TruTEC" draggable="false"></div>' +
@@ -382,6 +434,7 @@
         '</div>' +
       '</div>';
     document.body.appendChild(root);
+    block = root.querySelector('.tut-block');
     spot = root.querySelector('.tut-spot'); panel = root.querySelector('.tut-panel');
     guideImg = root.querySelector('.tut-guide'); bubble = root.querySelector('.tut-bubble');
     typed = root.querySelector('.tut-typed'); full = root.querySelector('.tut-full');
@@ -389,13 +442,14 @@
     btnNext = root.querySelector('.tut-go'); btnBack = root.querySelector('.tut-back'); btnSkip = root.querySelector('.tut-skip');
     btnNext.addEventListener('click', next);
     btnBack.addEventListener('click', back);
-    btnSkip.addEventListener('click', stop);
+    btnSkip.addEventListener('click', function () { stop(false); });
     guideImg.addEventListener('click', finishTyping);
     var gi = guideImg.querySelector('img');
     if (gi && !gi.complete) gi.addEventListener('load', function () { layout(); });
   }
 
   function onResize() { layout(); }
+  function seenFlag() { try { return !!localStorage.getItem(FLAG); } catch (e) { return false; } }
 
   function inLobby() {
     var el = document.getElementById('screen-lobby');
@@ -414,22 +468,26 @@
   function start() {
     if (running || !inLobby()) return false;
     closeAll();
-    try { localStorage.setItem(FLAG, '1'); } catch (e) {}
+    mandatory = !seenFlag();
     running = true; ui = 'none';
     curCand = -1; lastRect = ''; firstLayout = true; entering = true; t0 = Date.now();
     build();
     syncFab();
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('resize', onResize);
+    var ni = nameInput(); if (ni) ni.addEventListener('input', onNameInput);
     var ac = voiceCtx(); if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }   // se veio de um clique, já libera o som
     raf = requestAnimationFrame(track);
     show(0);
     return true;
   }
 
-  function stop() {
+  function stop(done) {
     if (!running) return;
+    if (done === true) { try { localStorage.setItem(FLAG, '1'); } catch (e) {} }   // só conta como "visto" quando termina
+    pending = false;
     running = false;
+    var ni = nameInput(); if (ni) ni.removeEventListener('input', onNameInput);
     clearInterval(typeTimer); clearTimeout(moveTimer); clearTimeout(relayoutTimer); clearTimeout(enterTimer);
     cancelAnimationFrame(raf);
     window.removeEventListener('keydown', onKey, true);
@@ -443,6 +501,7 @@
   // ---- botão redondo (só na tela inicial) ----
   var fab = null;
   function syncFab() {
+    if (pending && !running && inLobby()) { pending = false; start(); return; }   // 1ª visita: começa assim que chegar na tela inicial
     if (!fab) return;
     fab.hidden = running || !inLobby();
   }
@@ -460,15 +519,16 @@
     syncFab();
   }
 
-  window.TruTutorial = { start: start, stop: stop, running: function () { return running; }, available: inLobby };
+  window.TruTutorial = { start: start, stop: function () { stop(false); }, running: function () { return running; }, available: inLobby };
 
   function init() {
     setupFab();
-    var seen = false;
-    try { seen = !!localStorage.getItem(FLAG); } catch (e) {}
     var q = new URLSearchParams(location.search).get('tutorial');
-    if (q === '1') seen = false;
-    if (!seen && q !== '0') setTimeout(function () { start(); }, 1200);
+    // 1ª visita (ou ?tutorial=1): abre sozinho e é obrigatório até o fim
+    if (!seenFlag() || q === '1') {
+      pending = true;
+      setTimeout(function () { if (pending && !running && inLobby()) { pending = false; start(); } }, 1200);
+    }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

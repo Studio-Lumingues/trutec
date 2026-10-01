@@ -2612,23 +2612,23 @@ html[data-theme="casa"] .table-disc::before {
 /* ===== Crachá "Olá, eu sou..." (nome do jogador, dentro das Configurações) ===== */
 #settings-modal .settings-card { max-height: calc(100dvh - 1.5rem); overflow-y: auto; }
 .name-badge {
+  --marker: 'Permanent Marker', 'Segoe Print', 'Bradley Hand', cursive;
   margin: 0 0 1.25rem;
   padding: 0.35rem 0 0.55rem;
   background: #e30613;
   border-radius: 1.1rem;
   box-shadow: 0 0.25rem 0 rgba(0,0,0,0.35);
-  transform: rotate(-1.2deg);
-  filter: url(#boil-sm);
 }
-.nb-head { display: flex; flex-direction: column; align-items: center; line-height: 1; padding: 0.15rem 0 0.4rem; color: #fff; text-transform: uppercase; }
-.nb-hello { font-size: 1.9rem; font-weight: 800; letter-spacing: 0.04em; }
-.nb-iam { margin-top: 0.15rem; font-size: 1rem; font-weight: 800; letter-spacing: 0.06em; }
+.nb-head { display: flex; flex-direction: column; align-items: center; line-height: 1; padding: 0.15rem 0 0.45rem; color: #fff; font-family: var(--marker); }
+.nb-hello { font-size: 2rem; letter-spacing: 0.03em; }
+.nb-iam { margin-top: 0.2rem; font-size: 1.1rem; letter-spacing: 0.04em; }
 .nb-field { display: block; margin: 0; cursor: text; background: #f4f4f4; border-radius: 1.1rem; }
 .nb-field input {
   display: block; width: 100%; min-height: 4.6rem; box-sizing: border-box;
   padding: 0.5rem 1rem; border: 0; border-radius: 1.1rem; background: transparent;
-  color: #0a0a0a; font: inherit; font-size: 1.7rem; font-weight: 700; text-align: center;
+  color: #1b1b3a; font-family: var(--marker); font-size: 1.9rem; font-weight: 400; text-align: center;
+  outline: 0; box-shadow: none;
 }
-.nb-field input::placeholder { color: rgba(10,10,10,0.38); font-size: 1.15rem; font-weight: 600; }
-.nb-field input:focus { outline: 0; background: #fff; box-shadow: inset 0 0 0 3px #ffd23f; }
+.nb-field input::placeholder { color: rgba(10,10,10,0.35); font-size: 1.2rem; }
+.nb-field input:focus { outline: 0; box-shadow: none; background: #fff; }
 .nb-field:hover input:not(:focus) { background: #fff; }
