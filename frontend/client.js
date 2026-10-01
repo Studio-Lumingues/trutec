@@ -172,7 +172,7 @@ function getSavedCharacter() {
 
   let drawing = false;
   let currentColor = colorPicker.value;
-  let currentTool = 'pen'; // 'pen' | 'eraser' | 'stamp'
+  let currentTool = 'pen'; // 'pen' | 'eraser'
   let lastX = 0, lastY = 0;
   const undoStack = [];
 
@@ -270,7 +270,6 @@ function getSavedCharacter() {
     targetCtx.putImageData(id, 0, 0);
   }
 
-  const skinFunWrap = document.getElementById('skin-presets-fun');
 
   function setSkin(k) {
     skin = { h: k.h || 0, s: k.s === undefined ? 1 : k.s, b: k.b === undefined ? 1 : k.b };
@@ -295,7 +294,7 @@ function getSavedCharacter() {
     wrap.appendChild(btn);
   }
   SKIN_NATURAL.forEach(t => addPreset(skinPresetsWrap, t, t.c, t.n));
-  SKIN_FUN_DEGS.forEach(deg => addPreset(skinFunWrap || skinPresetsWrap, { h: deg, s: 1, b: 1 }, hueRotatedColor(deg), deg === 0 ? 'Rosa original' : `Cor ${deg}°`));
+  SKIN_FUN_DEGS.forEach(deg => addPreset(skinPresetsWrap, { h: deg, s: 1, b: 1 }, hueRotatedColor(deg), deg === 0 ? 'Rosa original' : `Cor ${deg}°`));
 
   skinHueSlider.addEventListener('input', () => setSkin({ h: Number(skinHueSlider.value), s: 1, b: 1 }));
 
@@ -308,124 +307,6 @@ function getSavedCharacter() {
       if (savedHue !== null) setSkin({ h: Number(savedHue), s: 1, b: 1 });
     }
   } catch (e) { /* localStorage indisponível, ignora */ }
-
-  // ------------------------------------------------------------------
-  // Aba "Extras": itens que se carimbam em cima do boneco (desenhados em
-  // código, usam a cor escolhida). u = tamanho; (x,y) = centro do item.
-  // ------------------------------------------------------------------
-  const stampSize = document.getElementById('character-stamp-size');
-  const stampGrid = document.getElementById('stamp-grid');
-  let currentStamp = 'oculos';
-
-  const STAMPS = {
-    oculos: { n: 'Óculos', f(c, u) {
-      c.lineWidth = Math.max(3, u * 0.07);
-      c.beginPath(); c.arc(-u * 0.42, 0, u * 0.3, 0, 7); c.stroke();
-      c.beginPath(); c.arc(u * 0.42, 0, u * 0.3, 0, 7); c.stroke();
-      c.beginPath(); c.moveTo(-u * 0.12, -u * 0.04); c.quadraticCurveTo(0, -u * 0.12, u * 0.12, -u * 0.04); c.stroke();
-      c.beginPath(); c.moveTo(-u * 0.72, -u * 0.04); c.lineTo(-u * 0.95, -u * 0.12); c.moveTo(u * 0.72, -u * 0.04); c.lineTo(u * 0.95, -u * 0.12); c.stroke();
-    } },
-    sol: { n: 'Óculos escuros', f(c, u) {
-      c.lineWidth = Math.max(3, u * 0.07);
-      c.beginPath(); c.ellipse(-u * 0.4, 0, u * 0.34, u * 0.26, 0, 0, 7); c.fill();
-      c.beginPath(); c.ellipse(u * 0.4, 0, u * 0.34, u * 0.26, 0, 0, 7); c.fill();
-      c.beginPath(); c.moveTo(-u * 0.08, -u * 0.06); c.lineTo(u * 0.08, -u * 0.06); c.stroke();
-      c.beginPath(); c.moveTo(-u * 0.74, -u * 0.06); c.lineTo(-u * 1.0, -u * 0.14); c.moveTo(u * 0.74, -u * 0.06); c.lineTo(u * 1.0, -u * 0.14); c.stroke();
-    } },
-    bigode: { n: 'Bigode', f(c, u) {
-      c.beginPath();
-      c.moveTo(0, -u * 0.05);
-      c.bezierCurveTo(-u * 0.25, -u * 0.3, -u * 0.7, -u * 0.2, -u * 0.95, u * 0.1);
-      c.bezierCurveTo(-u * 0.6, u * 0.05, -u * 0.3, u * 0.12, 0, u * 0.1);
-      c.bezierCurveTo(u * 0.3, u * 0.12, u * 0.6, u * 0.05, u * 0.95, u * 0.1);
-      c.bezierCurveTo(u * 0.7, -u * 0.2, u * 0.25, -u * 0.3, 0, -u * 0.05);
-      c.fill();
-    } },
-    sorriso: { n: 'Sorriso', f(c, u) {
-      c.lineWidth = Math.max(3, u * 0.08); c.lineCap = 'round';
-      c.beginPath(); c.arc(0, -u * 0.15, u * 0.5, Math.PI * 0.15, Math.PI * 0.85); c.stroke();
-    } },
-    bochechas: { n: 'Bochechas', f(c, u) {
-      c.globalAlpha = 0.6;
-      c.beginPath(); c.arc(-u * 0.7, 0, u * 0.22, 0, 7); c.fill();
-      c.beginPath(); c.arc(u * 0.7, 0, u * 0.22, 0, 7); c.fill();
-      c.globalAlpha = 1;
-    } },
-    sobrancelhas: { n: 'Sobrancelhas', f(c, u) {
-      c.lineWidth = Math.max(4, u * 0.1); c.lineCap = 'round';
-      c.beginPath(); c.moveTo(-u * 0.7, u * 0.05); c.lineTo(-u * 0.15, -u * 0.1); c.moveTo(u * 0.7, u * 0.05); c.lineTo(u * 0.15, -u * 0.1); c.stroke();
-    } },
-    coroa: { n: 'Coroa', f(c, u) {
-      c.beginPath();
-      c.moveTo(-u * 0.6, u * 0.35); c.lineTo(-u * 0.7, -u * 0.35); c.lineTo(-u * 0.3, -u * 0.05);
-      c.lineTo(0, -u * 0.5); c.lineTo(u * 0.3, -u * 0.05); c.lineTo(u * 0.7, -u * 0.35); c.lineTo(u * 0.6, u * 0.35);
-      c.closePath(); c.fill();
-    } },
-    cartola: { n: 'Cartola', f(c, u) {
-      c.beginPath(); c.rect(-u * 0.4, -u * 0.7, u * 0.8, u * 0.9); c.fill();
-      c.beginPath(); c.ellipse(0, u * 0.2, u * 0.75, u * 0.16, 0, 0, 7); c.fill();
-    } },
-    laco: { n: 'Gravata borboleta', f(c, u) {
-      c.beginPath(); c.moveTo(0, 0); c.lineTo(-u * 0.7, -u * 0.38); c.lineTo(-u * 0.7, u * 0.38); c.closePath(); c.fill();
-      c.beginPath(); c.moveTo(0, 0); c.lineTo(u * 0.7, -u * 0.38); c.lineTo(u * 0.7, u * 0.38); c.closePath(); c.fill();
-      c.beginPath(); c.arc(0, 0, u * 0.14, 0, 7); c.fill();
-    } },
-    coracao: { n: 'Coração', f(c, u) {
-      c.beginPath();
-      c.moveTo(0, u * 0.55);
-      c.bezierCurveTo(-u * 1.0, -u * 0.05, -u * 0.5, -u * 0.8, 0, -u * 0.3);
-      c.bezierCurveTo(u * 0.5, -u * 0.8, u * 1.0, -u * 0.05, 0, u * 0.55);
-      c.fill();
-    } },
-    estrela: { n: 'Estrela', f(c, u) {
-      c.beginPath();
-      for (let i = 0; i < 10; i++) {
-        const r = i % 2 ? u * 0.28 : u * 0.7, a = -Math.PI / 2 + i * Math.PI / 5;
-        c[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r);
-      }
-      c.closePath(); c.fill();
-    } },
-    lagrima: { n: 'Lágrima', f(c, u) {
-      c.beginPath();
-      c.moveTo(0, -u * 0.5);
-      c.bezierCurveTo(u * 0.5, u * 0.05, u * 0.4, u * 0.5, 0, u * 0.5);
-      c.bezierCurveTo(-u * 0.4, u * 0.5, -u * 0.5, u * 0.05, 0, -u * 0.5);
-      c.fill();
-    } }
-  };
-
-  function drawStamp(name, x, y, u, color) {
-    const st = STAMPS[name];
-    if (!st) return;
-    ctx.save();
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.translate(x, y);
-    ctx.fillStyle = color; ctx.strokeStyle = color;
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    st.f(ctx, u / 2);
-    ctx.restore();
-  }
-
-  function clearStampActive() {
-    stampGrid.querySelectorAll('.stamp-btn').forEach(b => b.classList.remove('active'));
-  }
-  Object.keys(STAMPS).forEach(key => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'tool-btn stamp-btn';
-    b.dataset.stamp = key;
-    b.textContent = STAMPS[key].n;
-    b.addEventListener('click', () => {
-      currentTool = 'stamp';
-      currentStamp = key;
-      clearStampActive();
-      b.classList.add('active');
-      btnPen.classList.remove('active');
-      btnEraser.classList.remove('active');
-    });
-    stampGrid.appendChild(b);
-  });
-
 
   function pushUndoState() {
     undoStack.push(canvas.toDataURL());
@@ -444,12 +325,6 @@ function getSavedCharacter() {
 
   function startDraw(e) {
     e.preventDefault();
-    if (currentTool === 'stamp') {            // carimbo: coloca o item e pronto
-      pushUndoState();
-      const sp = pointerPos(e);
-      drawStamp(currentStamp, sp.x, sp.y, Number(stampSize.value), currentColor);
-      return;
-    }
     drawing = true;
     pushUndoState();
     const p = pointerPos(e);
@@ -490,19 +365,13 @@ function getSavedCharacter() {
   canvas.addEventListener('touchmove', moveDraw, { passive: false });
   canvas.addEventListener('touchend', endDraw);
 
-  // Extras: copia as bolinhas de cor pra aba "Extras" (todas ficam sincronizadas)
-  const extrasSw = document.getElementById('extras-swatches');
-  if (extrasSw) {
-    document.querySelectorAll('.color-swatches .color-swatch').forEach(b0 => extrasSw.appendChild(b0.cloneNode(false)));
-  }
-
   function setColor(c) {
     currentColor = c;
     colorPicker.value = c;
     document.querySelectorAll('.color-swatch').forEach(b => {
       b.classList.toggle('active', (b.dataset.color || '').toLowerCase() === String(c).toLowerCase());
     });
-    if (currentTool === 'eraser') {            // escolher cor volta pra caneta (carimbo continua carimbo)
+    if (currentTool === 'eraser') {            // escolher cor volta pra caneta
       currentTool = 'pen';
       btnPen.classList.add('active');
       btnEraser.classList.remove('active');
@@ -515,14 +384,12 @@ function getSavedCharacter() {
   colorPicker.addEventListener('input', () => setColor(colorPicker.value));
 
   btnPen.addEventListener('click', () => {
-    clearStampActive();
     currentTool = 'pen';
     btnPen.classList.add('active');
     btnEraser.classList.remove('active');
   });
 
   btnEraser.addEventListener('click', () => {
-    clearStampActive();
     currentTool = 'eraser';
     btnEraser.classList.add('active');
     btnPen.classList.remove('active');

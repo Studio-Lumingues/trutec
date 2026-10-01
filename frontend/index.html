@@ -8,7 +8,7 @@
 <!-- ícone estático (reserva); o favicon.js troca por quadros animados -->
 <link rel="icon" type="image/png" href="assets/personagem.png" />
 <link rel="apple-touch-icon" href="assets/personagem.png" />
-<link rel="stylesheet" href="style.css?v=2" />
+<link rel="stylesheet" href="style.css?v=3" />
 <script>
 try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentElement.classList.add('colorblind'); } catch (e) {}
 try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documentElement.classList.add('leaving-intro'); } catch (e) {}
@@ -391,7 +391,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
           <div class="editor-tabs">
             <button type="button" class="editor-tab-btn active" data-tab="desenho"><svg class="ic" aria-hidden="true"><use href="#i-brush"/></svg> Desenho</button>
             <button type="button" class="editor-tab-btn" data-tab="pele"><svg class="ic" aria-hidden="true"><use href="#i-droplet"/></svg> Pele</button>
-            <button type="button" class="editor-tab-btn" data-tab="extras"><svg class="ic" aria-hidden="true"><use href="#i-crown"/></svg> Extras</button>
           </div>
 
           <div class="editor-tab-panel active" data-tab-panel="desenho">
@@ -425,22 +424,9 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
           </div>
 
           <div class="editor-tab-panel" data-tab-panel="pele">
-            <p class="character-hint skin-hint">Tons de pele</p>
+            <p class="character-hint skin-hint">Escolha a cor do boneco.</p>
             <div class="skin-presets" id="skin-presets"></div>
-            <p class="character-hint skin-hint">Cores divertidas</p>
-            <div class="skin-presets" id="skin-presets-fun"></div>
-            <p class="character-hint skin-hint">Ajuste fino da cor</p>
             <input type="range" id="character-skin-hue" class="skin-hue-slider" min="0" max="360" value="0" />
-          </div>
-
-          <div class="editor-tab-panel" data-tab-panel="extras">
-            <p class="character-hint skin-hint">Escolha um item e clique no boneco pra colocar. Usa a cor selecionada.</p>
-            <div class="color-swatches" id="extras-swatches"></div>
-            <div class="brush-row">
-              <label for="character-stamp-size">Tamanho</label>
-              <input type="range" id="character-stamp-size" min="30" max="220" value="90" />
-            </div>
-            <div class="stamp-grid" id="stamp-grid"></div>
           </div>
 
           <button type="button" id="btn-character-save" class="btn btn-primary character-save-btn"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> Salvar personagem</button>
@@ -689,6 +675,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="favicon.js"></script>
   <script src="tutorial.js"></script>
   <script src="terminal.js?v=3"></script>
-  <script src="client.js?v=7"></script>
+  <script src="client.js?v=8"></script>
 </body>
 </html>
