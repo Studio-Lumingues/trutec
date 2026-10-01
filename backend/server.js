@@ -333,32 +333,41 @@ class Room {
 
     const n = this.players.length;
     for (const p of this.players) p.hand = [];
-    for (let i = 0; i < 3; i++) {
-      for (const p of this.players) {
-        p.hand.push(this.deck.pop());
-      }
-    }
-    this.vira = this.deck.pop();
-    this.manilhaRank = manilhaRankFromVira(this.vira.rank);
+    this.vira = null;
+    this.manilhaRank = null;
 
     this.leaderSeat = (this.dealerSeat + 1) % n;
     this.turnSeat = this.leaderSeat;
 
     // Mão de 11 (só 2v2):
     // - SÓ UMA dupla com 11: ela tem PEEK_MS pra ver as cartas uma da outra.
-    // - AS DUAS com 11 (mão de ferro): votação pra TODOS — "às cegas" (ninguém
-    //   vê as próprias cartas) ou "normal" (cada um vê as suas, sem peek).
+    // - AS DUAS com 11 (mão de ferro): votação pra TODOS ANTES de sortear as
+    //   cartas ("às cegas" ou "normal"). Maioria decide; empate = normal.
+    //   As cartas só são sorteadas/distribuídas quando a votação termina.
     this.clearPeek();
     if (this.mode === '2v2' && n === 4) {
       const t11 = [0, 1].filter(t => this.score[t] === 11);
+      if (t11.length === 2 && this.startVote()) return; // cartas vêm depois do voto
+      this.dealCards();
       if (t11.length === 1) this.startPeek(t11[0]);
-      else if (t11.length === 2) this.startVote();
+      return;
     }
+    this.dealCards();
+  }
+
+  // Embaralha e distribui 3 cartas pra cada um + a vira.
+  dealCards() {
+    this.deck = shuffle(buildDeck());
+    for (let i = 0; i < 3; i++) {
+      for (const p of this.players) p.hand.push(this.deck.pop());
+    }
+    this.vira = this.deck.pop();
+    this.manilhaRank = manilhaRankFromVira(this.vira.rank);
   }
 
   startVote() {
     const humans = this.players.filter(p => !p.isBot && p.connected);
-    if (!humans.length) return; // ninguém pra votar: segue o normal
+    if (!humans.length) return false; // ninguém pra votar: segue o normal
     this.voteOn = true;
     this.voteUntil = Date.now() + VOTE_MS;
     this._votes = {};
@@ -369,20 +378,33 @@ class Room {
       if (rooms.get(code) !== this) return;
       this.resolveVote(true);
     }, VOTE_MS);
+    return true;
   }
 
-  // Às cegas só vale se TODOS os humanos votaram "cegas" (bots não votam).
-  // Um "normal", voto faltando ou tempo esgotado = normal.
+  // Quem votou em quê (público: todo mundo vê durante a votação).
+  voteTally() {
+    return this.players.filter(p => !p.isBot).map(p => ({
+      seat: p.seat, name: p.name, team: p.team,
+      choice: this._votes[p.seat] || null
+    }));
+  }
+
+  // Maioria dos votos decide (bots não votam; quem não votou não conta).
+  // Empate (ou ninguém votou) = normal. Só DEPOIS do resultado as cartas são
+  // sorteadas — por isso ninguém vê nada antes de votar.
   resolveVote(doBroadcast) {
     if (!this.voteOn) return;
     if (this._voteTimer) { clearTimeout(this._voteTimer); this._voteTimer = null; }
-    const humans = this.players.filter(p => !p.isBot && p.connected);
-    const blind = humans.length > 0 && humans.every(p => this._votes[p.seat] === 'cegas');
+    const tally = this.voteTally();
+    const cegas = tally.filter(v => v.choice === 'cegas').length;
+    const normal = tally.filter(v => v.choice === 'normal').length;
+    const blind = cegas > normal;
     this.voteOn = false; this.voteUntil = 0; this._votes = {};
     this.blind = blind;
+    this.dealCards();
     this.nextPlayAt = 0;
     if (doBroadcast) {
-      io.to(this.code).emit('mao11_result', { blind });
+      io.to(this.code).emit('mao11_result', { blind, cegas, normal, votes: tally });
       this.broadcastState(io);
     }
   }
@@ -617,10 +639,11 @@ class Room {
     return {
       // todo mundo sabe que a janela está aberta (pra travar a jogada), mas só a dupla vê as cartas
       peek: peeking ? { msLeft: Math.max(0, this.peekUntil - Date.now()), team: this.peekTeam } : undefined,
-      // votação da mão de 11: todos veem que existe; só a dupla vota (myVote = meu voto)
+      // votação da mão de ferro: todos veem quem votou em quê (votes) e o meu voto (myVote)
       vote: this.voteOn ? {
         msLeft: Math.max(0, this.voteUntil - Date.now()),
-        myVote: this._votes[viewerSeat] || null
+        myVote: this._votes[viewerSeat] || null,
+        votes: this.voteTally()
       } : undefined,
       blind: this.blind,
       code: this.code,
@@ -1330,8 +1353,8 @@ io.on('connection', (socket) => {
     reply({ ok: true, score: next.slice() });
   });
 
-  // Mão de ferro (11 x 11): voto de TODOS ("cegas" ou "normal"). Quem escolhe
-  // "normal" decide na hora (já não há unanimidade); "cegas" espera os outros.
+  // Mão de ferro (11 x 11): voto de TODOS ("cegas" ou "normal"). Maioria decide;
+  // resolve quando todos os humanos votaram ou quando o tempo acaba.
   socket.on('mao11_vote', ({ choice } = {}) => {
     const r = room();
     if (!r || !r.started || r.gameOver || !r.voteOn) return;
@@ -1340,8 +1363,8 @@ io.on('connection', (socket) => {
     if (choice !== 'cegas' && choice !== 'normal') return;
     r._votes[me.seat] = choice;
     const humans = r.players.filter(p => !p.isBot && p.connected);
-    if (choice === 'normal' || humans.every(p => r._votes[p.seat])) r.resolveVote(true);
-    else r.broadcastState(io); // mostra o meu voto pra mim; os outros continuam votando
+    if (humans.every(p => r._votes[p.seat])) r.resolveVote(true);
+    else r.broadcastState(io); // todos veem quem votou em quê; a votação continua
   });
 
   // Sinal pro parceiro enquanto há um truco pendente contra a dupla.

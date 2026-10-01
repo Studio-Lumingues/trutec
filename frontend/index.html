@@ -517,7 +517,12 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
             <button class="btn btn-secondary vote-btn" data-choice="cegas">Às cegas</button>
             <button class="btn btn-primary vote-btn" data-choice="normal">Normal</button>
           </div>
-          <p class="vote-hint">Às cegas: ninguém vê as próprias cartas (todos precisam votar assim). Normal: cada um vê as suas.</p>
+          <div class="vote-tally">
+            <div class="vote-row"><span>Às cegas:</span> <b id="vote-list-cegas">—</b></div>
+            <div class="vote-row"><span>Normal:</span> <b id="vote-list-normal">—</b></div>
+            <div class="vote-row"><span>Aguardando:</span> <b id="vote-list-wait">—</b></div>
+          </div>
+          <p class="vote-hint">Vence o modo com mais votos (empate = normal). Às cegas: as cartas são sorteadas viradas e cada um escolhe na sorte. Normal: cada um vê as suas.</p>
           <p id="vote-status" class="vote-status"></p>
         </div>
       </div>

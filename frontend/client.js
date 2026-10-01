@@ -1391,9 +1391,19 @@ function updateVoteUI(state) {
   paint();
   if (!voteInterval) voteInterval = setInterval(paint, 250);
   box.querySelectorAll('.vote-btn').forEach(b => b.classList.toggle('sent', b.dataset.choice === v.myVote));
-  document.getElementById('vote-status').textContent = v.myVote === 'cegas'
-    ? 'Você votou ÀS CEGAS. Esperando os outros jogadores…'
-    : '';
+  // quem votou em quê (público) — nomes escapados via textContent
+  const fill = (id, list, empty) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = list.length ? list.map(x => x.seat === mySeat ? x.name + ' (você)' : x.name).join(', ') : empty;
+  };
+  const votes = Array.isArray(v.votes) ? v.votes : [];
+  fill('vote-list-cegas', votes.filter(x => x.choice === 'cegas'), '—');
+  fill('vote-list-normal', votes.filter(x => x.choice === 'normal'), '—');
+  fill('vote-list-wait', votes.filter(x => !x.choice), '—');
+  document.getElementById('vote-status').textContent = v.myVote
+    ? 'Seu voto: ' + (v.myVote === 'cegas' ? 'ÀS CEGAS' : 'NORMAL') + '. Você pode mudar até o tempo acabar.'
+    : 'Vote! As cartas só serão sorteadas depois da votação.';
   box.classList.remove('hidden');
 }
 document.querySelectorAll('#vote-overlay .vote-btn').forEach(btn => {
@@ -1402,8 +1412,11 @@ document.querySelectorAll('#vote-overlay .vote-btn').forEach(btn => {
 socket.on('score_changed', ({ score }) => {
   setBanner('Placar alterado pelo administrador: ' + score[0] + ' x ' + score[1], 2600);
 });
-socket.on('mao11_result', ({ blind }) => {
-  setBanner(blind ? 'Mão de ferro: todo mundo joga ÀS CEGAS!' : 'Mão de ferro: jogo normal.', 2800);
+socket.on('mao11_result', ({ blind, cegas, normal }) => {
+  const placar = (cegas !== undefined) ? ' (' + cegas + ' às cegas x ' + normal + ' normal)' : '';
+  setBanner((blind ? 'Mão de ferro: todo mundo joga ÀS CEGAS!' : 'Mão de ferro: jogo normal.') + placar, 3200);
+  // as cartas acabaram de ser sorteadas: anima a distribuição
+  startDealAnimation(3, 250);
 });
 
 // ------------------------------------------------------------------
