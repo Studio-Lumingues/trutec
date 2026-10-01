@@ -2831,3 +2831,7 @@ html[data-theme="casa"] .table-disc::before {
   #slot-modal .slot-label { font-size: 0.95rem; }
   #slot-modal .slot-thumb { font-size: 2.6rem; }
 }
+
+/* Avatares dos espaços: "hand drawn" animado (mesmo tremido do resto do site, via boil.js) */
+.avatar-slot img,
+.slot-thumb img { filter: url(#boil-sm); }
