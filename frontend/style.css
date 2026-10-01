@@ -2516,3 +2516,59 @@ html[data-theme="carro"] .table-disc::before {
 @media (prefers-reduced-motion: reduce) {
   .nfx { animation: none !important; }
 }
+
+/* ==================================================================== */
+/* AJUDA: guia "Como jogar Truco" (botão Ajuda na tela inicial)           */
+/* ==================================================================== */
+.help-card {
+  width: min(36rem, 100%);
+  max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem);
+  display: flex; flex-direction: column;
+}
+.help-card h2 { flex: none; }
+.help-body {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  margin: 0 -0.5rem 1rem; padding: 0 0.5rem;
+  display: flex; flex-direction: column; gap: 0.5rem;
+  overscroll-behavior: contain;
+}
+.help-card .settings-close-btn { flex: none; }
+.help-sec {
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 0.75rem;
+  background: rgba(0,0,0,0.22);
+}
+.help-sec summary {
+  cursor: pointer; list-style: none;
+  padding: 0.7rem 2.4rem 0.7rem 0.9rem; position: relative;
+  font-weight: 700; font-size: 1.05rem;
+}
+.help-sec summary::-webkit-details-marker { display: none; }
+.help-sec summary::after {
+  content: '+'; position: absolute; right: 0.9rem; top: 50%; transform: translateY(-50%);
+  font-size: 1.3rem; line-height: 1; color: var(--gold-bright);
+}
+.help-sec[open] summary::after { content: '\2212'; }
+.help-sec[open] summary { color: var(--gold-bright); }
+.help-sec > :not(summary) { margin: 0 0.9rem 0.7rem; font-size: 0.98rem; line-height: 1.45; }
+.help-sec p { margin-top: 0; }
+.help-sec ul { padding-left: 1.2rem; }
+.help-sec li { margin-bottom: 0.35rem; }
+.help-order { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.help-order span {
+  padding: 0.2rem 0.55rem; border-radius: 0.5rem;
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.16);
+  font-weight: 700; white-space: nowrap;
+}
+.help-suits span { font-weight: 600; }
+/* símbolos dos naipes no guia: "fichinha" clara (o preto some no fundo escuro) */
+.help-suits b {
+  display: inline-block; min-width: 1.5rem; text-align: center; margin-right: 0.3rem;
+  padding: 0 0.25rem; border-radius: 0.35rem; background: #fff8f0; line-height: 1.5;
+}
+.help-suits .suit-ouros, .help-suits .suit-copas { color: var(--red); }
+.help-suits .suit-espadas, .help-suits .suit-paus { color: var(--ink); }
+.colorblind .help-suits .suit-ouros  { color: #0072B2; }
+.colorblind .help-suits .suit-copas  { color: #D55E00; }
+.colorblind .help-suits .suit-espadas{ color: #0a0a0a; }
+.colorblind .help-suits .suit-paus   { color: #007a5a; }

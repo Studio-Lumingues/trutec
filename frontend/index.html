@@ -172,6 +172,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       <div class="lobby-actions">
         <button id="btn-play" type="button" class="btn btn-primary">Jogar</button>
         <button id="btn-create" type="button" class="btn btn-secondary">Criar sala</button>
+        <button id="btn-help" type="button" class="btn btn-secondary">Ajuda</button>
         <button id="btn-settings" type="button" class="btn btn-secondary btn-icon-only" aria-label="Configurações" title="Configurações"><svg class="ic ic-only" aria-hidden="true"><use href="#i-gear"/></svg></button>
       </div>
 
@@ -207,6 +208,109 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       </div>
       <p id="create-error" class="error-text"></p>
       <button id="create-cancel" type="button" class="btn btn-secondary settings-close-btn">Voltar</button>
+    </div>
+  </div>
+
+
+  <!-- ===================== AJUDA: guia de como jogar truco ===================== -->
+  <div id="help-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="settings-card help-card">
+      <h2 id="help-title">Como jogar Truco</h2>
+      <div class="help-body">
+
+        <details class="help-sec" open>
+          <summary>O objetivo</summary>
+          <p>Ganhe <b>12 pontos</b> antes do adversário. Cada <b>mão</b> (rodada) vale <b>1 ponto</b>, mas pode valer mais se alguém pedir <b>truco</b>. Dá pra jogar <b>1 vs 1</b> ou <b>2 vs 2</b> (em duplas, você senta de frente pro parceiro).</p>
+        </details>
+
+        <details class="help-sec">
+          <summary>Como entrar numa partida</summary>
+          <ul>
+            <li><b>Criar sala:</b> escolha 1 vs 1 ou 2 vs 2 e mande o <b>código</b> de 5 letras pros amigos.</li>
+            <li><b>Jogar:</b> digite o código da sala que um amigo te passou.</li>
+            <li>Antes da partida você <b>desenha seu personagem</b> (o tempo é curto, então salve a tempo!).</li>
+          </ul>
+        </details>
+
+        <details class="help-sec">
+          <summary>As cartas e a força de cada uma</summary>
+          <p>O baralho tem 40 cartas (sem 8, 9, 10 e coringas). Da <b>mais fraca</b> pra <b>mais forte</b>:</p>
+          <p class="help-order"><span>4</span><span>5</span><span>6</span><span>7</span><span>Q</span><span>J</span><span>K</span><span>A</span><span>2</span><span>3</span></p>
+          <p>O naipe não importa… <b>exceto nas manilhas</b>.</p>
+        </details>
+
+        <details class="help-sec">
+          <summary>A vira e as manilhas</summary>
+          <p>Em toda mão, uma carta é virada na mesa: a <b>vira</b>. A <b>manilha</b> é a carta <b>seguinte</b> a ela na ordem acima. Exemplo: vira <b>7</b> → manilhas são as <b>Q</b>. Vira <b>K</b> → manilhas são os <b>A</b>.</p>
+          <p><i>Regra da casa:</i> se a vira for <b>2</b> ou <b>3</b>, a manilha é o <b>4</b>.</p>
+          <p>As manilhas ganham de todas as outras cartas e se desempatam pelo naipe:</p>
+          <p class="help-order help-suits"><span><b class="suit-ouros">♦</b> Ouros</span><span><b class="suit-espadas">♠</b> Espadas</span><span><b class="suit-copas">♥</b> Copas</span><span><b class="suit-paus">♣</b> Paus (a mais forte)</span></p>
+        </details>
+
+        <details class="help-sec">
+          <summary>Como a mão funciona</summary>
+          <ul>
+            <li>Cada jogador recebe <b>3 cartas</b>.</li>
+            <li>A mão é decidida em até <b>3 vazas</b> (cada vaza = todo mundo joga 1 carta).</li>
+            <li>A <b>carta mais forte</b> ganha a vaza, e quem ganhou <b>começa a próxima</b>.</li>
+            <li>Quem ganhar <b>2 vazas</b> leva a mão e os pontos dela.</li>
+          </ul>
+        </details>
+
+        <details class="help-sec">
+          <summary>Empate ("melou")</summary>
+          <p>Quando as cartas mais fortes empatam entre <b>times diferentes</b>, a vaza "melou". (Parceiros com cartas iguais não empatam.)</p>
+          <ul>
+            <li>Se a <b>1ª vaza</b> melou: cada jogador mostra a <b>maior carta que ainda tem</b>, e quem tiver a maior leva a mão.</li>
+            <li>Se alguém já ganhou a 1ª vaza e a 2ª melou: <b>quem ganhou a 1ª leva a mão</b>.</li>
+            <li>Se a 1ª melou e alguém ganha a 2ª: <b>esse leva a mão</b>.</li>
+          </ul>
+        </details>
+
+        <details class="help-sec">
+          <summary>Esconder a carta</summary>
+          <p>A partir da <b>2ª vaza</b> você pode jogar a carta <b>escondida</b>: os adversários só veem qual era quando a vaza termina. Ela continua valendo normalmente. Na 1ª vaza não dá pra esconder.</p>
+        </details>
+
+        <details class="help-sec">
+          <summary>Truco, seis, nove e doze</summary>
+          <p>Achou que sua mão é boa (ou quer blefar)? Peça <b>TRUCO</b> e a mão passa a valer mais pontos:</p>
+          <p class="help-order"><span>1</span><span>TRUCO&nbsp;3</span><span>SEIS&nbsp;6</span><span>NOVE&nbsp;9</span><span>DOZE&nbsp;12</span></p>
+          <p>Quem recebeu o pedido escolhe:</p>
+          <ul>
+            <li><b>Aceitar:</b> a mão continua valendo o novo valor.</li>
+            <li><b>Aumentar:</b> responde pedindo o próximo valor (truco → seis → nove → doze).</li>
+            <li><b>Fugir:</b> desiste da mão, e quem pediu leva o valor <b>de antes</b> do pedido.</li>
+          </ul>
+          <p>Seu time não pode aumentar duas vezes seguidas: depois do seu pedido, espere o adversário aceitar ou aumentar.</p>
+          <p>No 2 vs 2, quem responde é <b>o adversário à direita</b> de quem pediu.</p>
+        </details>
+
+        <details class="help-sec">
+          <summary>Sinais pro parceiro (2 vs 2)</summary>
+          <p>Em dupla você não pode falar as cartas, mas pode mandar um sinal rápido pro parceiro: <b>"Vamos!"</b>, <b>"Não vamos…"</b>, <b>"Tenho alguma coisa"</b> ou <b>"Não tenho nada"</b>. Use quando o adversário pedir truco pro seu parceiro.</p>
+        </details>
+
+        <details class="help-sec">
+          <summary>Mão de 11 e mão de ferro (2 vs 2)</summary>
+          <ul>
+            <li><b>Mão de 11:</b> quando só uma dupla chega a 11 pontos, ela pode <b>ver as cartas uma da outra</b> por 10 segundos antes de jogar.</li>
+            <li><b>Mão de ferro (11 x 11):</b> as duas duplas votam: jogar <b>normal</b> ou <b>às cegas</b> (ninguém vê as próprias cartas). A maioria decide; se empatar, é normal.</li>
+          </ul>
+        </details>
+
+        <details class="help-sec">
+          <summary>Dicas rápidas</summary>
+          <ul>
+            <li>Guarde uma <b>carta forte</b> pra 2ª ou 3ª vaza: quem ganha a 1ª só precisa de mais uma.</li>
+            <li>Ganhou a 1ª vaza? Jogue <b>forte na 2ª</b> pra fechar a mão.</li>
+            <li>Truco também é <b>blefe</b>: às vezes o adversário foge!</li>
+            <li>Quem está atrás no placar costuma arriscar mais.</li>
+          </ul>
+        </details>
+
+      </div>
+      <button id="help-close" type="button" class="btn btn-primary settings-close-btn">Fechar</button>
     </div>
   </div>
 

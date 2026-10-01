@@ -414,6 +414,7 @@ function lobbyError(msg) {
 const joinModal = document.getElementById('join-modal');
 const createModal = document.getElementById('create-modal');
 const codeInput = document.getElementById('input-code');
+const helpModal = document.getElementById('help-modal');
 
 function openModal(m) { lobbyError(''); m.classList.remove('hidden'); }
 function closeModal(m) { m.classList.add('hidden'); lobbyError(''); }
@@ -425,11 +426,17 @@ document.getElementById('btn-play').addEventListener('click', () => {
 document.getElementById('btn-create').addEventListener('click', () => openModal(createModal));
 document.getElementById('join-cancel').addEventListener('click', () => closeModal(joinModal));
 document.getElementById('create-cancel').addEventListener('click', () => closeModal(createModal));
-[joinModal, createModal].forEach((m) => {
+document.getElementById('btn-help').addEventListener('click', () => {
+  openModal(helpModal);
+  const body = helpModal.querySelector('.help-body');
+  if (body) body.scrollTop = 0;
+});
+document.getElementById('help-close').addEventListener('click', () => closeModal(helpModal));
+[joinModal, createModal, helpModal].forEach((m) => {
   m.addEventListener('click', (e) => { if (e.target === m) closeModal(m); });
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { closeModal(joinModal); closeModal(createModal); }
+  if (e.key === 'Escape') { closeModal(joinModal); closeModal(createModal); closeModal(helpModal); }
 });
 
 function enterRoom(res) {
