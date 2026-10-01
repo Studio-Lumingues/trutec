@@ -139,9 +139,11 @@
         '--ui-dark': '16,12,8', '--ui-chat': '24,19,13', '--ui-felt-dark': '28,23,18'
       },
       // fundo = papel de parede damasco (assets/damasco/tile.jpg) rolando PRA BAIXO sem parar (dir:'down').
-      // O tile é a imagem + ela espelhada de cima pra baixo (640x1439 px), pra emendar perfeito no loop.
-      // slideSec = segundos pra rolar um tile inteiro (maior = mais devagar). Um quadro só: não tem tremido.
-      bg: { kind: 'tiles', dir: 'down', slideSec: 14, frames: ['assets/damasco/tile.jpg'], base: '#e6d9bf', tileW: 20, tileH: 44.97 },
+      // O tile (1280x2878 px) é a imagem original espelhada nos dois sentidos (lados e cima/baixo), então
+      // as bordas sempre se encontram: não aparece corte nem na vertical nem na horizontal.
+      // tileW/tileH = tamanho do tile em rem (px / 32). slideSec = segundos pra rolar UM tile inteiro
+      // (maior = mais devagar). Um quadro só: não tem tremido.
+      bg: { kind: 'tiles', dir: 'down', slideSec: 80, frames: ['assets/damasco/tile.jpg'], base: '#e6d9bf', tileW: 40, tileH: 89.9375 },
       preview: { bga: '#e6d9bf', bgb: '#e6d9bf', accent: '#d9c9a8', cream: '#fff8f0' },
       palette: [
         ['Papel', '#e6d9bf'], ['Estampa', '#2f2a22'], ['Mancha', '#a89878'],
