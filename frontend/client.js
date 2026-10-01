@@ -518,7 +518,10 @@ function getSavedCharacter() {
     undoStack.length = 0;
     editingSlot = i;
     const it = slots[i];
-    if (it) {
+    if (it && !it.draw) {          // importado/antigo: não dá pra reabrir o desenho, só usar
+      setActive(i);
+      applyActive(it.img, `Avatar ${i + 1} em uso! (esse não dá pra editar; comece um novo se quiser mudar)`);
+    } else if (it) {
       setSkin(it.skin || DEFAULT_SKIN);
       loadDrawing(it.draw);
       setActive(i);
@@ -570,26 +573,124 @@ function getSavedCharacter() {
     slotModal.classList.add('hidden'); pendingSave = null;
     editingSlot = i;
     setActive(i);
-    try { localStorage.setItem('trutec_personagem_skin', JSON.stringify(it.skin)); } catch (e) {}
+    if (!it.imported) { try { localStorage.setItem('trutec_personagem_skin', JSON.stringify(it.skin)); } catch (e) {} }
     renderSlots();
-    applyActive(it.img, `Avatar salvo no espaço ${i + 1}!`);
+    applyActive(it.img, it.imported ? `Avatar importado no espaço ${i + 1}!` : `Avatar salvo no espaço ${i + 1}!`);
   }
 
-  btnSave.addEventListener('click', () => {
-    // Junta o boneco base (com o tom escolhido na aba "Pele") + o desenho num único PNG.
+  // Junta o boneco base (com o tom da aba "Pele") + o desenho num único PNG transparente.
+  function buildMerged() {
     const merged = document.createElement('canvas');
     merged.width = canvas.width;
     merged.height = canvas.height;
     const mctx = merged.getContext('2d');
-    const baseImg = document.getElementById('character-base');
-    drawSkinned(mctx, baseImg, merged.width, merged.height);
+    drawSkinned(mctx, document.getElementById('character-base'), merged.width, merged.height);
     mctx.drawImage(canvas, 0, 0);
+    return merged;
+  }
+
+  btnSave.addEventListener('click', () => {
     pendingSave = {
-      img: merged.toDataURL('image/png'),
+      img: buildMerged().toDataURL('image/png'),
       draw: canvas.toDataURL('image/png'),
       skin: { h: skin.h, s: skin.s, b: skin.b }
     };
     openSlotModal();
+  });
+
+  // ------------------------------------------------------------------
+  // COMPARTILHAR / IMPORTAR
+  // Compartilhar: gera a imagem do avatar que está no editor (não precisa
+  // ter salvado) e deixa enviar (menu de compartilhar do celular), baixar ou
+  // copiar. Importar: a outra pessoa escolhe essa imagem e ela vira um avatar
+  // novo na coleção dela (escolhendo o espaço, igual ao salvar).
+  // ------------------------------------------------------------------
+  const shareModal = document.getElementById('share-modal');
+  const shareImg = document.getElementById('share-img');
+  const shareMsg = document.getElementById('share-msg');
+  const shareSend = document.getElementById('share-send');
+  const shareDownload = document.getElementById('share-download');
+  const shareCopy = document.getElementById('share-copy');
+  const importInput = document.getElementById('avatar-import-input');
+  let shareBlob = null;
+
+  function shareNote(t) { shareMsg.textContent = t || ''; }
+
+  function openShare() {
+    shareNote('');
+    shareBlob = null;
+    const merged = buildMerged();
+    shareImg.src = merged.toDataURL('image/png');
+    shareSend.hidden = true; shareCopy.hidden = !(navigator.clipboard && window.ClipboardItem);
+    shareModal.classList.remove('hidden');
+    shareDownload.focus();
+    merged.toBlob((blob) => {
+      shareBlob = blob;
+      if (!blob) return;
+      const file = new File([blob], 'avatar-trutec.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) shareSend.hidden = false;
+    }, 'image/png');
+  }
+  function closeShare() { shareModal.classList.add('hidden'); document.getElementById('btn-avatar-share').focus(); }
+
+  document.getElementById('btn-avatar-share').addEventListener('click', openShare);
+  document.getElementById('share-close').addEventListener('click', closeShare);
+  shareModal.addEventListener('click', (e) => { if (e.target === shareModal) closeShare(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !shareModal.classList.contains('hidden')) closeShare();
+  });
+
+  shareSend.addEventListener('click', async () => {
+    if (!shareBlob) return;
+    const file = new File([shareBlob], 'avatar-trutec.png', { type: 'image/png' });
+    try {
+      await navigator.share({ files: [file], title: 'Meu avatar do Trutec' });
+    } catch (e) {
+      if (e && e.name !== 'AbortError') shareNote('Não deu pra abrir o compartilhar. Use "Baixar imagem".');
+    }
+  });
+  shareDownload.addEventListener('click', () => {
+    if (!shareBlob) return shareNote('Gerando a imagem… tente de novo.');
+    const url = URL.createObjectURL(shareBlob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'avatar-trutec.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    shareNote('Imagem baixada! Agora é só mandar pro seu amigo.');
+  });
+  shareCopy.addEventListener('click', async () => {
+    if (!shareBlob) return shareNote('Gerando a imagem… tente de novo.');
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': shareBlob })]);
+      shareNote('Imagem copiada! Cole na conversa.');
+    } catch (e) { shareNote('Não deu pra copiar. Use "Baixar imagem".'); }
+  });
+
+  // ---- importar ----
+  document.getElementById('btn-avatar-import').addEventListener('click', () => importInput.click());
+  importInput.addEventListener('change', () => {
+    const file = importInput.files && importInput.files[0];
+    importInput.value = '';
+    if (!file) return;
+    if (!/^image\//.test(file.type)) return flash('Escolha uma imagem (PNG).', 4500);
+    if (file.size > 8 * 1024 * 1024) return flash('Essa imagem é grande demais.', 4500);
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        // normaliza pra 500x500 PNG (centraliza sem esticar)
+        const c = document.createElement('canvas');
+        c.width = canvas.width; c.height = canvas.height;
+        const k = Math.min(c.width / im.naturalWidth, c.height / im.naturalHeight);
+        const w = im.naturalWidth * k, h = im.naturalHeight * k;
+        c.getContext('2d').drawImage(im, (c.width - w) / 2, (c.height - h) / 2, w, h);
+        pendingSave = { img: c.toDataURL('image/png'), draw: null, skin: { h: 0, s: 1, b: 1 }, imported: true };
+        openSlotModal();
+      } catch (e) { flash('Não consegui abrir essa imagem.', 4500); }
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); flash('Não consegui abrir essa imagem.', 4500); };
+    im.src = url;
   });
 
   // ---- inicialização: carrega a coleção e o avatar em uso ----
@@ -599,8 +700,7 @@ function getSavedCharacter() {
   if (activeSlot >= 0) {
     editingSlot = activeSlot;
     const it = slots[activeSlot];
-    setSkin(it.skin || DEFAULT_SKIN);
-    loadDrawing(it.draw);
+    if (it.draw) { setSkin(it.skin || DEFAULT_SKIN); loadDrawing(it.draw); }
     saveMsg.textContent = 'Você já tem um avatar salvo.';
     const previewImg = document.getElementById('character-preview-img');
     if (previewImg) previewImg.src = it.img;

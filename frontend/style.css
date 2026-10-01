@@ -2835,3 +2835,25 @@ html[data-theme="casa"] .table-disc::before {
 /* Avatares dos espaços: "hand drawn" animado (mesmo tremido do resto do site, via boil.js) */
 .avatar-slot img,
 .slot-thumb img { filter: url(#boil-sm); }
+
+
+/* ==========================================================================
+   Compartilhar / importar avatar
+   ========================================================================== */
+.share-row { display: flex; gap: 0.5rem; }
+.share-row .tool-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.7rem 0.5rem; }
+#screen-character-editor .share-row .tool-btn { padding: 0.6rem 0.4rem; }
+
+.share-preview {
+  width: min(18rem, 60vw); aspect-ratio: 1 / 1;
+  margin: 0 auto 0.75rem;
+  border-radius: 1.125rem; overflow: hidden;
+  background: #fff8f0;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.share-preview img { display: block; width: 100%; height: 100%; object-fit: contain; filter: url(#boil-sm); }
+.share-msg { min-height: 1.3rem; margin: 0 0 0.6rem; text-align: center; font-size: 0.95rem; color: #7ee787; }
+.share-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.25rem; }
+.share-actions .btn[hidden] { display: none; }
+.share-actions .btn { width: 100%; font-size: 1.05rem; }
+#share-modal .settings-card { max-height: calc(100dvh - 1.5rem); overflow-y: auto; width: min(30rem, 100%); }

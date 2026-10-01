@@ -8,7 +8,7 @@
 <!-- ícone estático (reserva); o favicon.js troca por quadros animados -->
 <link rel="icon" type="image/png" href="assets/personagem.png" />
 <link rel="apple-touch-icon" href="assets/personagem.png" />
-<link rel="stylesheet" href="style.css?v=6" />
+<link rel="stylesheet" href="style.css?v=7" />
 <script>
 try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentElement.classList.add('colorblind'); } catch (e) {}
 try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documentElement.classList.add('leaving-intro'); } catch (e) {}
@@ -71,6 +71,8 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       <symbol id="i-eraser" viewBox="0 0 24 24"><path d="M13.6 4.3 L20 10.4 C20.6 11 20.5 11.8 20 12.3 L11.8 20.3 L6.4 20.4 L3.8 17.6 C3.3 17.1 3.4 16.4 3.9 15.9 L12 4.4 C12.4 4 13.1 3.9 13.6 4.3 Z M8.6 9 L15.6 15.8 M11.5 20.4 L20.6 20.5"/></symbol>
       <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9.2 4.6 L4.2 9.4 L9.4 14 M4.6 9.4 C10 8.8 18 8.4 19.6 14.2 C20.6 17.6 18.2 20 14.4 20.2"/></symbol>
       <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 6.6 C8 6.3 16 6.6 20 6.4 M9.2 6.4 L9.4 4.2 L14.6 4.1 L14.8 6.4 M6 6.7 L6.9 19.6 C7 20.4 7.6 20.8 8.4 20.8 L15.6 20.7 C16.4 20.7 17 20.3 17.1 19.5 L18 6.6 M10 10.4 L10.2 17 M14 10.3 L13.9 17"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15.2 L12.1 4.4 M7.9 8.2 L12 4.2 L16.2 8.2 M5.2 12.4 L5.3 19.2 C5.3 19.8 5.8 20.2 6.4 20.2 L17.7 20.1 C18.3 20.1 18.8 19.7 18.8 19 L18.7 12.4"/></symbol>
+      <symbol id="i-import" viewBox="0 0 24 24"><path d="M12 4.3 L12 15 M7.9 11.2 L12 15.3 L16.2 11.2 M5.2 14.6 L5.3 19.2 C5.3 19.8 5.8 20.2 6.4 20.2 L17.7 20.1 C18.3 20.1 18.8 19.7 18.8 19 L18.7 14.6"/></symbol>
       <symbol id="i-save" viewBox="0 0 24 24"><path d="M4.4 4.6 L16.6 4.3 L20 7.7 L19.7 19 C19.7 19.8 19.1 20.3 18.4 20.3 L5.4 20.5 C4.6 20.5 4.1 20 4.1 19.2 Z M7.6 4.5 L7.7 9.4 L14.4 9.3 L14.5 4.3 M7.4 20.4 L7.6 14 L16.4 14.1 L16.3 20.3"/></symbol>
       <symbol id="i-exit" viewBox="0 0 24 24"><path d="M9.4 4.4 L5.6 4.5 C4.8 4.5 4.3 5 4.3 5.8 L4.4 18.4 C4.4 19.2 4.9 19.7 5.7 19.7 L9.5 19.6 M14 8 L18.4 12 L14.1 16.2 M18.3 12.1 L8.8 11.9"/></symbol>
       <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M2.6 12.2 C5 7.8 8.4 5.8 12 5.8 C15.7 5.8 19 7.9 21.5 12 C19 16.3 15.7 18.4 12 18.3 C8.4 18.4 5 16.4 2.6 12.2 Z M12 9.5 C13.4 9.4 14.6 10.6 14.5 12 C14.6 13.4 13.3 14.6 12 14.5 C10.6 14.6 9.4 13.3 9.5 12 C9.4 10.7 10.6 9.5 12 9.5 Z M4.2 3.8 L19.9 20.4"/></symbol>
@@ -391,6 +393,24 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
     </div>
   </div>
 
+  <!-- ===================== COMPARTILHAR AVATAR ===================== -->
+  <div id="share-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="share-title">
+    <div class="settings-card">
+      <h2 id="share-title">Compartilhar avatar</h2>
+      <p class="modal-hint">Mande a imagem pra um amigo. Ele usa o botão <b>Importar</b> no editor pra colocar o avatar na coleção dele.</p>
+      <div class="share-preview"><img id="share-img" alt="Seu avatar" draggable="false" /></div>
+      <p id="share-msg" class="share-msg" aria-live="polite"></p>
+      <div class="share-actions">
+        <button id="share-send" type="button" class="btn btn-primary" hidden><svg class="ic" aria-hidden="true"><use href="#i-share"/></svg> Enviar</button>
+        <button id="share-download" type="button" class="btn btn-secondary"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> Baixar imagem</button>
+        <button id="share-copy" type="button" class="btn btn-secondary" hidden>Copiar imagem</button>
+      </div>
+      <div class="modal-actions">
+        <button id="share-close" type="button" class="btn btn-ghost">Fechar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== TELA: EDITAR AVATAR ===================== -->
   <div id="screen-character-editor" class="screen">
     <div class="character-panel character-panel-wide">
@@ -444,6 +464,11 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
           </div>
 
           <button type="button" id="btn-character-save" class="btn btn-primary character-save-btn"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> Salvar avatar</button>
+          <div class="share-row">
+            <button type="button" id="btn-avatar-share" class="tool-btn"><svg class="ic" aria-hidden="true"><use href="#i-share"/></svg> Compartilhar</button>
+            <button type="button" id="btn-avatar-import" class="tool-btn"><svg class="ic" aria-hidden="true"><use href="#i-import"/></svg> Importar</button>
+            <input type="file" id="avatar-import-input" accept="image/*" hidden />
+          </div>
           <p id="character-save-msg" class="character-save-msg"></p>
 
           <button type="button" id="btn-close-character-editor" class="btn btn-ghost character-back-btn btn-back-arrow" aria-label="Voltar" title="Voltar"><svg class="ic ic-only" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
@@ -689,6 +714,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="favicon.js"></script>
   <script src="tutorial.js"></script>
   <script src="terminal.js?v=3"></script>
-  <script src="client.js?v=9"></script>
+  <script src="client.js?v=10"></script>
 </body>
 </html>
