@@ -383,6 +383,17 @@
     return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
   }
 
+  // Tema 'frames' (quadros PNG grandes): em vez de trocar UMA imagem por vez (o navegador decodifica a
+  // nova na hora e o fundo some por um instante = pisca), o elemento recebe TODOS os quadros empilhados,
+  // com o quadro da vez por cima. Os outros ficam embaixo, já decodificados; se o de cima ainda não
+  // carregou, aparece o de baixo em vez de preto. Nos demais temas é só a imagem do quadro.
+  function bgLayers(t, frame) {
+    if (!(t.bg && t.bg.kind === 'frames')) return bgImage(t, frame);
+    var n = t.bg.frames.length, i0 = (frame || 0) % n, out = [];
+    for (var k = 0; k < n; k++) out.push('url("' + t.bg.frames[(i0 + k) % n] + '")');
+    return out.join(',');
+  }
+
   // "Hand drawn": troca a estampa entre alguns quadros (cada um com as manchas
   // levemente deslocadas), no mesmo ritmo do boil.js. As imagens são geradas e
   // pré-carregadas antes, então a troca não pisca.
@@ -396,11 +407,17 @@
   function startBoil(t) {
     stopBoil();
     if (!isBoiled(t)) return;
-    for (var i = 0; i < SEEDS.length; i++) { var im = new Image(); im.src = bgImage(t, i).slice(5, -2); }
+    // guarda as imagens em t._pre (se ninguém segurar a referência o navegador pode descartar a versão decodificada)
+    t._pre = [];
+    for (var i = 0; i < SEEDS.length; i++) {
+      var im = new Image(); im.src = bgImage(t, i).slice(5, -2);
+      if (im.decode) im.decode().catch(function () {});
+      t._pre.push(im);
+    }
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     boilTimer = setInterval(function () {
       if (document.hidden) return;
-      var url = bgImage(t, ++boilN);
+      var url = bgLayers(t, ++boilN);
       var g = document.querySelector('.game-bg');
       if (g) g.style.setProperty('--theme-bg-image', url);
       var sl = document.querySelectorAll('.tb-slide[data-boil]');
@@ -421,7 +438,7 @@
     Object.keys(t.vars || {}).forEach(function (k) { setVar(k, t.vars[k]); });
     if (t.bg) {
       // fundo próprio na partida (o .game-bg lê estas variáveis)
-      setVar('--theme-bg-image', bgImage(t));
+      setVar('--theme-bg-image', bgLayers(t, 0));
       setVar('--theme-bg-color', t.bg.base);
       setVar('--theme-tile-w', t.bg.tileW + 'rem');
       setVar('--theme-tile-h', t.bg.tileH + 'rem');
@@ -453,14 +470,14 @@
     slide.style.setProperty('--tile-w', tw + 'rem');
     slide.style.backgroundSize = photo ? 'cover' : tw + 'rem ' + th + 'rem';
     if (photo) slide.style.backgroundPosition = 'center';
-    slide.style.backgroundImage = bgImage(t, 0);
+    slide.style.backgroundImage = bgLayers(t, 0);
     box.style.background = t.preview.bga;
     box.appendChild(slide);
     if (isBoiled(t) && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
       var n = 0;
       box._thumbTimer = setInterval(function () {
         if (document.hidden) return;
-        slide.style.backgroundImage = bgImage(t, ++n);
+        slide.style.backgroundImage = bgLayers(t, ++n);
       }, 1000 / FPS);
     }
     return true;
@@ -499,7 +516,7 @@
     var size = photo ? ';--tile-w:0rem;background-size:cover;background-position:center'
       : t.bg ? ';--tile-w:' + t.bg.tileW + 'rem;background-size:' + t.bg.tileW + 'rem ' + t.bg.tileH + 'rem' : '';
     return '<div class="tb" style="background:' + p.bga + '">' +
-      '<div class="tb-slide"' + (isBoiled(t) ? ' data-boil="1"' : '') + ' style="background-image:' + bgImage(t).replace(/"/g, '&quot;') + size + '"></div>' +
+      '<div class="tb-slide"' + (isBoiled(t) ? ' data-boil="1"' : '') + ' style="background-image:' + bgLayers(t, 0).replace(/"/g, '&quot;') + size + '"></div>' +
     '</div>';
   }
 
