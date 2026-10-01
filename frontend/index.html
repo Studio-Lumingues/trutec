@@ -164,11 +164,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       <div class="lobby-card">
       
 
-      <div class="field">
-        <label for="input-name">Seu nome</label>
-        <input id="input-name" maxlength="16" placeholder="Ex: Zé da Manilha" />
-      </div>
-
       <div class="lobby-actions">
         <button id="btn-play" type="button" class="btn btn-primary">Jogar</button>
         <button id="btn-create" type="button" class="btn btn-secondary">Criar sala</button>
@@ -321,6 +316,14 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       <div class="settings-tabs" role="tablist">
         <button type="button" class="settings-tab active" role="tab" aria-selected="true">Geral</button>
         <button type="button" id="tab-temas" class="settings-tab" role="tab" aria-selected="false"><svg class="ic" aria-hidden="true"><use href="#i-palette"/></svg> Temas</button>
+      </div>
+
+      <!-- crachá "Olá, eu sou...": clique no espaço branco e escreva seu nome -->
+      <div class="name-badge">
+        <div class="nb-head"><span class="nb-hello">Olá,</span><span class="nb-iam">eu sou...</span></div>
+        <label class="nb-field" for="input-name">
+          <input id="input-name" maxlength="16" placeholder="Clique e escreva seu nome" autocomplete="off" spellcheck="false" />
+        </label>
       </div>
 
       <div class="settings-row">

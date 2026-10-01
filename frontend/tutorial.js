@@ -1,7 +1,7 @@
 // ============================================================================
 // TUTORIAL COM O GUIA DO TRUTEC (personagem "hand drawn")
 // O Jailson (assets/guia.png), o guia, aparece com um balão de fala e ensina, passo a passo:
-// nome, criar sala, entrar numa sala, Ajuda, Configurações e Temas.
+// criar sala, entrar numa sala, Ajuda, Configurações (com o nome) e Temas.
 // - A tela inteira escurece; só a parte de que ele está falando fica clara
 //   (um "holofote" com contorno tremido, igual ao resto do site).
 // - Ele abre os próprios modais de verdade (Criar sala, Jogar, Ajuda...) e fecha
@@ -25,9 +25,7 @@
   // ui = none | create | join | help | settings | themes
   var STEPS = [
     { ui: 'none', next: 'Bora!', skip: 'Agora não',
-      text: 'Oi! Eu sou o <b>Jailson</b>, o guia do TruTEC. Vou te mostrar como o jogo funciona: criar sala, entrar numa sala, a <b>Ajuda</b>, as <b>Configurações</b> e os <b>Temas</b>. Bora?' },
-    { ui: 'none', target: function () { var i = document.getElementById('input-name'); return i && (i.closest('.field') || i); },
-      text: 'Primeiro, escreva seu <b>nome</b> aqui. É ele que os outros jogadores veem na mesa. Eu guardo o nome pra próxima vez!' },
+      text: 'Oi! Eu sou o <b>Jailson</b>, o guia do TruTEC. Vou te mostrar como o jogo funciona: criar sala, entrar numa sala, a <b>Ajuda</b>, as <b>Configurações</b> (onde você coloca seu nome) e os <b>Temas</b>. Bora?' },
     { ui: 'none', target: '#btn-create',
       text: 'Quer jogar com os amigos? Clique em <b>Criar sala</b>.' },
     { ui: 'create', target: '#create-modal .settings-card',
@@ -42,6 +40,8 @@
       text: 'A Ajuda é o guia <b>Como jogar Truco</b>: o objetivo do jogo, a força das cartas, a vira e as manilhas, como pedir <b>truco, seis, nove e doze</b>, esconder a carta, os sinais pro parceiro… Clique em cada seção pra abrir. Vale ler antes da primeira partida!' },
     { ui: 'none', target: '#btn-settings',
       text: 'A engrenagem abre as <b>Configurações</b>.' },
+    { ui: 'settings', target: '.name-badge',
+      text: 'Este é o crachá <b>Olá, eu sou...</b>! Clique no espaço branco e escreva seu <b>nome</b>. É ele que os outros jogadores veem na mesa. Eu guardo o nome pra próxima vez!' },
     { ui: 'settings', target: '#settings-modal .settings-card',
       text: 'Aqui você ajusta o <b>volume da música</b> e dos <b>efeitos sonoros</b>, e pode ligar o <b>modo daltonismo</b>, que deixa as cores dos naipes e dos times mais fáceis de distinguir.' },
     { ui: 'settings', target: '#tab-temas',
