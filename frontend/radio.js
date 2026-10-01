@@ -2,8 +2,9 @@
 // RÁDIO DA SALA (SoundCloud)
 // O admin usa `auth musica <link>` no terminal; o servidor manda 'room_music'
 // pra todo mundo da sala e este arquivo toca a faixa com o player oficial
-// (widget) do SoundCloud, escondido. Aparece só uma plaquinha com o título e
-// o link pro SoundCloud (clicar nela também libera o som se o navegador bloquear).
+// (widget) do SoundCloud, escondido. O "player" que aparece é a CAPA da música
+// (canto inferior esquerdo): clicar nela pausa/retoma só no seu aparelho, e
+// também libera o som se o navegador tiver bloqueado o autoplay.
 // O volume segue o controle "Música" das Configurações.
 // ============================================================================
 (function () {
@@ -11,7 +12,7 @@
 
   var iframe = null, widget = null, ready = false;
   var curUrl = null, pendingOffset = 0, apiLoading = false, apiCbs = [];
-  var pill = null, playTimer = null;
+  var playTimer = null;
 
   function loadApi(cb) {
     if (window.SC && SC.Widget) return cb();
@@ -43,57 +44,99 @@
     });
   }
 
-  // ---- plaquinha "Tocando: ..." ----
+  // ---- player = capa da música ----
+  // A capa (artwork do SoundCloud) é o próprio player: clicar nela pausa/retoma
+  // SÓ no seu aparelho (os outros continuam ouvindo). Ao lado: título e artista,
+  // com o link pro SoundCloud.
   function css() {
     if (document.getElementById('radio-css')) return;
     var st = document.createElement('style');
     st.id = 'radio-css';
     st.textContent =
-      '.radio-pill{position:fixed;left:.75rem;bottom:.75rem;z-index:9000;max-width:min(18rem,70vw);display:flex;align-items:center;gap:.5rem;' +
-      'padding:.35rem .7rem;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font:600 .75rem/1.2 system-ui,sans-serif;' +
-      'border:1px solid rgba(255,255,255,.15);text-decoration:none;backdrop-filter:blur(4px)}' +
-      '.radio-pill[hidden]{display:none}' +
-      '.radio-pill .rp-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
-      '.radio-pill .rp-i{flex:none;color:#ff7700}' +
-      '.radio-pill.rp-tap{outline:2px solid #ff7700;cursor:pointer}';
+      '.radio-card{position:fixed;left:.75rem;bottom:.75rem;z-index:9000;display:flex;align-items:center;gap:.65rem;' +
+      'max-width:min(20rem,82vw);padding:.4rem .9rem .4rem .4rem;border-radius:.9rem;background:rgba(0,0,0,.62);color:#fff;' +
+      'font:600 .78rem/1.25 system-ui,sans-serif;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(6px);' +
+      'box-shadow:0 .5rem 1.4rem rgba(0,0,0,.45)}' +
+      '.radio-card[hidden]{display:none}' +
+      '.radio-cover{position:relative;flex:none;width:4.5rem;height:4.5rem;padding:0;border:0;border-radius:.6rem;overflow:hidden;' +
+      'cursor:pointer;background:#222 center/cover no-repeat;box-shadow:0 0 0 1px rgba(255,255,255,.18)}' +
+      '.radio-cover:focus-visible{outline:2px solid #ff7700;outline-offset:2px}' +
+      '.radio-cover .rc-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.7rem;' +
+      'background:rgba(0,0,0,.45);opacity:0;transition:opacity .15s}' +
+      '.radio-cover:hover .rc-ov,.radio-cover.paused .rc-ov,.radio-cover.tap .rc-ov{opacity:1}' +
+      '.radio-cover.tap{animation:rcPulse 1.2s ease-in-out infinite}' +
+      '@keyframes rcPulse{50%{box-shadow:0 0 0 .3rem rgba(255,119,0,.65)}}' +
+      '.radio-info{min-width:0;display:flex;flex-direction:column;gap:.1rem}' +
+      '.radio-info .ri-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;font-size:.85rem}' +
+      '.radio-info .ri-a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.75;font-weight:500}' +
+      '.radio-info .ri-s{color:#ff7700;font-weight:700;font-size:.7rem;text-decoration:none}' +
+      '.radio-info .ri-s:hover{text-decoration:underline}' +
+      '@media (prefers-reduced-motion: reduce){.radio-cover.tap{animation:none}}';
     document.head.appendChild(st);
   }
-  function showPill(text, href, tap) {
+
+  var card = null, coverBtn = null, ovEl = null, titleEl = null, artistEl = null, linkEl = null;
+  function buildCard() {
     css();
-    if (!pill) {
-      pill = document.createElement('a');
-      pill.className = 'radio-pill';
-      pill.target = '_blank';
-      pill.rel = 'noopener noreferrer';
-      pill.innerHTML = '<span class="rp-i">♪</span><span class="rp-t"></span>';
-      pill.addEventListener('click', function (e) {
-        if (pill.classList.contains('rp-tap')) { e.preventDefault(); if (widget) try { widget.play(); } catch (x) {} }
-      });
-      document.body.appendChild(pill);
-    }
-    pill.hidden = false;
-    pill.classList.toggle('rp-tap', !!tap);
-    pill.querySelector('.rp-t').textContent = text;
-    if (href) pill.href = href; else pill.removeAttribute('href');
+    card = document.createElement('div');
+    card.className = 'radio-card';
+    card.innerHTML =
+      '<button type="button" class="radio-cover" aria-label="Pausar ou retomar a música (só pra você)"><span class="rc-ov">❚❚</span></button>' +
+      '<div class="radio-info"><span class="ri-t"></span><span class="ri-a"></span>' +
+      '<a class="ri-s" target="_blank" rel="noopener noreferrer">SoundCloud ↗</a></div>';
+    coverBtn = card.querySelector('.radio-cover');
+    ovEl = card.querySelector('.rc-ov');
+    titleEl = card.querySelector('.ri-t');
+    artistEl = card.querySelector('.ri-a');
+    linkEl = card.querySelector('.ri-s');
+    coverBtn.addEventListener('click', function () {
+      if (!widget || !ready) return;
+      try { widget.isPaused(function (p) { if (p) widget.play(); else widget.pause(); }); } catch (e) {}
+    });
+    document.body.appendChild(card);
   }
-  function hidePill() { if (pill) pill.hidden = true; }
+  // info = { title, artist, cover, href }; mode: '' | 'tap' (autoplay barrado)
+  function showCard(info, mode) {
+    if (!card) buildCard();
+    card.hidden = false;
+    info = info || {};
+    if (info.title !== undefined) titleEl.textContent = info.title;
+    if (info.artist !== undefined) artistEl.textContent = info.artist;
+    if (info.href) linkEl.href = info.href;
+    if (info.cover) coverBtn.style.backgroundImage = 'url("' + String(info.cover).replace(/["\\()\s]/g, encodeURIComponent) + '")';
+    coverBtn.classList.toggle('tap', mode === 'tap');
+    if (mode === 'tap') { ovEl.textContent = '▶'; artistEl.textContent = 'Toque na capa pra ouvir'; }
+  }
+  function setPaused(p) {
+    if (!coverBtn) return;
+    coverBtn.classList.toggle('paused', !!p);
+    coverBtn.classList.remove('tap');
+    ovEl.textContent = p ? '▶' : '❚❚';
+  }
+  function hideCard() { if (card) card.hidden = true; }
 
   function destroy() {
     clearTimeout(playTimer);
     if (widget && ready) try { widget.pause(); } catch (e) {}
     if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe);
     iframe = widget = null; ready = false; curUrl = null;
-    hidePill();
+    hideCard();
     if (window.GameAudio && GameAudio.setRadio) GameAudio.setRadio(false);
   }
 
   function updateTitle() {
     if (!widget) return;
     try {
-      widget.getCurrentSound(function (s) {
-        if (!s) return;
-        var t = (s.user && s.user.username ? s.user.username + ' — ' : '') + (s.title || 'SoundCloud');
-        showPill(t, s.permalink_url || curUrl, false);
+      widget.getCurrentSound(function (snd) {
+        if (!snd) return;
+        var art = snd.artwork_url || (snd.user && snd.user.avatar_url) || '';
+        art = art.replace('-large.', '-t500x500.');   // capa em boa resolução
+        showCard({
+          title: snd.title || 'SoundCloud',
+          artist: snd.user && snd.user.username ? snd.user.username : '',
+          cover: art,
+          href: snd.permalink_url || curUrl
+        }, '');
       });
     } catch (e) {}
   }
@@ -120,23 +163,24 @@
         ready = true;
         applyVolume();
         if (window.GameAudio && GameAudio.setRadio) GameAudio.setRadio(true);
-        showPill('Carregando música…', url, false);
+        showCard({ title: 'Carregando música…', artist: '', href: url }, '');
         updateTitle();
         widget.play();
         // se o navegador barrou o autoplay, a plaquinha vira botão "toque pra ouvir"
         playTimer = setTimeout(function () {
           if (!widget) return;
-          widget.isPaused(function (p) { if (p) showPill('♪ Toque aqui pra ouvir a música da sala', url, true); });
+          widget.isPaused(function (p) { if (p) showCard({ href: url }, 'tap'); });
         }, 2500);
       });
       widget.bind(E.PLAY, function () {
-        clearTimeout(playTimer); applyVolume(); updateTitle();
+        clearTimeout(playTimer); applyVolume(); updateTitle(); setPaused(false);
         // quem entra com a música já rolando: pula pro ponto certo (o seek só pega depois que começa a tocar)
         if (pendingOffset > 1500) { var o = pendingOffset; pendingOffset = 0; try { widget.seekTo(o); } catch (e) {} }
         else pendingOffset = 0;
       });
-      widget.bind(E.FINISH, function () { hidePill(); if (window.GameAudio && GameAudio.setRadio) GameAudio.setRadio(false); });
-      widget.bind(E.ERROR, function () { showPill('Não deu pra tocar essa música', url, false); if (window.GameAudio && GameAudio.setRadio) GameAudio.setRadio(false); });
+      widget.bind(E.PAUSE, function () { setPaused(true); });
+      widget.bind(E.FINISH, function () { hideCard(); if (window.GameAudio && GameAudio.setRadio) GameAudio.setRadio(false); });
+      widget.bind(E.ERROR, function () { showCard({ title: 'Não deu pra tocar essa música', artist: '', href: url }, ''); if (window.GameAudio && GameAudio.setRadio) GameAudio.setRadio(false); });
     });
   }
 

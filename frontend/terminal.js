@@ -802,7 +802,7 @@
           });
         }
         return call({ op: 'music', action: 'play', url: arg }).then(function (res) {
-          out(res.ok ? c('g', '✔ ') + 'tocando pra sala toda ' + c('d', '(o título aparece na plaquinha, canto inferior esquerdo)') : c('r', '✘ ') + esc(res.error));
+          out(res.ok ? c('g', '✔ ') + 'tocando pra sala toda ' + c('d', '(a capa aparece no canto inferior esquerdo)') : c('r', '✘ ') + esc(res.error));
         });
       }
 
