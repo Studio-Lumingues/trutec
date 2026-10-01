@@ -243,6 +243,7 @@
     ['auth', '<chave>', 'modo admin: placar, foto, efeito do nome (veja `auth`)'],
     ['settings', '', 'abre as configurações'],
     ['desenhar', '', 'desenha o boneco sem limite de tempo e baixa em JPG'],
+    ['tutorial', '', 'o guia do TruTEC te ensina a jogar (tela inicial)'],
     ['colors', '', 'paleta de cores do terminal'],
     ['ls', '', 'lista os arquivos do projeto'],
     ['whoami', '', 'quem é você'],
@@ -811,6 +812,13 @@
     },
 
     clear: function () { body.innerHTML = ''; },
+
+    tutorial: function () {
+      if (!window.TruTutorial) return out(c('r', 'tutorial indisponível.'));
+      if (!TruTutorial.available()) return out(c('y', 'volte pra tela inicial pra ver o tutorial.'));
+      out(c('g', '✔ ') + 'chamando o guia… ' + c('d', '(Esc pula o tutorial)'));
+      setTimeout(function () { hideWin(); setTimeout(function () { TruTutorial.start(); }, 200); }, 250);
+    },
 
     desenhar: function () {
       if (drawUi) return out(c('y', 'o editor de desenho já está aberto.'));
