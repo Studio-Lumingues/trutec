@@ -5,7 +5,7 @@
 //   automaticamente (não precisa confirmar).
 // - Pra criar outro tema, copie um objeto de THEMES e troque:
 //     vars    -> variáveis CSS que o tema sobrescreve no :root
-//     bg      -> (opcional) fundo próprio da partida: { kind:'leopard' | 'binary' | 'sea', ... }
+//     bg      -> (opcional) fundo próprio da partida: { kind:'leopard' | 'binary' | 'sea' | 'image' | 'frames', ... }
 //                Sem `bg`, o tema usa o fundo de losangos (cores em preview.bga/bgb)
 //     preview -> cores usadas só no desenho de exemplo
 //     palette -> as bolinhas de cor do tema
@@ -89,6 +89,26 @@
       ]
     },
     {
+      id: 'casa',
+      name: 'Casa',
+      tagline: 'Apenas uma casa',
+      vars: {
+        '--felt-dark': '#000000', '--felt': '#0c0c0c', '--felt-light': '#262626',
+        '--wood-light': '#ffffff', '--wood-brown': '#101010',
+        '--wood-brown-light': '#2a2a2a', '--wood-brown-dark': '#000000',
+        '--ui-dark': '0,0,0', '--ui-chat': '8,8,8', '--ui-felt-dark': '0,0,0'
+      },
+      // fundo = desenho da casa em linhas brancas sobre preto, PARADO na tela (cobre tudo) mas com
+      // o tremido "hand drawn": 6 quadros (assets/casa/1..6.png, um por semente do boil.js) que se alternam.
+      // A mesa desse tema é translúcida/desfocada (igual ao Carro): ver "html[data-theme=casa]" no style.css
+      bg: { kind: 'frames', frames: ['assets/casa/1.png', 'assets/casa/2.png', 'assets/casa/3.png', 'assets/casa/4.png', 'assets/casa/5.png', 'assets/casa/6.png'], base: '#000000', tileW: 0, tileH: 12 },
+      preview: { bga: '#000000', bgb: '#000000', accent: '#ffffff', cream: '#fff8f0' },
+      palette: [
+        ['Fundo', '#000000'], ['Linha', '#ffffff'], ['Feltro', '#0c0c0c'],
+        ['Realce', '#262626'], ['Detalhe', '#ffffff'], ['Creme', '#fff8f0']
+      ]
+    },
+    {
       id: 'carro',
       locked: true,            // secreto: só aparece na aba Temas depois de `theme carro` no terminal
       name: 'Carro',
@@ -162,6 +182,10 @@
     return function () { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
   }
   function f(n) { return n.toFixed(1); }
+  // fundo parado que cobre a tela: foto (1 quadro) ou 'frames' (vários quadros, tremido hand drawn)
+  function isStatic(t) { return !!(t.bg && (t.bg.kind === 'image' || t.bg.kind === 'frames')); }
+  // fundo que troca de quadro (boil)
+  function isBoiled(t) { return !!(t.bg && t.bg.kind !== 'image'); }
 
   // Estampa de onça que se repete sem emenda: rosetas (anéis abertos de manchas
   // escuras com miolo mais claro) em fileiras alternadas + pintinhas soltas.
@@ -279,6 +303,8 @@
     var svg;
     if (t.bg && t.bg.kind === 'image') {
       return 'url("' + t.bg.src + '")';                 // foto: um quadro só, sem tremido
+    } else if (t.bg && t.bg.kind === 'frames') {
+      return 'url("' + t.bg.frames[(frame || 0) % t.bg.frames.length] + '")';   // um desenho por quadro
     } else if (t.bg) {
       frame = (frame || 0) % SEEDS.length;
       t._svg = t._svg || [];
@@ -306,7 +332,7 @@
   }
   function startBoil(t) {
     stopBoil();
-    if (t.bg && t.bg.kind === 'image') return;
+    if (!isBoiled(t)) return;
     for (var i = 0; i < SEEDS.length; i++) { var im = new Image(); im.src = bgImage(t, i).slice(5, -2); }
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     boilTimer = setInterval(function () {
@@ -336,7 +362,7 @@
       setVar('--theme-bg-color', t.bg.base);
       setVar('--theme-tile-w', t.bg.tileW + 'rem');
       setVar('--theme-tile-h', t.bg.tileH + 'rem');
-      if (t.bg.kind === 'image') { setVar('--theme-bg-size', 'cover'); setVar('--theme-bg-pos', 'center'); }
+      if (isStatic(t)) { setVar('--theme-bg-size', 'cover'); setVar('--theme-bg-pos', 'center'); }
     }
     root.classList.toggle('theme-bg', !!t.bg);
     if (t.bg) startBoil(t); else stopBoil();
@@ -357,7 +383,7 @@
     unmountThumb(box);
     var t = byId(id);
     if (!t || !box) return false;
-    var photo = t.bg && t.bg.kind === 'image';
+    var photo = isStatic(t);
     var tw = photo ? 0 : (t.bg ? t.bg.tileW : 7) * THUMB_SCALE, th = (t.bg ? t.bg.tileH : 12) * THUMB_SCALE;
     var slide = document.createElement('div');
     slide.className = 'tb-slide';
@@ -367,7 +393,7 @@
     slide.style.backgroundImage = bgImage(t, 0);
     box.style.background = t.preview.bga;
     box.appendChild(slide);
-    if (t.bg && !photo && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+    if (isBoiled(t) && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
       var n = 0;
       box._thumbTimer = setInterval(function () {
         if (document.hidden) return;
@@ -383,6 +409,7 @@
     var t = byId(id);
     if (!t || !t.bg) return null;
     if (t.bg.kind === 'image') return { kind: 'image', src: t.bg.src };
+    if (t.bg.kind === 'frames') return { kind: 'frames', urls: t.bg.frames.slice() };
     var urls = [];
     for (var i = 0; i < SEEDS.length; i++) urls.push(bgImage(t, i).slice(5, -2));
     return { tileW: t.bg.tileW, tileH: t.bg.tileH, urls: urls };
@@ -405,11 +432,11 @@
 
   function previewHtml(t) {
     var p = t.preview;
-    var photo = t.bg && t.bg.kind === 'image';
+    var photo = isStatic(t);
     var size = photo ? ';--tile-w:0rem;background-size:cover;background-position:center'
       : t.bg ? ';--tile-w:' + t.bg.tileW + 'rem;background-size:' + t.bg.tileW + 'rem ' + t.bg.tileH + 'rem' : '';
     return '<div class="tb" style="background:' + p.bga + '">' +
-      '<div class="tb-slide"' + (t.bg && !photo ? ' data-boil="1"' : '') + ' style="background-image:' + bgImage(t).replace(/"/g, '&quot;') + size + '"></div>' +
+      '<div class="tb-slide"' + (isBoiled(t) ? ' data-boil="1"' : '') + ' style="background-image:' + bgImage(t).replace(/"/g, '&quot;') + size + '"></div>' +
     '</div>';
   }
 

@@ -2321,29 +2321,34 @@ html[data-theme="binario"] .noise-layer { filter: grayscale(1); }
 /* mais escura, deixando a foto de fundo aparecer por trás.             */
 /* Ajustes: --glass-dark (escuridão), --glass-blur (desfoque).          */
 /* ==================================================================== */
-html[data-theme="carro"] {
+html[data-theme="carro"],
+html[data-theme="casa"] {
   --glass-dark: 0.5;   /* 0 = totalmente transparente, 1 = preto */
   --glass-blur: 9px;
 }
 /* moldura ao redor da mesa: vidro escuro + desfoque de tudo que está atrás */
-html[data-theme="carro"] .game-layout .felt-wrap {
+html[data-theme="carro"] .game-layout .felt-wrap,
+html[data-theme="casa"] .game-layout .felt-wrap {
   background: rgba(4, 9, 5, var(--glass-dark));
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(0.85);
   backdrop-filter: blur(var(--glass-blur)) saturate(0.85);
 }
 /* o feltro em si: só um véu escuro por cima (o desfoque já vem da moldura) */
-html[data-theme="carro"] .felt {
+html[data-theme="carro"] .felt,
+html[data-theme="casa"] .felt {
   background: rgba(0, 0, 0, 0.22);
   box-shadow:
     inset 0 0 5rem rgba(0, 0, 0, 0.45),
     inset 0 0 1.5rem rgba(0, 0, 0, 0.3);
 }
-html[data-theme="carro"] .felt::before {
+html[data-theme="carro"] .felt::before,
+html[data-theme="casa"] .felt::before {
   border-color: rgba(255, 255, 255, 0.22);
   box-shadow: 0 0 1.125rem rgba(255, 255, 255, 0.06) inset;
 }
 /* disco central onde caem as cartas: também translúcido */
-html[data-theme="carro"] .table-disc::before {
+html[data-theme="carro"] .table-disc::before,
+html[data-theme="casa"] .table-disc::before {
   background: radial-gradient(circle at 40% 32%, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.28) 60%, rgba(0, 0, 0, 0.5) 100%);
   border-color: rgba(255, 255, 255, 0.25);
   box-shadow:

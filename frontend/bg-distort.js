@@ -5,8 +5,8 @@
 // empurrado e os canais R/G/B se separam. Como só o fundo passa pelo shader,
 // cards, botões, cartas e bonecos (que são HTML por cima) NÃO distorcem.
 //
-// Temas com fundo próprio (Onça, ?????, Mar): o desenho do tema (o mesmo SVG
-// animado do themes.js) vira textura e passa pelo mesmo shader.
+// Temas com fundo próprio (Onça, ?????, Mar, Casa...): o desenho do tema (o mesmo SVG
+// animado / os mesmos quadros do themes.js) vira textura e passa pelo mesmo shader.
 //
 // Se o navegador não tiver WebGL (ou o usuário pediu menos movimento), nada
 // muda: continua o fundo em CSS de sempre.
@@ -135,33 +135,43 @@
       tex.frames = []; tex.ready = false;
       root.classList.remove('bgfx-tex');
     }
-    // tema com foto: uma textura só, sem repetir (CLAMP funciona com qualquer tamanho)
-    function loadPhoto(spec, token) {
-      tex.key = tex.id + ':photo';
-      var img = new Image();
-      img.onload = function () {
-        if (token !== tex.token || dead) return;
-        var max = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE) || 2048, 4096);
-        var w = img.naturalWidth, h = img.naturalHeight, src = img;
-        if (w > max || h > max) {                    // foto grande demais pra GPU: reduz
-          var k = max / Math.max(w, h);
-          w = Math.round(w * k); h = Math.round(h * k);
-          src = document.createElement('canvas'); src.width = w; src.height = h;
-          src.getContext('2d').drawImage(img, 0, 0, w, h);
-        }
-        var t = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, t);
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.uniform2f(U.uImg, w, h);
-        tex.frames = [t]; tex.ready = true;
-        root.classList.add('bgfx-tex');
-      };
-      img.src = spec.src;                            // se falhar, fica o fundo em CSS do tema
+    // tema parado que cobre a tela (foto = 1 quadro; 'frames' = vários quadros do "hand drawn"):
+    // uma textura por quadro, sem repetir (CLAMP funciona com qualquer tamanho)
+    function loadStatic(spec, token) {
+      var urls = spec.urls || [spec.src];
+      tex.key = tex.id + ':static';
+      var max = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE) || 2048, 4096);
+      var frames = [], pending = urls.length, sw = 1, sh = 1;
+      urls.forEach(function (url, i) {
+        var img = new Image();
+        img.onload = function () {
+          if (token !== tex.token || dead) return;
+          var w = img.naturalWidth, h = img.naturalHeight, src = img;
+          if (w > max || h > max) {                  // imagem grande demais pra GPU: reduz
+            var k = max / Math.max(w, h);
+            w = Math.round(w * k); h = Math.round(h * k);
+            src = document.createElement('canvas'); src.width = w; src.height = h;
+            src.getContext('2d').drawImage(img, 0, 0, w, h);
+          }
+          if (i === 0) { sw = w; sh = h; }
+          var t = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, t);
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          frames[i] = t;
+          if (--pending === 0) {
+            gl.uniform2f(U.uImg, sw, sh);
+            tex.frames = frames; tex.ready = true;
+            root.classList.add('bgfx-tex');
+          }
+        };
+        img.onerror = function () { /* fica o fundo em CSS do tema */ };
+        img.src = url;
+      });
     }
     function loadTheme(id) {
       var token = ++tex.token;
@@ -170,8 +180,9 @@
       tex.spec = (id && window.TruThemes && TruThemes.bgSpec) ? TruThemes.bgSpec(id) : null;
       var spec = tex.spec;
       if (!spec) { tex.key = ''; return; }           // sem `bg`: losangos do shader
-      gl.uniform1f(U.uStatic, spec.kind === 'image' ? 1 : 0);
-      if (spec.kind === 'image') { loadPhoto(spec, token); return; }
+      var isStat = spec.kind === 'image' || spec.kind === 'frames';
+      gl.uniform1f(U.uStatic, isStat ? 1 : 0);
+      if (isStat) { loadStatic(spec, token); return; }
       var rem = parseFloat(getComputedStyle(root).fontSize) || 16;
       var tw = spec.tileW * rem * dpr, th = spec.tileH * rem * dpr;
       var pw = pot(tw), ph = pot(th);
@@ -215,7 +226,7 @@
       gl.uniform1f(U.uRadius, RADIUS * dpr);
       gl.uniform1f(U.uStrength, STRENGTH * dpr);
       gl.uniform1f(U.uSplit, SPLIT);
-      if (tex.spec && tex.spec.kind !== 'image') {    // rem/dpr mudou: refaz a textura se o tamanho mudar
+      if (tex.spec && tex.spec.kind !== 'image' && tex.spec.kind !== 'frames') {    // rem/dpr mudou: refaz a textura se o tamanho mudar
         var tw = tex.spec.tileW * rem * dpr, th = tex.spec.tileH * rem * dpr;
         if (tex.key !== tex.id + ':' + pot(tw) + 'x' + pot(th)) loadTheme(tex.id);
         else gl.uniform2f(U.uTile, tw, th);
