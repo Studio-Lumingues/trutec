@@ -8,6 +8,7 @@
 //   tudo no final, sem mexer em nada do seu perfil/tema.
 // - Abre sozinho na 1ª visita; depois pelo botão redondo no canto da tela inicial
 //   ou pelo comando `tutorial` do terminal.
+// - O Jailson fala com um "blip" por letra (estilo Animal Crossing), no volume de Efeitos sonoros.
 // - Teclas: → / Enter = próximo · ← = voltar · Esc = pular.
 // Pra mudar os textos ou a ordem, mexa na lista STEPS logo abaixo.
 // ============================================================================
@@ -134,7 +135,7 @@
   // ---- estado do tutorial ----
   var root, spot, panel, guideImg, bubble, typed, full, countEl, btnNext, btnBack, btnSkip;
   var idx = 0, running = false, raf = 0, typeTimer = null, moveTimer = 0, relayoutTimer = 0;
-  var nodes = [], texts = [], cursor = 0, total = 0;
+  var nodes = [], texts = [], cursor = 0, total = 0, plain = '';
 
   function resolve(t) {
     if (!t) return null;
@@ -185,6 +186,62 @@
     panel.style.transform = 'translate(' + Math.round(Math.max(0, x)) + 'px,' + Math.round(Math.max(0, y)) + 'px)';
   }
 
+
+  // ---- voz do Jailson (estilo "Animal Crossing": uma sílaba curtinha por letra) ----
+  // Cada letra falada vira um "blip" com tom e timbre próprios (vogais mais abertas, consoantes mais
+  // secas). Segue o volume de "Efeitos sonoros" das Configurações e fica mudo se o som estiver mudo.
+  var VOICE_BASE = 250;          // tom médio da voz (Hz): menor = mais grave
+  var VOICE_GAP_MS = 55;         // intervalo mínimo entre blips
+  var vctx = null, lastBlip = 0;
+  var FORMANT = { a: 850, e: 620, i: 380, o: 520, u: 330 };
+  function voiceCtx() {
+    if (vctx) return vctx;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { vctx = new AC(); } catch (e) { vctx = null; }
+    return vctx;
+  }
+  function voiceLevel() {
+    var ga = window.GameAudio;
+    if (!ga) return 1;
+    if (ga.isMuted && ga.isMuted()) return 0;
+    return ga.getSfxLevel ? ga.getSfxLevel() : 1;
+  }
+  function blip(ch, question) {
+    var lv = voiceLevel();
+    if (!lv) return;
+    var now = performance.now();
+    if (now - lastBlip < VOICE_GAP_MS) return;
+    var ac = voiceCtx();
+    if (!ac) return;
+    if (ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
+    if (ac.state !== 'running') return;               // o navegador ainda não liberou o som (precisa de um clique antes)
+    lastBlip = now;
+    var c = ch.toLowerCase(), t = ac.currentTime;
+    var code = c.charCodeAt(0) - 97;                   // a..z -> 0..25 (acentos caem em letra próxima)
+    if (code < 0 || code > 25) code = (c.charCodeAt(0) % 26);
+    var vowel = FORMANT[c.normalize ? c.normalize('NFD').charAt(0) : c];
+    // tom: cada letra tem sua nota (escala pentatônica, soa "fofa"), com um pouquinho de aleatório
+    var scale = [0, 2, 4, 7, 9, 12, 14];
+    var semi = scale[code % scale.length] + (code > 13 ? 12 : 0) + (Math.random() * 1.2 - 0.6) - 6;
+    var f = VOICE_BASE * Math.pow(2, semi / 12) * (question ? 1.25 : 1);
+    var dur = vowel ? 0.085 : 0.05;
+
+    var osc = ac.createOscillator(), osc2 = ac.createOscillator(), bp = ac.createBiquadFilter(), g = ac.createGain();
+    osc.type = 'triangle'; osc2.type = 'sine';
+    osc.frequency.setValueAtTime(f * 1.06, t);         // começa um pouco acima e "cai": dá o jeitinho de sílaba
+    osc.frequency.exponentialRampToValueAtTime(f, t + dur * 0.8);
+    osc2.frequency.setValueAtTime(f * 2, t);
+    bp.type = 'bandpass'; bp.Q.value = vowel ? 2.2 : 0.9;
+    bp.frequency.value = vowel || (900 + (code % 7) * 120);
+    var peak = 0.34 * lv * lv;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(bp); osc2.connect(g); bp.connect(g); g.connect(ac.destination);
+    osc.start(t); osc2.start(t); osc.stop(t + dur + 0.02); osc2.stop(t + dur + 0.02);
+  }
+
   // ---- "fala" letra por letra ----
   function collect(el) {
     var out = [], w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null), n;
@@ -204,12 +261,17 @@
     full.innerHTML = html; typed.innerHTML = html;
     nodes = collect(typed); texts = nodes.map(function (n) { return n.nodeValue; });
     total = texts.reduce(function (a, s) { return a + s.length; }, 0);
+    plain = texts.join('');
     if (reduced) { cursor = total; setReveal(total); panel.classList.remove('tut-talk'); return; }
     cursor = 0; setReveal(0);
     panel.classList.add('tut-talk');
     typeTimer = setInterval(function () {
+      var from = cursor;
       cursor += 1 + (cursor > 40 ? 1 : 0);
       setReveal(cursor);
+      for (var k = from; k < Math.min(cursor, total); k++) {      // 1 blip pra cada letra nova (o intervalo mínimo evita excesso)
+        if (/[A-Za-zÀ-ÿ]/.test(plain.charAt(k))) { blip(plain.charAt(k), /[?]\s*$/.test(plain) && cursor > total - 12); break; }
+      }
       if (cursor >= total) { clearInterval(typeTimer); panel.classList.remove('tut-talk'); }
     }, TYPE_MS);
   }
@@ -307,6 +369,7 @@
     syncFab();
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('resize', layout);
+    var ac = voiceCtx(); if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }   // se veio de um clique, já libera o som
     raf = requestAnimationFrame(track);
     show(0);
     return true;
