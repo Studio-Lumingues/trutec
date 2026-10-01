@@ -85,15 +85,21 @@
       'filter:url(#boil-sm);opacity:.95}',
       '.tut-spot.tut-none .tut-ring{display:none}',
       '.tut-panel{--gh:clamp(10rem,44vh,23rem);position:fixed;left:0;top:0;display:flex;align-items:flex-start;gap:.5rem;pointer-events:none;',
-      'width:max-content;max-width:calc(100vw - 1.5rem);transition:transform .45s cubic-bezier(.3,.9,.3,1);will-change:transform}',
+      'width:max-content;max-width:calc(100vw - 1.5rem);transition:transform .8s cubic-bezier(.3,1.3,.5,1);will-change:transform}',
+      '@supports (transition-timing-function:linear(0,0.227,0.445,0.637,0.794,0.915,1,1.055,1.085,1.096,1.094,1.084,1.069,1.054,1.039,1.025,1.014,1.006,1,0.996,0.994,0.993,0.993,0.994,0.995,0.996,0.997,0.998,0.999,1,1,1,1,1,1,1,1)){.tut-panel{transition-timing-function:linear(0,0.175,0.375,0.577,0.762,0.919,1.042,1.129,1.181,1.205,1.204,1.186,1.156,1.121,1.085,1.051,1.021,0.997,0.98,0.969,0.964,0.963,0.966,0.971,0.977,0.983,0.989,0.995,1,1.003,1.005,1.006,1.007,1.006,1.006,1.004,1)}}',
             '.tut-panel.tut-right{flex-direction:row-reverse}',
       '.tut-guide{flex:none;pointer-events:auto;cursor:pointer;animation:tutBob 2.4s ease-in-out infinite}',
       '.tut-guide img{display:block;height:var(--gh);width:auto;filter:url(#boil-lg);user-select:none;-webkit-user-select:none}',
+      // wiggle ao trocar de lugar: o boneco balança e o balão faz um "squash" de borracha
+      '.tut-panel.tut-wiggle .tut-guide img{transform-origin:50% 100%;animation:tutWig .9s ease-out}',
+      '.tut-panel.tut-wiggle .tut-bubble{transform-origin:var(--wo,0 50%);animation:tutJelly .8s ease-out}',
+      '@keyframes tutWig{0%{transform:rotate(0)}15%{transform:rotate(-9deg) scale(1.03,.96)}35%{transform:rotate(7deg) scale(.98,1.03)}55%{transform:rotate(-4deg)}75%{transform:rotate(2deg)}100%{transform:rotate(0)}}',
+      '@keyframes tutJelly{0%{transform:scale(1,1)}20%{transform:scale(1.05,.94) rotate(-1deg)}45%{transform:scale(.97,1.04) rotate(.8deg)}70%{transform:scale(1.015,.99)}100%{transform:scale(1,1)}}',
       '.tut-panel.tut-talk .tut-guide{animation:tutTalk .32s ease-in-out infinite}',
       '@keyframes tutBob{50%{transform:translateY(-.25rem) rotate(-1.5deg)}}',
       '@keyframes tutTalk{25%{transform:translateY(-.3rem) rotate(2deg)}75%{transform:translateY(-.1rem) rotate(-2deg)}}',
-      '.tut-bubble{position:relative;isolation:isolate;flex:0 1 24rem;min-width:0;pointer-events:auto;margin-top:calc(var(--gh) * .14);',
-      'padding:.9rem 1.1rem .8rem;font-size:1rem;line-height:1.35;color:#0a0a0a}',
+      '.tut-bubble{position:relative;isolation:isolate;flex:0 1 28rem;min-width:0;pointer-events:auto;margin-top:calc(var(--gh) * .14);',
+      'padding:1rem 1.25rem .9rem;font-size:1.22rem;line-height:1.35;color:#0a0a0a}',
       '.tut-bg{position:absolute;inset:0;z-index:-1;background:#fff8f0;border:3px solid #0a0a0a;',
       'border-radius:1.4rem 1.1rem 1.5rem 1.2rem/1.2rem 1.5rem 1.1rem 1.4rem;filter:url(#boil-sm);box-shadow:.25rem .3rem 0 rgba(0,0,0,.45)}',
       // perninha: triângulo preto (::before) + triângulo creme menor por cima (::after).
@@ -106,21 +112,21 @@
       '.tut-panel.tut-right .tut-tail{right:0}',
       '.tut-panel.tut-right .tut-tail::before{left:0;top:0;width:14px;height:22px;background:#0a0a0a;clip-path:polygon(100% 50%,0 0,0 100%)}',
       '.tut-panel.tut-right .tut-tail::after{left:-4px;top:3.8px;width:13.2px;height:14.4px;background:#fff8f0;clip-path:polygon(100% 50%,calc(100% - 9.2px) 0,0 0,0 100%,calc(100% - 9.2px) 100%)}',
-      '.tut-name{position:absolute;left:1rem;top:-1rem;z-index:1;padding:.1rem .7rem .15rem;font-size:.9rem;font-weight:800;color:#0a0a0a;',
+      '.tut-name{position:absolute;left:1rem;top:-1rem;z-index:1;padding:.1rem .7rem .15rem;font-size:1.05rem;font-weight:800;color:#0a0a0a;',
       'background:#ffd23f;border:2.5px solid #0a0a0a;border-radius:.7rem .5rem .8rem .55rem/.55rem .8rem .5rem .7rem;transform:rotate(-3deg);',
       'box-shadow:.1rem .12rem 0 rgba(0,0,0,.45)}',
-      '.tut-text{position:relative;min-height:3.2rem;margin-top:.25rem}',
+      '.tut-text{position:relative;min-height:3.6rem;margin-top:.25rem}',
       '.tut-full{visibility:hidden}',
       '.tut-typed{position:absolute;left:0;top:0;right:0}',
       '.tut-text b{font-weight:800}',
       '.tut-foot{display:flex;align-items:center;gap:.5rem;margin-top:.7rem}',
-      '.tut-count{margin-right:auto;font-size:.78rem;opacity:.6}',
-      '.tut-btn{font:inherit;font-weight:800;font-size:.92rem;padding:.4rem .95rem;cursor:pointer;color:#0a0a0a;',
+      '.tut-count{margin-right:auto;font-size:.9rem;opacity:.6}',
+      '.tut-btn{font:inherit;font-weight:800;font-size:1.08rem;padding:.4rem 1rem;cursor:pointer;color:#0a0a0a;',
       'background:#fff8f0;border:2.5px solid #0a0a0a;border-radius:.9rem .7rem 1rem .75rem/.75rem 1rem .7rem .9rem;box-shadow:.12rem .15rem 0 rgba(0,0,0,.5)}',
       '.tut-btn:hover{background:#ffe9b8}.tut-btn:active{transform:translate(.08rem,.1rem);box-shadow:none}',
       '.tut-btn.tut-go{background:#ffd23f}.tut-btn.tut-go:hover{background:#ffdf6b}',
       '.tut-btn[hidden]{display:none}',
-      '.tut-skip{font:inherit;font-size:.78rem;font-weight:700;background:none;border:0;color:#0a0a0a;opacity:.55;cursor:pointer;text-decoration:underline;padding:.2rem}',
+      '.tut-skip{font:inherit;font-size:.92rem;font-weight:700;background:none;border:0;color:#0a0a0a;opacity:.55;cursor:pointer;text-decoration:underline;padding:.2rem}',
       '.tut-skip:hover{opacity:1}',
       // botão redondo pra rever o tutorial (só na tela inicial)
       '.tut-fab{position:fixed;right:.9rem;bottom:.9rem;z-index:9000;width:3.6rem;height:3.6rem;padding:0;cursor:pointer;',
@@ -130,9 +136,9 @@
       '.tut-fab[hidden]{display:none}',
       '.tut-fab::after{content:"?";position:absolute;right:-.3rem;top:-.35rem;width:1.35rem;height:1.35rem;border-radius:50%;',
       'background:#ffd23f;border:2.5px solid #0a0a0a;font:800 .8rem/1.05rem system-ui,sans-serif;text-align:center;color:#0a0a0a}',
-      '@media (max-width:600px){.tut-panel{--gh:clamp(7.5rem,25vh,12rem);width:calc(100vw - 1.5rem)}.tut-bubble{flex:1 1 auto;font-size:.92rem;padding:.75rem .9rem .7rem}',
+      '@media (max-width:600px){.tut-panel{--gh:clamp(7.5rem,25vh,12rem);width:calc(100vw - 1.5rem)}.tut-bubble{flex:1 1 auto;font-size:1.08rem;padding:.8rem .95rem .75rem}',
       '}',
-      '@media (prefers-reduced-motion:reduce){.tut-guide,.tut-panel.tut-talk .tut-guide{animation:none}',
+      '@media (prefers-reduced-motion:reduce){.tut-guide,.tut-panel.tut-talk .tut-guide,.tut-panel.tut-wiggle .tut-guide img,.tut-panel.tut-wiggle .tut-bubble{animation:none}',
       '.tut-spot.tut-move,.tut-panel{transition:none}}'
     ].join('');
     document.head.appendChild(st);
@@ -142,7 +148,7 @@
   var root, spot, panel, guideImg, bubble, typed, full, countEl, btnNext, btnBack, btnSkip;
   var idx = 0, running = false, raf = 0, typeTimer = null, moveTimer = 0, relayoutTimer = 0;
   var nodes = [], texts = [], cursor = 0, total = 0, plain = '';
-  var curCand = -1, curCandN = 0, lastRect = '', firstLayout = true, t0 = 0;
+  var lastX = 0, lastY = 0, lastWig = 0, curCand = -1, curCandN = 0, lastRect = '', firstLayout = true, t0 = 0;
 
   function resolve(t) {
     if (!t) return null;
@@ -192,10 +198,7 @@
       });
       var best = 0;
       areas.forEach(function (a, i) { if (a < areas[best]) best = i; });
-      // histerese: só troca de canto se o atual realmente atrapalha (evita o guia "pular" de lugar
-      // enquanto o modal abre/anima e o alvo muda um pouquinho a cada quadro)
       var pick = best;
-      if (curCand >= 0 && curCandN === cand.length && areas[curCand] <= areas[best] + 900) pick = curCand;
       curCand = pick; curCandN = cand.length;
       x = cand[pick][0]; y = cand[pick][1]; right = cand[pick][2];
       panel.classList.toggle('tut-right', right);
@@ -206,7 +209,20 @@
       panel.style.transform = tf;
       void panel.offsetWidth;
       panel.style.transition = '';
-    } else panel.style.transform = tf;
+      lastX = x; lastY = y;
+    } else {
+      panel.style.transform = tf;
+      var now = Date.now();
+      if (Math.hypot(x - lastX, y - lastY) > 30 && now - lastWig > 350) { lastWig = now; wiggle(right); }
+      lastX = x; lastY = y;
+    }
+  }
+  function wiggle(right) {
+    if (reduced) return;
+    panel.style.setProperty('--wo', right ? '100% 50%' : '0 50%');   // o balão "estica" a partir do lado do guia
+    panel.classList.remove('tut-wiggle');
+    void panel.offsetWidth;
+    panel.classList.add('tut-wiggle');
   }
 
 
