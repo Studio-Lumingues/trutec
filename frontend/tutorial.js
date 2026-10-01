@@ -236,8 +236,7 @@
       areas.forEach(function (a, i) { if (a < areas[best]) best = i; });
       var pick = best;
       // histerese: só troca de canto se o atual estiver bem pior (evita ficar pulando cima/baixo)
-      var tol = Math.max(4000, 0.04 * (tr.r - tr.l) * (tr.b - tr.t));   // tolerância proporcional ao tamanho do alvo
-      if (curCand >= 0 && curCandN === cand.length && areas[curCand] <= areas[best] + tol) pick = curCand;
+      if (curCand >= 0 && curCandN === cand.length && areas[curCand] <= areas[best] + 4000) pick = curCand;
       curCand = pick; curCandN = cand.length;
       x = cand[pick][0]; y = cand[pick][1]; right = cand[pick][2];
     }
@@ -425,7 +424,6 @@
   function show(i) {
     idx = Math.max(0, Math.min(STEPS.length - 1, i));
     var s = STEPS[idx];
-    var uiChanged = (s.ui || 'none') !== ui;           // abriu/fechou/trocou modal? então o alvo ainda vai se mexer
     setUi(s.ui || 'none');
     spot.classList.add('tut-move');
     clearTimeout(moveTimer); moveTimer = setTimeout(function () { spot.classList.remove('tut-move'); }, 450);
@@ -437,7 +435,7 @@
     btnSkip.hidden = mandatory || idx === STEPS.length - 1;     // 1ª vez: tutorial obrigatório, sem "pular"
     syncAsk();
     markDirty();                                       // depois do modal terminar de abrir, o track() posiciona
-    if (!s.target || !uiChanged) layout();             // alvo parado: decide o canto já. Modal animando: espera assentar (senão ele vai pro outro canto e volta)
+    layout();                                          // já manda o guia pro lugar (antes esperava o modal assentar); o ajuste fino vem do track()
     if (s.ask && window.matchMedia && matchMedia('(hover: hover)').matches) setTimeout(function () { var i = nameInput(); if (running && idx === STEPS.indexOf(s) && i) i.focus({ preventScroll: true }); }, 900);
     else btnNext.focus({ preventScroll: true });
   }
