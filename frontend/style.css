@@ -2632,3 +2632,87 @@ html[data-theme="casa"] .table-disc::before {
 .nb-field input::placeholder { color: rgba(10,10,10,0.38); font-size: 1.15rem; font-weight: 600; }
 .nb-field input:focus { outline: 0; box-shadow: none; background: #fff; }
 .nb-field:hover input:not(:focus) { background: #fff; }
+
+
+/* ==========================================================================
+   TELA INICIAL: botões mais altos + botão "Avatar" em vidro líquido
+   O <img id="character-preview-img"> dentro do botão é o boneco salvo do
+   jogador (o client.js já troca o src dele ao salvar/carregar). Ele fica
+   ATRÁS da camada de vidro, então aparece "através" do botão.
+   ========================================================================== */
+.lobby-actions .btn:not(.btn-icon-only) {
+  padding-top: 1.0625rem;
+  padding-bottom: 1.0625rem;
+}
+
+.btn-glass {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,0.42);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 45%, rgba(255,255,255,0.14) 100%);
+  -webkit-backdrop-filter: blur(0.6rem) saturate(1.6);
+  backdrop-filter: blur(0.6rem) saturate(1.6);
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,0.65),
+    inset 0 -0.5rem 0.9rem rgba(255,255,255,0.08),
+    inset 0 0 0 1px rgba(255,255,255,0.06),
+    0 0.5rem 1.2rem rgba(0,0,0,0.35);
+  text-shadow: 0 1px 0.4rem rgba(0,0,0,0.55);
+  transition: transform .1s, filter .15s, box-shadow .15s, background .2s;
+}
+/* boneco visto através do vidro (cortado pela borda do botão) */
+.btn-glass .glass-avatar {
+  position: absolute;
+  z-index: 0;
+  right: 0.6rem;
+  top: 50%;
+  height: 230%;
+  width: auto;
+  transform: translateY(-46%);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.95;
+}
+/* reflexo especular por cima do boneco = efeito "vidro" */
+.btn-glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.08) 38%, rgba(255,255,255,0) 52%),
+    radial-gradient(120% 140% at 8% 0%, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 55%);
+}
+/* brilho que passeia no hover */
+.btn-glass::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: -60%;
+  width: 40%;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0) 100%);
+  transform: skewX(-18deg);
+  transition: left .6s ease;
+}
+.btn-glass:hover { filter: brightness(1.1); background:
+    linear-gradient(135deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.09) 45%, rgba(255,255,255,0.18) 100%); }
+.btn-glass:hover::after { left: 120%; }
+.btn-glass .glass-label {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+.btn-glass:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .btn-glass::after { transition: none; }
+}
