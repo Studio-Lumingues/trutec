@@ -76,7 +76,8 @@
     var st = document.createElement('style');
     st.id = 'tut-css';
     st.textContent = [
-      '.tut-root{position:fixed;inset:0;z-index:9500;font-family:inherit;color:#0a0a0a}',
+      '.tut-root{position:fixed;inset:0;z-index:9500;font-family:inherit;color:#0a0a0a;animation:tutFade .4s ease-out}',
+      '@keyframes tutFade{from{opacity:0}to{opacity:1}}',
       '.tut-root[hidden]{display:none}',
       '.tut-spot{position:fixed;left:50%;top:50%;width:0;height:0;border-radius:1rem;pointer-events:none;',
       'box-shadow:0 0 0 200vmax rgba(5,4,10,.84)}',
@@ -148,7 +149,7 @@
   var root, spot, panel, guideImg, bubble, typed, full, countEl, btnNext, btnBack, btnSkip;
   var idx = 0, running = false, raf = 0, typeTimer = null, moveTimer = 0, relayoutTimer = 0;
   var nodes = [], texts = [], cursor = 0, total = 0, plain = '';
-  var lastX = 0, lastY = 0, lastWig = 0, curCand = -1, curCandN = 0, lastRect = '', firstLayout = true, t0 = 0;
+  var entering = false, enterTimer = 0, lastX = 0, lastY = 0, lastWig = 0, curCand = -1, curCandN = 0, lastRect = '', firstLayout = true, t0 = 0;
 
   function resolve(t) {
     if (!t) return null;
@@ -181,7 +182,7 @@
   // coloca o guia no canto que menos tapa o que está iluminado
   function layout(snap) {
     if (!panel) return;
-    snap = snap || firstLayout; firstLayout = false;
+    var entrance = firstLayout; firstLayout = false;
     var el = resolve(STEPS[idx].target);
     var vw = innerWidth, vh = innerHeight, m = 12;
     var w = panel.offsetWidth, h = panel.offsetHeight, x, y, right = false;
@@ -204,12 +205,15 @@
       panel.classList.toggle('tut-right', right);
     }
     var tf = 'translate(' + Math.round(Math.max(0, x)) + 'px,' + Math.round(Math.max(0, y)) + 'px)';
-    if (snap) {                                       // 1ª posição: aparece direto no lugar, sem voar do canto
+    if (entrance) {                                   // entrada: começa FORA da tela, embaixo, e sobe até o lugar com a mola
       panel.style.transition = 'none';
-      panel.style.transform = tf;
+      panel.style.transform = 'translate(' + Math.round(Math.max(0, x)) + 'px,' + (vh + 30) + 'px)';
       void panel.offsetWidth;
       panel.style.transition = '';
-      lastX = x; lastY = y;
+      panel.style.transform = tf;
+      lastX = x; lastY = y; lastWig = Date.now();
+      clearTimeout(enterTimer);
+      enterTimer = setTimeout(function () { if (running) wiggle(right); }, 380);   // balança quando chega
     } else {
       panel.style.transform = tf;
       var now = Date.now();
@@ -303,6 +307,9 @@
     plain = texts.join('');
     if (reduced) { cursor = total; setReveal(total); panel.classList.remove('tut-talk'); return; }
     cursor = 0; setReveal(0);
+    var delay = entering ? 550 : 0;                   // na entrada, espera ele chegar antes de falar
+    entering = false;
+    typeTimer = setTimeout(function () {
     panel.classList.add('tut-talk');
     typeTimer = setInterval(function () {
       var from = cursor;
@@ -313,6 +320,7 @@
       }
       if (cursor >= total) { clearInterval(typeTimer); panel.classList.remove('tut-talk'); }
     }, TYPE_MS);
+    }, delay);
   }
   function finishTyping() {
     if (cursor >= total) return false;
@@ -384,7 +392,7 @@
     btnSkip.addEventListener('click', stop);
     guideImg.addEventListener('click', finishTyping);
     var gi = guideImg.querySelector('img');
-    if (gi && !gi.complete) gi.addEventListener('load', function () { layout(Date.now() - t0 < 1000); });
+    if (gi && !gi.complete) gi.addEventListener('load', function () { layout(); });
   }
 
   function onResize() { layout(); }
@@ -408,7 +416,7 @@
     closeAll();
     try { localStorage.setItem(FLAG, '1'); } catch (e) {}
     running = true; ui = 'none';
-    curCand = -1; lastRect = ''; firstLayout = true; t0 = Date.now();
+    curCand = -1; lastRect = ''; firstLayout = true; entering = true; t0 = Date.now();
     build();
     syncFab();
     window.addEventListener('keydown', onKey, true);
@@ -422,7 +430,7 @@
   function stop() {
     if (!running) return;
     running = false;
-    clearInterval(typeTimer); clearTimeout(moveTimer); clearTimeout(relayoutTimer);
+    clearInterval(typeTimer); clearTimeout(moveTimer); clearTimeout(relayoutTimer); clearTimeout(enterTimer);
     cancelAnimationFrame(raf);
     window.removeEventListener('keydown', onKey, true);
     window.removeEventListener('resize', onResize);
