@@ -2371,8 +2371,9 @@ html[data-theme="carro"] .table-disc::before {
 
 .peek-timer {
   position: fixed;
-  top: 0.75rem; left: 50%;
-  transform: translateX(-50%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 90vw;
   z-index: 19;
   pointer-events: none;
   background: rgba(10,10,10,0.85);
