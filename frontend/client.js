@@ -236,8 +236,9 @@ function getSavedCharacter() {
 
   // Aplica o tom num canvas (usa ctx.filter; se o navegador não suporta, faz
   // a mesma conta pixel a pixel).
-  function drawSkinned(targetCtx, img, w, h) {
-    const f = skinFilter(skin);
+  function drawSkinned(targetCtx, img, w, h, sk) {
+    sk = sk || skin;
+    const f = skinFilter(sk);
     if (!f) { targetCtx.drawImage(img, 0, 0, w, h); return; }
     if ('filter' in targetCtx) {
       targetCtx.filter = f;
@@ -249,7 +250,7 @@ function getSavedCharacter() {
     const tc = t.getContext('2d');
     tc.drawImage(img, 0, 0, w, h);
     const id = tc.getImageData(0, 0, w, h), d = id.data;
-    const a = skin.h * Math.PI / 180, co = Math.cos(a), si = Math.sin(a), sv = skin.s;
+    const a = sk.h * Math.PI / 180, co = Math.cos(a), si = Math.sin(a), sv = sk.s;
     const H = [
       0.213 + co * 0.787 - si * 0.213, 0.715 - co * 0.715 - si * 0.715, 0.072 - co * 0.072 + si * 0.928,
       0.213 - co * 0.213 + si * 0.143, 0.715 + co * 0.285 + si * 0.140, 0.072 - co * 0.072 - si * 0.283,
@@ -265,7 +266,7 @@ function getSavedCharacter() {
       const r = d[i], g = d[i + 1], bl = d[i + 2];
       const r1 = clamp(H[0] * r + H[1] * g + H[2] * bl), g1 = clamp(H[3] * r + H[4] * g + H[5] * bl), b1 = clamp(H[6] * r + H[7] * g + H[8] * bl);
       const r2 = clamp(S[0] * r1 + S[1] * g1 + S[2] * b1), g2 = clamp(S[3] * r1 + S[4] * g1 + S[5] * b1), b2 = clamp(S[6] * r1 + S[7] * g1 + S[8] * b1);
-      d[i] = clamp(r2 * skin.b); d[i + 1] = clamp(g2 * skin.b); d[i + 2] = clamp(b2 * skin.b);
+      d[i] = clamp(r2 * sk.b); d[i + 1] = clamp(g2 * sk.b); d[i + 2] = clamp(b2 * sk.b);
     }
     targetCtx.putImageData(id, 0, 0);
   }
@@ -563,7 +564,7 @@ function getSavedCharacter() {
   function doSave(i) {
     if (!pendingSave) return closeSlotModal();
     const prev = slots[i];
-    slots[i] = pendingSave;
+    slots[i] = { img: pendingSave.img, draw: pendingSave.draw, skin: pendingSave.skin };
     if (!writeSlots()) {            // sem espaço no navegador: desfaz
       slots[i] = prev;
       slotModal.classList.add('hidden'); pendingSave = null;
@@ -573,7 +574,12 @@ function getSavedCharacter() {
     slotModal.classList.add('hidden'); pendingSave = null;
     editingSlot = i;
     setActive(i);
-    if (!it.imported) { try { localStorage.setItem('trutec_personagem_skin', JSON.stringify(it.skin)); } catch (e) {} }
+    try { localStorage.setItem('trutec_personagem_skin', JSON.stringify(it.skin)); } catch (e) {}
+    if (it.imported) {              // avatar vindo de um código: mostra no editor também (editável)
+      undoStack.length = 0;
+      setSkin(it.skin);
+      loadDrawing(it.draw);
+    }
     renderSlots();
     applyActive(it.img, it.imported ? `Avatar importado no espaço ${i + 1}!` : `Avatar salvo no espaço ${i + 1}!`);
   }
@@ -599,98 +605,193 @@ function getSavedCharacter() {
   });
 
   // ------------------------------------------------------------------
-  // COMPARTILHAR / IMPORTAR
-  // Compartilhar: gera a imagem do avatar que está no editor (não precisa
-  // ter salvado) e deixa enviar (menu de compartilhar do celular), baixar ou
-  // copiar. Importar: a outra pessoa escolhe essa imagem e ela vira um avatar
-  // novo na coleção dela (escolhendo o espaço, igual ao salvar).
+  // EXPORTAR / IMPORTAR por CÓDIGO
+  // O código é texto: "TRU1-" + dados do avatar (tom de pele + o desenho
+  // recortado em PNG), em base64. Quem recebe cola em "Importar" e o avatar
+  // aparece (editável) na coleção. Não precisa de servidor.
   // ------------------------------------------------------------------
-  const shareModal = document.getElementById('share-modal');
-  const shareImg = document.getElementById('share-img');
-  const shareMsg = document.getElementById('share-msg');
-  const shareSend = document.getElementById('share-send');
-  const shareDownload = document.getElementById('share-download');
-  const shareCopy = document.getElementById('share-copy');
-  const importInput = document.getElementById('avatar-import-input');
-  let shareBlob = null;
+  const CODE_PREFIX = 'TRU1-';
+  const exportModal = document.getElementById('export-modal');
+  const exportImg = document.getElementById('export-img');
+  const exportCode = document.getElementById('export-code');
+  const exportMsg = document.getElementById('export-msg');
+  const importModal = document.getElementById('import-modal');
+  const importCode = document.getElementById('import-code');
+  const importMsg = document.getElementById('import-msg');
+  const importOk = document.getElementById('import-ok');
+  const importPreview = document.getElementById('import-preview');
+  const importImg = document.getElementById('import-img');
 
-  function shareNote(t) { shareMsg.textContent = t || ''; }
-
-  function openShare() {
-    shareNote('');
-    shareBlob = null;
-    const merged = buildMerged();
-    shareImg.src = merged.toDataURL('image/png');
-    shareSend.hidden = true; shareCopy.hidden = !(navigator.clipboard && window.ClipboardItem);
-    shareModal.classList.remove('hidden');
-    shareDownload.focus();
-    merged.toBlob((blob) => {
-      shareBlob = blob;
-      if (!blob) return;
-      const file = new File([blob], 'avatar-trutec.png', { type: 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) shareSend.hidden = false;
-    }, 'image/png');
+  function bytesToB64url(bytes) {
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
-  function closeShare() { shareModal.classList.add('hidden'); document.getElementById('btn-avatar-share').focus(); }
+  function b64urlToBytes(str) {
+    let b = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (b.length % 4) b += '=';
+    const bin = atob(b), out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
 
-  document.getElementById('btn-avatar-share').addEventListener('click', openShare);
-  document.getElementById('share-close').addEventListener('click', closeShare);
-  shareModal.addEventListener('click', (e) => { if (e.target === shareModal) closeShare(); });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !shareModal.classList.contains('hidden')) closeShare();
-  });
+  // gera o código do avatar que está no editor
+  function encodeAvatar() {
+    return new Promise((resolve, reject) => {
+      const W = canvas.width, H = canvas.height;
+      const data = ctx.getImageData(0, 0, W, H).data;
+      let x0 = W, y0 = H, x1 = -1, y1 = -1;
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (data[(y * W + x) * 4 + 3] > 0) {
+            if (x < x0) x0 = x; if (x > x1) x1 = x;
+            if (y < y0) y0 = y; if (y > y1) y1 = y;
+          }
+        }
+      }
+      const sk = [skin.h, skin.s, skin.b].join(',');
+      const enc = new TextEncoder();
+      if (x1 < 0) return resolve(CODE_PREFIX + bytesToB64url(enc.encode(sk + ',-\n')));   // sem desenho: código curtinho
+      const c = document.createElement('canvas');
+      c.width = x1 - x0 + 1; c.height = y1 - y0 + 1;
+      c.getContext('2d').drawImage(canvas, x0, y0, c.width, c.height, 0, 0, c.width, c.height);
+      c.toBlob((blob) => {
+        if (!blob) return reject(new Error('png'));
+        blob.arrayBuffer().then((buf) => {
+          const head = enc.encode(sk + ',' + x0 + ',' + y0 + '\n');
+          const all = new Uint8Array(head.length + buf.byteLength);
+          all.set(head, 0); all.set(new Uint8Array(buf), head.length);
+          resolve(CODE_PREFIX + bytesToB64url(all));
+        }, reject);
+      }, 'image/png');
+    });
+  }
 
-  shareSend.addEventListener('click', async () => {
-    if (!shareBlob) return;
-    const file = new File([shareBlob], 'avatar-trutec.png', { type: 'image/png' });
+  // lê um código: devolve { skin, draw (dataURL 500x500 ou null), img (avatar pronto) }
+  function decodeAvatar(text) {
+    return new Promise((resolve, reject) => {
+      const t = String(text || '').replace(/\s+/g, '');
+      if (t.indexOf(CODE_PREFIX) !== 0) return reject(new Error('Esse código não parece de um avatar.'));
+      let bytes;
+      try { bytes = b64urlToBytes(t.slice(CODE_PREFIX.length)); } catch (e) { return reject(new Error('Código quebrado. Copie ele inteiro de novo.')); }
+      if (bytes.length > 600 * 1024) return reject(new Error('Código grande demais.'));
+      let nl = -1;
+      for (let i = 0; i < Math.min(bytes.length, 80); i++) if (bytes[i] === 10) { nl = i; break; }
+      if (nl < 0) return reject(new Error('Código quebrado. Copie ele inteiro de novo.'));
+      const parts = new TextDecoder().decode(bytes.subarray(0, nl)).split(',');
+      const h = parseFloat(parts[0]), sv = parseFloat(parts[1]), br = parseFloat(parts[2]);
+      if (!(h >= 0 && h <= 360 && sv >= 0 && sv <= 3 && br >= 0 && br <= 6)) return reject(new Error('Código inválido.'));
+      const sk = { h, s: sv, b: br };
+
+      const finish = (drawUrl) => {
+        const m = document.createElement('canvas');
+        m.width = canvas.width; m.height = canvas.height;
+        const mc = m.getContext('2d');
+        drawSkinned(mc, document.getElementById('character-base'), m.width, m.height, sk);
+        const done = () => resolve({ skin: sk, draw: drawUrl, img: m.toDataURL('image/png') });
+        if (!drawUrl) return done();
+        const di = new Image();
+        di.onload = () => { mc.drawImage(di, 0, 0); done(); };
+        di.onerror = () => reject(new Error('Código inválido.'));
+        di.src = drawUrl;
+      };
+
+      if (parts[3] === '-') return finish(null);
+      const x = parseInt(parts[3], 10), y = parseInt(parts[4], 10);
+      const png = bytes.subarray(nl + 1);
+      const okSig = png.length > 8 && png[0] === 0x89 && png[1] === 0x50 && png[2] === 0x4e && png[3] === 0x47;
+      if (!(x >= 0 && y >= 0 && x < canvas.width && y < canvas.height) || !okSig) return reject(new Error('Código inválido.'));
+      const url = URL.createObjectURL(new Blob([png], { type: 'image/png' }));
+      const im = new Image();
+      im.onload = () => {
+        URL.revokeObjectURL(url);
+        if (im.naturalWidth > canvas.width || im.naturalHeight > canvas.height) return reject(new Error('Código inválido.'));
+        const c = document.createElement('canvas');
+        c.width = canvas.width; c.height = canvas.height;
+        c.getContext('2d').drawImage(im, x, y);
+        finish(c.toDataURL('image/png'));
+      };
+      im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Código inválido.')); };
+      im.src = url;
+    });
+  }
+
+  // ---- exportar ----
+  function openExport() {
+    exportMsg.textContent = '';
+    exportCode.value = 'Gerando o código…';
+    exportImg.src = buildMerged().toDataURL('image/png');
+    exportModal.classList.remove('hidden');
+    document.getElementById('export-copy').focus();
+    encodeAvatar().then((code) => {
+      exportCode.value = code;
+      exportMsg.textContent = 'Código com ' + code.length.toLocaleString('pt-BR') + ' caracteres.';
+    }, () => { exportCode.value = ''; exportMsg.textContent = 'Não consegui gerar o código.'; });
+  }
+  function closeExport() { exportModal.classList.add('hidden'); document.getElementById('btn-avatar-share').focus(); }
+  document.getElementById('btn-avatar-share').addEventListener('click', openExport);
+  document.getElementById('export-close').addEventListener('click', closeExport);
+  exportModal.addEventListener('click', (e) => { if (e.target === exportModal) closeExport(); });
+  exportCode.addEventListener('focus', () => exportCode.select());
+  document.getElementById('export-copy').addEventListener('click', async () => {
+    const code = exportCode.value;
+    if (!code || code.indexOf(CODE_PREFIX) !== 0) return;
     try {
-      await navigator.share({ files: [file], title: 'Meu avatar do Trutec' });
+      await navigator.clipboard.writeText(code);
+      exportMsg.textContent = 'Código copiado! Agora é só mandar pro seu amigo.';
     } catch (e) {
-      if (e && e.name !== 'AbortError') shareNote('Não deu pra abrir o compartilhar. Use "Baixar imagem".');
+      exportCode.focus(); exportCode.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e2) {}
+      exportMsg.textContent = ok ? 'Código copiado! Agora é só mandar pro seu amigo.' : 'Selecione o código e copie (Ctrl+C).';
     }
-  });
-  shareDownload.addEventListener('click', () => {
-    if (!shareBlob) return shareNote('Gerando a imagem… tente de novo.');
-    const url = URL.createObjectURL(shareBlob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'avatar-trutec.png';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    shareNote('Imagem baixada! Agora é só mandar pro seu amigo.');
-  });
-  shareCopy.addEventListener('click', async () => {
-    if (!shareBlob) return shareNote('Gerando a imagem… tente de novo.');
-    try {
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': shareBlob })]);
-      shareNote('Imagem copiada! Cole na conversa.');
-    } catch (e) { shareNote('Não deu pra copiar. Use "Baixar imagem".'); }
   });
 
   // ---- importar ----
-  document.getElementById('btn-avatar-import').addEventListener('click', () => importInput.click());
-  importInput.addEventListener('change', () => {
-    const file = importInput.files && importInput.files[0];
-    importInput.value = '';
-    if (!file) return;
-    if (!/^image\//.test(file.type)) return flash('Escolha uma imagem (PNG).', 4500);
-    if (file.size > 8 * 1024 * 1024) return flash('Essa imagem é grande demais.', 4500);
-    const url = URL.createObjectURL(file);
-    const im = new Image();
-    im.onload = () => {
-      URL.revokeObjectURL(url);
-      try {
-        // normaliza pra 500x500 PNG (centraliza sem esticar)
-        const c = document.createElement('canvas');
-        c.width = canvas.width; c.height = canvas.height;
-        const k = Math.min(c.width / im.naturalWidth, c.height / im.naturalHeight);
-        const w = im.naturalWidth * k, h = im.naturalHeight * k;
-        c.getContext('2d').drawImage(im, (c.width - w) / 2, (c.height - h) / 2, w, h);
-        pendingSave = { img: c.toDataURL('image/png'), draw: null, skin: { h: 0, s: 1, b: 1 }, imported: true };
-        openSlotModal();
-      } catch (e) { flash('Não consegui abrir essa imagem.', 4500); }
-    };
-    im.onerror = () => { URL.revokeObjectURL(url); flash('Não consegui abrir essa imagem.', 4500); };
-    im.src = url;
+  let importTok = 0, importData = null;
+  function resetImport() {
+    importCode.value = ''; importMsg.textContent = ''; importOk.disabled = true;
+    importPreview.hidden = true; importData = null; importTok++;
+  }
+  function openImport() {
+    resetImport();
+    importModal.classList.remove('hidden');
+    importCode.focus();
+  }
+  function closeImport() { importModal.classList.add('hidden'); document.getElementById('btn-avatar-import').focus(); }
+  document.getElementById('btn-avatar-import').addEventListener('click', openImport);
+  document.getElementById('import-cancel').addEventListener('click', closeImport);
+  importModal.addEventListener('click', (e) => { if (e.target === importModal) closeImport(); });
+
+  // ao colar/digitar: já confere o código e mostra o avatar
+  importCode.addEventListener('input', () => {
+    const tok = ++importTok;
+    importData = null; importOk.disabled = true; importPreview.hidden = true;
+    if (!importCode.value.trim()) { importMsg.textContent = ''; return; }
+    importMsg.textContent = 'Conferindo…';
+    decodeAvatar(importCode.value).then((d) => {
+      if (tok !== importTok) return;
+      importData = d;
+      importImg.src = d.img;
+      importPreview.hidden = false;
+      importMsg.textContent = '';
+      importOk.disabled = false;
+    }, (err) => {
+      if (tok !== importTok) return;
+      importMsg.textContent = err.message || 'Código inválido.';
+    });
+  });
+  importOk.addEventListener('click', () => {
+    if (!importData) return;
+    pendingSave = { img: importData.img, draw: importData.draw, skin: importData.skin, imported: true };
+    importModal.classList.add('hidden');
+    openSlotModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!exportModal.classList.contains('hidden')) closeExport();
+    else if (!importModal.classList.contains('hidden')) closeImport();
   });
 
   // ---- inicialização: carrega a coleção e o avatar em uso ----

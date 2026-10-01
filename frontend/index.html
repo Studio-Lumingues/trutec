@@ -8,7 +8,7 @@
 <!-- ícone estático (reserva); o favicon.js troca por quadros animados -->
 <link rel="icon" type="image/png" href="assets/personagem.png" />
 <link rel="apple-touch-icon" href="assets/personagem.png" />
-<link rel="stylesheet" href="style.css?v=7" />
+<link rel="stylesheet" href="style.css?v=8" />
 <script>
 try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentElement.classList.add('colorblind'); } catch (e) {}
 try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documentElement.classList.add('leaving-intro'); } catch (e) {}
@@ -393,20 +393,32 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
     </div>
   </div>
 
-  <!-- ===================== COMPARTILHAR AVATAR ===================== -->
-  <div id="share-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="share-title">
-    <div class="settings-card">
-      <h2 id="share-title">Compartilhar avatar</h2>
-      <p class="modal-hint">Mande a imagem pra um amigo. Ele usa o botão <b>Importar</b> no editor pra colocar o avatar na coleção dele.</p>
-      <div class="share-preview"><img id="share-img" alt="Seu avatar" draggable="false" /></div>
-      <p id="share-msg" class="share-msg" aria-live="polite"></p>
-      <div class="share-actions">
-        <button id="share-send" type="button" class="btn btn-primary" hidden><svg class="ic" aria-hidden="true"><use href="#i-share"/></svg> Enviar</button>
-        <button id="share-download" type="button" class="btn btn-secondary"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> Baixar imagem</button>
-        <button id="share-copy" type="button" class="btn btn-secondary" hidden>Copiar imagem</button>
-      </div>
+  <!-- ===================== EXPORTAR AVATAR (código) ===================== -->
+  <div id="export-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="export-title">
+    <div class="settings-card code-card">
+      <h2 id="export-title">Exportar avatar</h2>
+      <p class="modal-hint">Copie o código e mande pra um amigo. Ele cola em <b>Importar</b> pra ficar com o seu avatar.</p>
+      <div class="code-preview"><img id="export-img" alt="Seu avatar" draggable="false" /></div>
+      <textarea id="export-code" class="code-box" readonly spellcheck="false" aria-label="Código do avatar"></textarea>
+      <p id="export-msg" class="code-msg" aria-live="polite"></p>
       <div class="modal-actions">
-        <button id="share-close" type="button" class="btn btn-ghost">Fechar</button>
+        <button id="export-close" type="button" class="btn btn-secondary">Fechar</button>
+        <button id="export-copy" type="button" class="btn btn-primary">Copiar código</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== IMPORTAR AVATAR (código) ===================== -->
+  <div id="import-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="import-title">
+    <div class="settings-card code-card">
+      <h2 id="import-title">Importar avatar</h2>
+      <p class="modal-hint">Cole aqui o código que um amigo exportou.</p>
+      <div class="code-preview" id="import-preview" hidden><img id="import-img" alt="Avatar do código" draggable="false" /></div>
+      <textarea id="import-code" class="code-box" placeholder="Cole o código aqui" spellcheck="false" autocomplete="off" aria-label="Código do avatar"></textarea>
+      <p id="import-msg" class="code-msg" aria-live="polite"></p>
+      <div class="modal-actions">
+        <button id="import-cancel" type="button" class="btn btn-secondary">Cancelar</button>
+        <button id="import-ok" type="button" class="btn btn-primary" disabled>Importar</button>
       </div>
     </div>
   </div>
@@ -465,9 +477,8 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
 
           <button type="button" id="btn-character-save" class="btn btn-primary character-save-btn"><svg class="ic" aria-hidden="true"><use href="#i-save"/></svg> Salvar avatar</button>
           <div class="share-row">
-            <button type="button" id="btn-avatar-share" class="tool-btn"><svg class="ic" aria-hidden="true"><use href="#i-share"/></svg> Compartilhar</button>
+            <button type="button" id="btn-avatar-share" class="tool-btn"><svg class="ic" aria-hidden="true"><use href="#i-share"/></svg> Exportar</button>
             <button type="button" id="btn-avatar-import" class="tool-btn"><svg class="ic" aria-hidden="true"><use href="#i-import"/></svg> Importar</button>
-            <input type="file" id="avatar-import-input" accept="image/*" hidden />
           </div>
           <p id="character-save-msg" class="character-save-msg"></p>
 
@@ -714,6 +725,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="favicon.js"></script>
   <script src="tutorial.js"></script>
   <script src="terminal.js?v=3"></script>
-  <script src="client.js?v=10"></script>
+  <script src="client.js?v=11"></script>
 </body>
 </html>
