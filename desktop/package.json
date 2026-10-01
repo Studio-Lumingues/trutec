@@ -1,0 +1,24 @@
+{
+  "name": "trutec-desktop",
+  "version": "1.0.0",
+  "description": "Trutec - Truco Paulista online",
+  "main": "main.js",
+  "author": "Trutec",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.trutec.desktop",
+    "productName": "Trutec",
+    "directories": { "output": "dist" },
+    "files": ["main.js"],
+    "win": { "target": "nsis", "artifactName": "Trutec-Setup.${ext}" },
+    "mac": { "target": "dmg", "artifactName": "Trutec.${ext}" },
+    "linux": { "target": "AppImage", "artifactName": "Trutec.${ext}" }
+  }
+}
