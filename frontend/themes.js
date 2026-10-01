@@ -5,7 +5,8 @@
 //   automaticamente (não precisa confirmar).
 // - Pra criar outro tema, copie um objeto de THEMES e troque:
 //     vars    -> variáveis CSS que o tema sobrescreve no :root
-//     bg      -> (opcional) fundo próprio da partida: { kind:'leopard' | 'binary' | 'sea' | 'lattice' | 'image' | 'frames', ... }
+//     bg      -> (opcional) fundo próprio da partida: { kind:'leopard' | 'binary' | 'sea' | 'lattice' | 'image' | 'frames' | 'tiles', ... }
+//                'frames' = quadros PNG parados que cobrem a tela; 'tiles' = quadros de uma estampa que repete e desliza
 //                Sem `bg`, o tema usa o fundo de losangos (cores em preview.bga/bgb)
 //     preview -> cores usadas só no desenho de exemplo
 //     palette -> as bolinhas de cor do tema
@@ -128,6 +129,46 @@
       ]
     },
     {
+      id: 'renda',
+      name: 'Renda',
+      tagline: 'Bordada à mão, linha por linha',
+      vars: {
+        '--felt-dark': '#064557', '--felt': '#0e7f9c', '--felt-light': '#27b7d6',
+        '--wood-light': '#ff8fb8', '--wood-brown': '#8c0f3d',
+        '--wood-brown-light': '#c4185a', '--wood-brown-dark': '#4a0620',
+        '--ui-dark': '3,30,41', '--ui-chat': '5,40,54', '--ui-felt-dark': '6,69,87'
+      },
+      // fundo = renda magenta sobre turquesa. É uma estampa que repete (assets/renda/1..6.jpg, 6 versões
+      // com o traço levemente deslocado = tremido hand drawn) e desliza como os outros temas (kind 'tiles').
+      // O tile mede 705x1418 px na imagem original, por isso tileH = tileW * 1418 / 705.
+      bg: { kind: 'tiles', frames: ['assets/renda/1.jpg', 'assets/renda/2.jpg', 'assets/renda/3.jpg', 'assets/renda/4.jpg', 'assets/renda/5.jpg', 'assets/renda/6.jpg'], base: '#1fb5d6', tileW: 22, tileH: 44.25 },
+      preview: { bga: '#1fb5d6', bgb: '#1fb5d6', accent: '#ff8fb8', cream: '#fff8f0' },
+      palette: [
+        ['Turquesa', '#1fb5d6'], ['Renda', '#d4145a'], ['Fio', '#ff8fb8'],
+        ['Feltro', '#0e7f9c'], ['Realce', '#27b7d6'], ['Creme', '#fff8f0']
+      ]
+    },
+    {
+      id: 'damasco',
+      name: 'Damasco',
+      tagline: 'Papel de parede que não para de descer',
+      vars: {
+        '--felt-dark': '#1c1712', '--felt': '#3d3228', '--felt-light': '#6b5a47',
+        '--wood-light': '#d9c9a8', '--wood-brown': '#2a2018',
+        '--wood-brown-light': '#52422f', '--wood-brown-dark': '#120e0a',
+        '--ui-dark': '16,12,8', '--ui-chat': '24,19,13', '--ui-felt-dark': '28,23,18'
+      },
+      // fundo = papel de parede damasco (assets/damasco/tile.jpg) rolando PRA BAIXO sem parar (dir:'down').
+      // O tile é a imagem + ela espelhada de cima pra baixo (640x1439 px), pra emendar perfeito no loop.
+      // slideSec = segundos pra rolar um tile inteiro (maior = mais devagar). Um quadro só: não tem tremido.
+      bg: { kind: 'tiles', dir: 'down', slideSec: 14, frames: ['assets/damasco/tile.jpg'], base: '#e6d9bf', tileW: 20, tileH: 44.97 },
+      preview: { bga: '#e6d9bf', bgb: '#e6d9bf', accent: '#d9c9a8', cream: '#fff8f0' },
+      palette: [
+        ['Papel', '#e6d9bf'], ['Estampa', '#2f2a22'], ['Mancha', '#a89878'],
+        ['Feltro', '#3d3228'], ['Realce', '#d9c9a8'], ['Creme', '#fff8f0']
+      ]
+    },
+    {
       id: 'carro',
       locked: true,            // secreto: só aparece na aba Temas depois de `theme carro` no terminal
       name: 'Carro',
@@ -204,7 +245,9 @@
   // fundo parado que cobre a tela: foto (1 quadro) ou 'frames' (vários quadros, tremido hand drawn)
   function isStatic(t) { return !!(t.bg && (t.bg.kind === 'image' || t.bg.kind === 'frames')); }
   // fundo que troca de quadro (boil)
-  function isBoiled(t) { return !!(t.bg && t.bg.kind !== 'image'); }
+  function isBoiled(t) { return !!(t.bg && t.bg.kind !== 'image' && !(t.bg.frames && t.bg.frames.length < 2)); }
+  // rola de cima pra baixo em vez de da esquerda pra direita?
+  function isDown(t) { return !!(t.bg && t.bg.dir === 'down'); }
 
   // Estampa de onça que se repete sem emenda: rosetas (anéis abertos de manchas
   // escuras com miolo mais claro) em fileiras alternadas + pintinhas soltas.
@@ -366,8 +409,8 @@
     var svg;
     if (t.bg && t.bg.kind === 'image') {
       return 'url("' + t.bg.src + '")';                 // foto: um quadro só, sem tremido
-    } else if (t.bg && t.bg.kind === 'frames') {
-      return 'url("' + t.bg.frames[(frame || 0) % t.bg.frames.length] + '")';   // um desenho por quadro
+    } else if (t.bg && (t.bg.kind === 'frames' || t.bg.kind === 'tiles')) {
+      return 'url("' + t.bg.frames[(frame || 0) % t.bg.frames.length] + '")';   // uma imagem por quadro
     } else if (t.bg) {
       frame = (frame || 0) % SEEDS.length;
       t._svg = t._svg || [];
@@ -388,7 +431,7 @@
   // com o quadro da vez por cima. Os outros ficam embaixo, já decodificados; se o de cima ainda não
   // carregou, aparece o de baixo em vez de preto. Nos demais temas é só a imagem do quadro.
   function bgLayers(t, frame) {
-    if (!(t.bg && t.bg.kind === 'frames')) return bgImage(t, frame);
+    if (!(t.bg && (t.bg.kind === 'frames' || t.bg.kind === 'tiles'))) return bgImage(t, frame);
     var n = t.bg.frames.length, i0 = (frame || 0) % n, out = [];
     for (var k = 0; k < n; k++) out.push('url("' + t.bg.frames[(i0 + k) % n] + '")');
     return out.join(',');
@@ -444,6 +487,8 @@
       setVar('--theme-tile-h', t.bg.tileH + 'rem');
       if (isStatic(t)) { setVar('--theme-bg-size', 'cover'); setVar('--theme-bg-pos', 'center'); }
     }
+    if (t.bg) setVar('--theme-slide-time', (t.bg.slideSec || 8) + 's');
+    root.classList.toggle('theme-bg-down', isDown(t));
     root.classList.toggle('theme-bg', !!t.bg);
     if (t.bg) startBoil(t); else stopBoil();
     root.setAttribute('data-theme', t.id);
@@ -469,6 +514,7 @@
     slide.className = 'tb-slide';
     slide.style.setProperty('--tile-w', tw + 'rem');
     slide.style.backgroundSize = photo ? 'cover' : tw + 'rem ' + th + 'rem';
+    if (isDown(t)) { slide.classList.add('down'); slide.style.setProperty('--tile-h', th + 'rem'); slide.style.animationDuration = (t.bg.slideSec || 8) + 's'; }
     if (photo) slide.style.backgroundPosition = 'center';
     slide.style.backgroundImage = bgLayers(t, 0);
     box.style.background = t.preview.bga;
@@ -491,8 +537,9 @@
     if (t.bg.kind === 'image') return { kind: 'image', src: t.bg.src };
     if (t.bg.kind === 'frames') return { kind: 'frames', urls: t.bg.frames.slice() };
     var urls = [];
-    for (var i = 0; i < SEEDS.length; i++) urls.push(bgImage(t, i).slice(5, -2));
-    return { tileW: t.bg.tileW, tileH: t.bg.tileH, urls: urls };
+    if (t.bg.kind === 'tiles') urls = t.bg.frames.slice();
+    else for (var i = 0; i < SEEDS.length; i++) urls.push(bgImage(t, i).slice(5, -2));
+    return { tileW: t.bg.tileW, tileH: t.bg.tileH, urls: urls, vertical: isDown(t), period: t.bg.slideSec || 8 };
   }
 
   window.TruThemes = { bgSpec: bgSpec, list: THEMES, available: available, isAvailable: isAvailable, unlock: unlock, apply: apply, applyTemp: function (id) { return apply(id, true); }, current: currentId, nameOf: nameOf, mountThumb: mountThumb, unmountThumb: unmountThumb };
@@ -515,8 +562,9 @@
     var photo = isStatic(t);
     var size = photo ? ';--tile-w:0rem;background-size:cover;background-position:center'
       : t.bg ? ';--tile-w:' + t.bg.tileW + 'rem;background-size:' + t.bg.tileW + 'rem ' + t.bg.tileH + 'rem' : '';
+    if (isDown(t)) size += ';--tile-h:' + t.bg.tileH + 'rem;animation-duration:' + (t.bg.slideSec || 8) + 's';
     return '<div class="tb" style="background:' + p.bga + '">' +
-      '<div class="tb-slide"' + (isBoiled(t) ? ' data-boil="1"' : '') + ' style="background-image:' + bgLayers(t, 0).replace(/"/g, '&quot;') + size + '"></div>' +
+      '<div class="tb-slide' + (isDown(t) ? ' down' : '') + '"' + (isBoiled(t) ? ' data-boil="1"' : '') + ' style="background-image:' + bgLayers(t, 0).replace(/"/g, '&quot;') + size + '"></div>' +
     '</div>';
   }
 

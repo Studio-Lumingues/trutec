@@ -2317,6 +2317,37 @@ html[data-theme="binario"] .noise-layer { filter: grayscale(1); }
 
 
 /* ==================================================================== */
+/* FUNDO QUE ROLA PRA BAIXO (tema com `dir: 'down'`, ex.: Damasco)      */
+/* Igual ao deslizar de lado, mas na vertical: o elemento sobra 1 tile  */
+/* pra cima e anda exatamente 1 tile de altura (loop perfeito).         */
+/* A velocidade vem de --theme-slide-time (slideSec no themes.js).      */
+/* ==================================================================== */
+html.theme-bg-down .game-bg::before {
+  top: calc(var(--tile-h) * -1);
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  animation-name: gameBgSlideY;
+  animation-duration: var(--theme-slide-time, 8s);
+}
+.tb-slide.down {
+  top: calc(var(--tile-h, 12rem) * -1);
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  animation-name: gameBgSlideY;
+}
+@keyframes gameBgSlideY {
+  from { transform: translateY(0); }
+  to   { transform: translateY(var(--tile-h)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.theme-bg-down .game-bg::before,
+  .tb-slide.down { animation: none; }
+}
+
+
+/* ==================================================================== */
 /* TEMA "CARRO": a mesa é de vidro fosco — translúcida, desfocada e     */
 /* mais escura, deixando a foto de fundo aparecer por trás.             */
 /* Ajustes: --glass-dark (escuridão), --glass-blur (desfoque).          */

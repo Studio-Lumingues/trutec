@@ -28,7 +28,7 @@
     'uniform float uTime, uMode, uRem, uDpr, uEnergy, uRadius, uStrength, uSplit;',
     'uniform sampler2D uTex;',
     'uniform vec2 uTile, uImg;',
-    'uniform float uStatic;',
+    'uniform float uStatic, uVert, uPeriod;',
     'const vec3 CREAM = vec3(1.0, 0.9725, 0.9412);',
 
     // listras diagonais (120deg) que andam devagar — igual ao CSS do body
@@ -64,8 +64,9 @@
     '    vec2 sz = uImg * sc;',
     '    return texture2D(uTex, clamp((p - 0.5 * (uRes - sz)) / sz, 0.0, 1.0)).rgb;',
     '  }',
-    '  float ox = -uTile.x + uTile.x * (mod(uTime, 8.0) / 8.0);',
-    '  return texture2D(uTex, vec2((p.x - ox) / uTile.x, p.y / uTile.y)).rgb;',
+    '  float ph = mod(uTime, uPeriod) / uPeriod;',
+    '  vec2 o = uVert > 0.5 ? vec2(0.0, -uTile.y + uTile.y * ph) : vec2(-uTile.x + uTile.x * ph, 0.0);',   // vertical = rola pra baixo
+    '  return texture2D(uTex, (p - o) / uTile).rgb;',
     '}',
 
     'vec3 bg(vec2 p){ return uMode > 1.5 ? themeTex(p) : (uMode > 0.5 ? diamonds(p) : stripes(p)); }',
@@ -114,8 +115,9 @@
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
     var U = {};
-    ['uRes', 'uMouse', 'uVel', 'uTime', 'uMode', 'uRem', 'uDpr', 'uEnergy', 'uRadius', 'uStrength', 'uSplit', 'uTex', 'uTile', 'uImg', 'uStatic']
+    ['uRes', 'uMouse', 'uVel', 'uTime', 'uMode', 'uRem', 'uDpr', 'uEnergy', 'uRadius', 'uStrength', 'uSplit', 'uTex', 'uTile', 'uImg', 'uStatic', 'uVert', 'uPeriod']
       .forEach(function (n) { U[n] = gl.getUniformLocation(prog, n); });
+    gl.uniform1f(U.uVert, 0); gl.uniform1f(U.uPeriod, 8);
 
     var dpr = 1, gameScreen = document.getElementById('screen-game');
     var root = document.documentElement;
@@ -180,6 +182,8 @@
       tex.spec = (id && window.TruThemes && TruThemes.bgSpec) ? TruThemes.bgSpec(id) : null;
       var spec = tex.spec;
       if (!spec) { tex.key = ''; return; }           // sem `bg`: losangos do shader
+      gl.uniform1f(U.uVert, spec.vertical ? 1 : 0);      // rola pra baixo (em vez de pro lado)?
+      gl.uniform1f(U.uPeriod, spec.period || 8);         // segundos por tile
       var isStat = spec.kind === 'image' || spec.kind === 'frames';
       gl.uniform1f(U.uStatic, isStat ? 1 : 0);
       if (isStat) { loadStatic(spec, token); return; }
