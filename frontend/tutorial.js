@@ -85,9 +85,8 @@
       'filter:url(#boil-sm);opacity:.95}',
       '.tut-spot.tut-none .tut-ring{display:none}',
       '.tut-panel{--gh:clamp(10rem,44vh,23rem);position:fixed;left:0;top:0;display:flex;align-items:flex-start;gap:.5rem;pointer-events:none;',
-      'width:max-content;max-width:calc(100vw - 1.5rem)}',
-      '.tut-panel.tut-move{transition:transform .4s cubic-bezier(.3,.9,.3,1)}',
-      '.tut-panel.tut-right{flex-direction:row-reverse}',
+      'width:max-content;max-width:calc(100vw - 1.5rem);transition:transform .45s cubic-bezier(.3,.9,.3,1);will-change:transform}',
+            '.tut-panel.tut-right{flex-direction:row-reverse}',
       '.tut-guide{flex:none;pointer-events:auto;cursor:pointer;animation:tutBob 2.4s ease-in-out infinite}',
       '.tut-guide img{display:block;height:var(--gh);width:auto;filter:url(#boil-lg);user-select:none;-webkit-user-select:none}',
       '.tut-panel.tut-talk .tut-guide{animation:tutTalk .32s ease-in-out infinite}',
@@ -97,9 +96,16 @@
       'padding:.9rem 1.1rem .8rem;font-size:1rem;line-height:1.35;color:#0a0a0a}',
       '.tut-bg{position:absolute;inset:0;z-index:-1;background:#fff8f0;border:3px solid #0a0a0a;',
       'border-radius:1.4rem 1.1rem 1.5rem 1.2rem/1.2rem 1.5rem 1.1rem 1.4rem;filter:url(#boil-sm);box-shadow:.25rem .3rem 0 rgba(0,0,0,.45)}',
-      '.tut-tail{position:absolute;top:1.5rem;width:1rem;height:1rem;z-index:-1;background:#fff8f0;border:3px solid #0a0a0a;filter:url(#boil-sm)}',
-      '.tut-panel:not(.tut-right) .tut-tail{left:-.55rem;border-top:0;border-right:0;transform:rotate(45deg)}',
-      '.tut-panel.tut-right .tut-tail{right:-.55rem;border-bottom:0;border-left:0;transform:rotate(45deg)}',
+      // perninha: triângulo preto (::before) + triângulo creme menor por cima (::after).
+      // Fica DENTRO do .tut-bg, então o filtro de tremido pega balão e perna juntos (sem emenda torta).
+      '.tut-tail{position:absolute;top:1.6rem;width:0;height:22px}',
+      '.tut-tail::before,.tut-tail::after{content:"";position:absolute}',
+      '.tut-panel:not(.tut-right) .tut-tail{left:0}',
+      '.tut-panel:not(.tut-right) .tut-tail::before{right:0;top:0;width:14px;height:22px;background:#0a0a0a;clip-path:polygon(0 50%,100% 0,100% 100%)}',
+      '.tut-panel:not(.tut-right) .tut-tail::after{right:-4px;top:3.8px;width:13.2px;height:14.4px;background:#fff8f0;clip-path:polygon(0 50%,9.2px 0,100% 0,100% 100%,9.2px 100%)}',
+      '.tut-panel.tut-right .tut-tail{right:0}',
+      '.tut-panel.tut-right .tut-tail::before{left:0;top:0;width:14px;height:22px;background:#0a0a0a;clip-path:polygon(100% 50%,0 0,0 100%)}',
+      '.tut-panel.tut-right .tut-tail::after{left:-4px;top:3.8px;width:13.2px;height:14.4px;background:#fff8f0;clip-path:polygon(100% 50%,calc(100% - 9.2px) 0,0 0,0 100%,calc(100% - 9.2px) 100%)}',
       '.tut-name{position:absolute;left:1rem;top:-1rem;z-index:1;padding:.1rem .7rem .15rem;font-size:.9rem;font-weight:800;color:#0a0a0a;',
       'background:#ffd23f;border:2.5px solid #0a0a0a;border-radius:.7rem .5rem .8rem .55rem/.55rem .8rem .5rem .7rem;transform:rotate(-3deg);',
       'box-shadow:.1rem .12rem 0 rgba(0,0,0,.45)}',
@@ -127,7 +133,7 @@
       '@media (max-width:600px){.tut-panel{--gh:clamp(7.5rem,25vh,12rem);width:calc(100vw - 1.5rem)}.tut-bubble{flex:1 1 auto;font-size:.92rem;padding:.75rem .9rem .7rem}',
       '}',
       '@media (prefers-reduced-motion:reduce){.tut-guide,.tut-panel.tut-talk .tut-guide{animation:none}',
-      '.tut-spot.tut-move,.tut-panel.tut-move{transition:none}}'
+      '.tut-spot.tut-move,.tut-panel{transition:none}}'
     ].join('');
     document.head.appendChild(st);
   }
@@ -136,6 +142,7 @@
   var root, spot, panel, guideImg, bubble, typed, full, countEl, btnNext, btnBack, btnSkip;
   var idx = 0, running = false, raf = 0, typeTimer = null, moveTimer = 0, relayoutTimer = 0;
   var nodes = [], texts = [], cursor = 0, total = 0, plain = '';
+  var curCand = -1, curCandN = 0, lastRect = '', firstLayout = true, t0 = 0;
 
   function resolve(t) {
     if (!t) return null;
@@ -152,6 +159,7 @@
       spot.classList.add('tut-none');
       spot.style.left = innerWidth / 2 + 'px'; spot.style.top = innerHeight / 2 + 'px';
       spot.style.width = '2px'; spot.style.height = '2px';
+      if (lastRect !== 'none') { lastRect = 'none'; layout(); }
       return;
     }
     spot.classList.remove('tut-none');
@@ -160,30 +168,45 @@
     var rr = Math.min(innerWidth - 4, r.right + PAD), bb = Math.min(innerHeight - 4, r.bottom + PAD);
     spot.style.left = l + 'px'; spot.style.top = t + 'px';
     spot.style.width = Math.max(0, rr - l) + 'px'; spot.style.height = Math.max(0, bb - t) + 'px';
+    var rk = [l, t, rr, bb].map(Math.round).join();
+    if (rk !== lastRect) { lastRect = rk; layout(); }   // o modal ainda está animando: acompanha com transição suave
   }
 
   // coloca o guia no canto que menos tapa o que está iluminado
-  function layout() {
+  function layout(snap) {
+    if (!panel) return;
+    snap = snap || firstLayout; firstLayout = false;
     var el = resolve(STEPS[idx].target);
     var vw = innerWidth, vh = innerHeight, m = 12;
     var w = panel.offsetWidth, h = panel.offsetHeight, x, y, right = false;
-    if (!el) { x = (vw - w) / 2; y = (vh - h) / 2; panel.classList.remove('tut-right'); }
+    if (!el) { x = (vw - w) / 2; y = (vh - h) / 2; panel.classList.remove('tut-right'); curCand = -1; }
     else {
       var r = el.getBoundingClientRect();
       var tr = { l: r.left - PAD, t: r.top - PAD, r: r.right + PAD, b: r.bottom + PAD };
       var cand = [[vw - w - m, vh - h - m, true], [m, vh - h - m, false], [vw - w - m, m, true], [m, m, false]];
       if (vw < 600) cand = [[(vw - w) / 2, vh - h - m, false], [(vw - w) / 2, m, false]];
-      var best = null, bestA = Infinity;
-      cand.forEach(function (c) {
+      var areas = cand.map(function (c) {
         var ox = Math.max(0, Math.min(c[0] + w, tr.r) - Math.max(c[0], tr.l));
         var oy = Math.max(0, Math.min(c[1] + h, tr.b) - Math.max(c[1], tr.t));
-        var a = ox * oy;
-        if (a < bestA) { bestA = a; best = c; }
+        return ox * oy;
       });
-      x = best[0]; y = best[1]; right = best[2];
+      var best = 0;
+      areas.forEach(function (a, i) { if (a < areas[best]) best = i; });
+      // histerese: só troca de canto se o atual realmente atrapalha (evita o guia "pular" de lugar
+      // enquanto o modal abre/anima e o alvo muda um pouquinho a cada quadro)
+      var pick = best;
+      if (curCand >= 0 && curCandN === cand.length && areas[curCand] <= areas[best] + 900) pick = curCand;
+      curCand = pick; curCandN = cand.length;
+      x = cand[pick][0]; y = cand[pick][1]; right = cand[pick][2];
       panel.classList.toggle('tut-right', right);
     }
-    panel.style.transform = 'translate(' + Math.round(Math.max(0, x)) + 'px,' + Math.round(Math.max(0, y)) + 'px)';
+    var tf = 'translate(' + Math.round(Math.max(0, x)) + 'px,' + Math.round(Math.max(0, y)) + 'px)';
+    if (snap) {                                       // 1ª posição: aparece direto no lugar, sem voar do canto
+      panel.style.transition = 'none';
+      panel.style.transform = tf;
+      void panel.offsetWidth;
+      panel.style.transition = '';
+    } else panel.style.transform = tf;
   }
 
 
@@ -286,8 +309,8 @@
     idx = Math.max(0, Math.min(STEPS.length - 1, i));
     var s = STEPS[idx];
     setUi(s.ui || 'none');
-    spot.classList.add('tut-move'); panel.classList.add('tut-move');
-    clearTimeout(moveTimer); moveTimer = setTimeout(function () { spot.classList.remove('tut-move'); panel.classList.remove('tut-move'); }, 450);
+    spot.classList.add('tut-move');
+    clearTimeout(moveTimer); moveTimer = setTimeout(function () { spot.classList.remove('tut-move'); }, 450);
     say(s.text);
     countEl.textContent = (idx + 1) + ' / ' + STEPS.length;
     btnBack.hidden = idx === 0;
@@ -326,7 +349,7 @@
       '<div class="tut-panel">' +
         '<div class="tut-guide" title="Clique pra acelerar a fala"><img src="' + GUIDE + '" alt="Jailson, o guia do TruTEC" draggable="false"></div>' +
         '<div class="tut-bubble" aria-live="polite">' +
-          '<span class="tut-bg"></span><span class="tut-tail"></span><span class="tut-name">Jailson</span>' +
+          '<span class="tut-bg"><i class="tut-tail"></i></span><span class="tut-name">Jailson</span>' +
           '<div class="tut-text"><div class="tut-full"></div><div class="tut-typed"></div></div>' +
           '<div class="tut-foot"><span class="tut-count"></span>' +
             '<button type="button" class="tut-skip">Pular</button>' +
@@ -344,7 +367,11 @@
     btnBack.addEventListener('click', back);
     btnSkip.addEventListener('click', stop);
     guideImg.addEventListener('click', finishTyping);
+    var gi = guideImg.querySelector('img');
+    if (gi && !gi.complete) gi.addEventListener('load', function () { layout(Date.now() - t0 < 1000); });
   }
+
+  function onResize() { layout(); }
 
   function inLobby() {
     var el = document.getElementById('screen-lobby');
@@ -365,10 +392,11 @@
     closeAll();
     try { localStorage.setItem(FLAG, '1'); } catch (e) {}
     running = true; ui = 'none';
+    curCand = -1; lastRect = ''; firstLayout = true; t0 = Date.now();
     build();
     syncFab();
     window.addEventListener('keydown', onKey, true);
-    window.addEventListener('resize', layout);
+    window.addEventListener('resize', onResize);
     var ac = voiceCtx(); if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }   // se veio de um clique, já libera o som
     raf = requestAnimationFrame(track);
     show(0);
@@ -381,7 +409,7 @@
     clearInterval(typeTimer); clearTimeout(moveTimer); clearTimeout(relayoutTimer);
     cancelAnimationFrame(raf);
     window.removeEventListener('keydown', onKey, true);
-    window.removeEventListener('resize', layout);
+    window.removeEventListener('resize', onResize);
     setUi('none');                                    // fecha o modal que o guia abriu
     if (root && root.parentNode) root.parentNode.removeChild(root);
     root = null;
