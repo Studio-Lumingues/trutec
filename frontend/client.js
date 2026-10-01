@@ -1373,14 +1373,14 @@ function renderState(realState) {
 }
 
 // ------------------------------------------------------------------
-// Mão de 11: votação "às cegas" ou "normal" (só a dupla de 11 vê e vota)
+// Mão de ferro (11 x 11): votação "às cegas" ou "normal" — aparece pra todos
 // ------------------------------------------------------------------
 let voteEndsAt = 0, voteInterval = null;
 function updateVoteUI(state) {
   const box = document.getElementById('vote-overlay');
   if (!box) return;
   const v = state.vote;
-  if (!v || v.team !== myTeam) {
+  if (!v) {
     clearInterval(voteInterval); voteInterval = null;
     box.classList.add('hidden');
     return;
@@ -1392,7 +1392,7 @@ function updateVoteUI(state) {
   if (!voteInterval) voteInterval = setInterval(paint, 250);
   box.querySelectorAll('.vote-btn').forEach(b => b.classList.toggle('sent', b.dataset.choice === v.myVote));
   document.getElementById('vote-status').textContent = v.myVote === 'cegas'
-    ? 'Você votou ÀS CEGAS. Esperando o seu parceiro…'
+    ? 'Você votou ÀS CEGAS. Esperando os outros jogadores…'
     : '';
   box.classList.remove('hidden');
 }
@@ -1402,10 +1402,8 @@ document.querySelectorAll('#vote-overlay .vote-btn').forEach(btn => {
 socket.on('score_changed', ({ score }) => {
   setBanner('Placar alterado pelo administrador: ' + score[0] + ' x ' + score[1], 2600);
 });
-socket.on('mao11_result', ({ team, blind }) => {
-  const mine = team === myTeam;
-  if (blind) setBanner(mine ? 'Mão de 11: vocês jogam ÀS CEGAS!' : 'Mão de 11: a dupla adversária joga ÀS CEGAS!', 3000);
-  else if (mine) setBanner('Mão de 11: normal — olhem as cartas da dupla!', 2400);
+socket.on('mao11_result', ({ blind }) => {
+  setBanner(blind ? 'Mão de ferro: todo mundo joga ÀS CEGAS!' : 'Mão de ferro: jogo normal.', 2800);
 });
 
 // ------------------------------------------------------------------
@@ -1418,17 +1416,6 @@ let peekEndsAt = 0, peekInterval = null;
 function updatePeekTimer(state) {
   const el = document.getElementById('peek-timer');
   if (!el) return;
-  if (state.vote && state.vote.team !== myTeam) { // adversário votando: só avisa
-    peekEndsAt = Date.now() + Math.max(0, state.vote.msLeft || 0);
-    const paintV = () => {
-      const left = Math.max(0, Math.ceil((peekEndsAt - Date.now()) / 1000));
-      el.innerHTML = '<b>Mão de 11</b> — a dupla adversária está votando: <span class="peek-secs">' + left + 's</span>';
-    };
-    paintV();
-    el.classList.remove('hidden');
-    clearInterval(peekInterval); peekInterval = setInterval(paintV, 250);
-    return;
-  }
   if (!state.peek) {
     clearInterval(peekInterval); peekInterval = null; peekEndsAt = 0;
     el.classList.add('hidden');
