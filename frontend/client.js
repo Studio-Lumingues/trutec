@@ -1222,9 +1222,12 @@ function renderState(realState) {
   renderMiniCard(document.getElementById('vira-card'), state.vira);
 
   // nomes e cadeiras
-  ['top', 'left', 'right', 'bottom'].forEach(pos => {
+  // limpa só as cadeiras sem jogador (zerar todas apagava o nome, porque o
+  // setNameEl pula a escrita quando a "assinatura" não mudou)
+  const occupied = new Set(state.players.map(p => seatOffsetLabel(p.seat, n)));
+  ['top', 'left', 'right'].forEach(pos => {
     const nameEl = document.getElementById(`name-${pos}`);
-    if (nameEl && pos !== 'bottom') nameEl.textContent = '—';
+    if (nameEl && !occupied.has(pos)) { nameEl.textContent = '—'; delete nameEl.dataset.sig; }
   });
 
   for (const p of state.players) {
