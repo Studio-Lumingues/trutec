@@ -26,7 +26,10 @@
   var authed = false, pendingUser = '';
   var hist = [], hidx = 0, saved = null;
   var adminKey = '';             // chave do `auth` (só na memória; some ao recarregar/sair)
-  var PHOTO_KEY = 'trutec-admin-photo'; // foto do admin (localStorage)
+  var ADMIN_NAME = 'Matheus Luna';
+  var PHOTO_KEY = 'trutec-admin-photo';      // foto final (JPEG 320x320) que vai pro servidor
+  var PHOTO_SRC_KEY = 'trutec-admin-photo-src'; // imagem original (reduzida) pra poder ajustar depois
+  var PHOTO_TF_KEY = 'trutec-admin-photo-tf';   // último ajuste (zoom/posição)
   var reconnectHooked = false;
 
   // ---------------------------------------------------------------- estilo
@@ -60,7 +63,40 @@
     '.tt-out{white-space:pre-wrap;}',
     '.c-r{color:#ff6b6b}.c-g{color:#5af78e}.c-y{color:#f4f99d}.c-b{color:#57c7ff}.c-m{color:#ff6ac1}',
     '.c-c{color:#9aedfe}.c-o{color:#ffb86c}.c-d{color:#8b8b96}.c-w{color:#fff}.b{font-weight:800}',
-    '.tt-blk{display:inline-block;width:2.2ch;height:1.15em;vertical-align:middle;}'
+    '.tt-blk{display:inline-block;width:2.2ch;height:1.15em;vertical-align:middle;}',
+    /* selo do admin (canto superior direito) */
+    '.tt-badge{position:fixed;top:.75rem;right:.75rem;z-index:11;display:flex;align-items:center;gap:.55rem;padding:.3rem .8rem .3rem .3rem;',
+    'border:1px solid rgba(255,255,255,.35);border-radius:999px;background:rgba(10,10,10,.78);color:#fff8f0;cursor:pointer;',
+    'font:700 .85rem/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-shadow:0 .4rem 1rem rgba(0,0,0,.45);}',
+    '.tt-badge[hidden]{display:none;}',
+    '.tt-badge:hover{border-color:#fff8f0;background:rgba(30,30,34,.9);}',
+    '.tt-badge-img{width:2.1rem;height:2.1rem;border-radius:50%;object-fit:cover;background:#fff8f0;display:flex;align-items:center;',
+    'justify-content:center;color:#0a0a0a;font-weight:800;font-size:.8rem;overflow:hidden;flex:none;}',
+    '.tt-badge-img img{width:100%;height:100%;object-fit:cover;display:block;}',
+    '.tt-badge small{display:block;font-weight:600;font-size:.68rem;opacity:.7;margin-top:.2rem;}',
+    /* editor da foto */
+    '.tt-ph{position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65);',
+    'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#fff8f0;}',
+    '.tt-ph[hidden]{display:none;}',
+    '.tt-ph-card{width:min(22rem,92vw);padding:1.1rem 1.1rem 1rem;border-radius:1rem;background:rgba(18,18,22,.96);',
+    'border:1px solid rgba(255,255,255,.2);box-shadow:0 2rem 4rem rgba(0,0,0,.6);text-align:center;}',
+    '.tt-ph-card h3{margin:0 0 .2rem;font-size:1.05rem;}',
+    '.tt-ph-card p{margin:0 0 .8rem;font-size:.78rem;opacity:.7;}',
+    '.tt-ph-view{position:relative;width:15rem;height:15rem;margin:0 auto .8rem;border-radius:50%;overflow:hidden;touch-action:none;cursor:grab;',
+    'background:#2a2a30;border:.18rem solid #fff8f0;}',
+    '.tt-ph-view.drag{cursor:grabbing;}',
+    '.tt-ph-view img{position:absolute;left:0;top:0;max-width:none;user-select:none;-webkit-user-drag:none;pointer-events:none;transform-origin:0 0;}',
+    '.tt-ph-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;opacity:.65;padding:1rem;}',
+    '.tt-ph-zoom{display:flex;align-items:center;gap:.6rem;margin:0 0 .9rem;font-size:.75rem;opacity:.9;}',
+    '.tt-ph-zoom input{flex:1;accent-color:#f4f99d;}',
+    '.tt-ph-row{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;}',
+    '.tt-ph-btn{flex:1 1 auto;padding:.55rem .8rem;border-radius:.6rem;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);',
+    'color:#fff8f0;font-family:inherit;font-weight:700;font-size:.82rem;line-height:1;cursor:pointer;}',
+    '.tt-ph-btn:hover{background:rgba(255,255,255,.18);}',
+    '.tt-ph-btn.main{background:#f4f99d;color:#0a0a0a;border-color:#f4f99d;}',
+    '.tt-ph-btn.main:hover{background:#fffdb0;}',
+    '.tt-ph-btn:disabled{opacity:.4;cursor:default;}',
+    '.tt-ph-msg{min-height:1.1rem;margin:.65rem 0 0;font-size:.78rem;}'
   ].join('');
 
   function injectStyle() {
@@ -205,6 +241,251 @@
     ['exit', '', 'encerra a sessão (logout)']
   ];
 
+  // ---------------------------------------------------------------- servidor (admin)
+  function adminCall(p) {
+    var sock = typeof socket !== 'undefined' ? socket : null;
+    return new Promise(function (resolve) {
+      if (!sock) return resolve({ ok: false, error: 'sem conexão com o servidor.' });
+      var done = false;
+      var to = setTimeout(function () { if (!done) { done = true; resolve({ ok: false, error: 'servidor não respondeu.' }); } }, 8000);
+      p.key = adminKey;
+      sock.emit('admin', p, function (res) {
+        if (done) return; done = true; clearTimeout(to);
+        res = res || { ok: false, error: 'erro' };
+        if (!res.ok && /Chave/.test(res.error || '')) { adminKey = ''; hideBadge(); }
+        resolve(res);
+      });
+    });
+  }
+
+  // ---------------------------------------------------------------- selo no canto superior direito
+  var badge = null;
+  function initials() {
+    return ADMIN_NAME.split(/\s+/).map(function (w) { return w.charAt(0); }).join('').slice(0, 2).toUpperCase();
+  }
+  function paintBadge() {
+    if (!badge) return;
+    var photo = readPhoto(), box = badge.querySelector('.tt-badge-img');
+    box.innerHTML = '';
+    if (photo) { var im = document.createElement('img'); im.alt = ''; im.src = photo; box.appendChild(im); }
+    else box.textContent = initials();
+  }
+  function showBadge() {
+    if (!badge) {
+      badge = document.createElement('button');
+      badge.type = 'button';
+      badge.className = 'tt-badge';
+      badge.title = 'Alterar minha foto';
+      badge.innerHTML = '<span class="tt-badge-img"></span><span>' + esc(ADMIN_NAME) + '<small>Alterar foto</small></span>';
+      badge.addEventListener('click', openPhotoEditor);
+      document.body.appendChild(badge);
+    }
+    badge.hidden = false;
+    paintBadge();
+  }
+  function hideBadge() { if (badge) badge.hidden = true; }
+
+  // ---------------------------------------------------------------- editor da foto (arrastar + zoom)
+  var phEd = null;
+  function lsGet(k) { try { return localStorage.getItem(k) || null; } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+  // reduz a imagem escolhida (lado maior <= 900px) pra guardar a "original" sem estourar o localStorage
+  function loadFileAsSource(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        try {
+          var k = Math.min(1, 900 / Math.max(im.naturalWidth, im.naturalHeight));
+          var cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(im.naturalWidth * k));
+          cv.height = Math.max(1, Math.round(im.naturalHeight * k));
+          var cx = cv.getContext('2d');
+          cx.fillStyle = '#fff8f0'; cx.fillRect(0, 0, cv.width, cv.height);
+          cx.drawImage(im, 0, 0, cv.width, cv.height);
+          URL.revokeObjectURL(url);
+          resolve(cv.toDataURL('image/jpeg', 0.88));
+        } catch (e) { reject(e); }
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); reject(new Error('arquivo não é uma imagem válida.')); };
+      im.src = url;
+    });
+  }
+
+  function buildPhotoEditor() {
+    var ov = document.createElement('div');
+    ov.className = 'tt-ph';
+    ov.hidden = true;
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-label', 'Ajustar foto');
+    ov.innerHTML =
+      '<div class="tt-ph-card">' +
+        '<h3>Sua foto</h3>' +
+        '<p>Arraste pra posicionar e use o zoom. É assim que todos vão te ver.</p>' +
+        '<div class="tt-ph-view"><div class="tt-ph-empty">Nenhuma imagem. Clique em “Escolher imagem”.</div></div>' +
+        '<div class="tt-ph-zoom"><span>−</span><input type="range" min="100" max="400" value="100" step="1" aria-label="Zoom" /><span>+</span></div>' +
+        '<div class="tt-ph-row">' +
+          '<button type="button" class="tt-ph-btn" data-a="pick">Escolher imagem</button>' +
+          '<button type="button" class="tt-ph-btn main" data-a="save">Salvar</button>' +
+        '</div>' +
+        '<div class="tt-ph-row" style="margin-top:.5rem">' +
+          '<button type="button" class="tt-ph-btn" data-a="remove">Remover foto</button>' +
+          '<button type="button" class="tt-ph-btn" data-a="cancel">Cancelar</button>' +
+        '</div>' +
+        '<div class="tt-ph-msg" aria-live="polite"></div>' +
+      '</div>';
+    document.body.appendChild(ov);
+
+    var view = ov.querySelector('.tt-ph-view'), zoomEl = ov.querySelector('input[type=range]');
+    var msg = ov.querySelector('.tt-ph-msg'), saveBtn = ov.querySelector('[data-a=save]');
+    var st = { img: null, src: null, z: 1, ox: 0, oy: 0 };   // ox/oy: deslocamento do centro da imagem (px do viewport)
+
+    function V() { return view.clientWidth || 240; }
+    function base() { return st.img ? Math.max(V() / st.img.naturalWidth, V() / st.img.naturalHeight) : 1; }
+    function clamp() {
+      if (!st.img) return;
+      var sc = base() * st.z;
+      var mx = Math.max(0, (st.img.naturalWidth * sc - V()) / 2), my = Math.max(0, (st.img.naturalHeight * sc - V()) / 2);
+      st.ox = Math.max(-mx, Math.min(mx, st.ox));
+      st.oy = Math.max(-my, Math.min(my, st.oy));
+    }
+    function paint() {
+      if (!st.img) return;
+      clamp();
+      var sc = base() * st.z, w = st.img.naturalWidth * sc, h = st.img.naturalHeight * sc;
+      var left = V() / 2 + st.ox - w / 2, top = V() / 2 + st.oy - h / 2;
+      st.img.style.width = w + 'px'; st.img.style.height = h + 'px';
+      st.img.style.transform = 'translate(' + left + 'px,' + top + 'px)';
+      zoomEl.value = Math.round(st.z * 100);
+    }
+    function setImage(src, tf) {
+      var im = new Image();
+      im.onload = function () {
+        if (st.img && st.img.parentNode) st.img.parentNode.removeChild(st.img);
+        var empty = view.querySelector('.tt-ph-empty'); if (empty) empty.hidden = true;
+        im.draggable = false;
+        view.appendChild(im);
+        st.img = im; st.src = src;
+        st.z = tf && tf.z ? Math.max(1, Math.min(4, tf.z)) : 1;
+        st.ox = tf && isFinite(tf.ox) ? tf.ox * V() : 0;
+        st.oy = tf && isFinite(tf.oy) ? tf.oy * V() : 0;
+        paint();
+      };
+      im.src = src;
+    }
+    function say(t, bad) { msg.textContent = t || ''; msg.style.color = bad ? '#ff8a84' : '#5af78e'; }
+
+    // arrastar
+    var drag = null;
+    view.addEventListener('pointerdown', function (e) {
+      if (!st.img) return;
+      drag = { x: e.clientX, y: e.clientY, ox: st.ox, oy: st.oy };
+      view.classList.add('drag');
+      view.setPointerCapture(e.pointerId);
+    });
+    view.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      st.ox = drag.ox + (e.clientX - drag.x); st.oy = drag.oy + (e.clientY - drag.y);
+      paint();
+    });
+    function endDrag() { drag = null; view.classList.remove('drag'); }
+    view.addEventListener('pointerup', endDrag);
+    view.addEventListener('pointercancel', endDrag);
+    // zoom: slider e roda do mouse
+    zoomEl.addEventListener('input', function () { st.z = (+zoomEl.value) / 100; paint(); });
+    view.addEventListener('wheel', function (e) {
+      if (!st.img) return;
+      e.preventDefault();
+      st.z = Math.max(1, Math.min(4, st.z * (e.deltaY < 0 ? 1.06 : 1 / 1.06)));
+      paint();
+    }, { passive: false });
+
+    function close() { ov.hidden = true; }
+
+    function pick() {
+      var inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'image/*'; inp.style.display = 'none';
+      document.body.appendChild(inp);
+      function done() { if (inp.parentNode) inp.parentNode.removeChild(inp); }
+      inp.addEventListener('cancel', done);
+      inp.addEventListener('change', function () {
+        var f = inp.files && inp.files[0];
+        done();
+        if (!f) return;
+        loadFileAsSource(f).then(function (src) { say(''); setImage(src, null); },
+          function (e) { say((e && e.message) || 'não consegui abrir a imagem.', true); });
+      });
+      inp.click();
+    }
+
+    function save() {
+      if (!st.img) return say('Escolha uma imagem primeiro.', true);
+      var N = 320, sc = base() * st.z, w = st.img.naturalWidth * sc, h = st.img.naturalHeight * sc;
+      var left = V() / 2 + st.ox - w / 2, top = V() / 2 + st.oy - h / 2;
+      var cv = document.createElement('canvas'); cv.width = cv.height = N;
+      var cx = cv.getContext('2d');
+      cx.fillStyle = '#fff8f0'; cx.fillRect(0, 0, N, N);
+      cx.drawImage(st.img, -left / sc, -top / sc, V() / sc, V() / sc, 0, 0, N, N);
+      var photo = cv.toDataURL('image/jpeg', 0.88);
+      saveBtn.disabled = true; say('Salvando…');
+      var storedOk = lsSet(PHOTO_KEY, photo);
+      lsSet(PHOTO_SRC_KEY, st.src);
+      lsSet(PHOTO_TF_KEY, JSON.stringify({ z: st.z, ox: st.ox / V(), oy: st.oy / V() }));
+      adminCall({ op: 'photo', photo: photo }).then(function (res) {
+        saveBtn.disabled = false;
+        if (!res.ok) return say(res.error || 'erro', true);
+        paintBadge();
+        out(c('g', '✔ ') + 'foto atualizada ' + c('d', res.inRoom ? '(todos na sala já veem)' : '(vale quando você entrar numa sala)') +
+          (storedOk ? '' : c('y', '  ! não deu pra salvar no localStorage')));
+        close();
+      });
+    }
+
+    function remove() {
+      lsDel(PHOTO_KEY); lsDel(PHOTO_SRC_KEY); lsDel(PHOTO_TF_KEY);
+      adminCall({ op: 'photo_off' }).then(function (res) {
+        if (!res.ok) return say(res.error || 'erro', true);
+        paintBadge();
+        if (st.img && st.img.parentNode) st.img.parentNode.removeChild(st.img);
+        st.img = null; st.src = null;
+        var empty = view.querySelector('.tt-ph-empty'); if (empty) empty.hidden = false;
+        out(c('g', '✔ ') + 'foto removida');
+        close();
+      });
+    }
+
+    ov.addEventListener('click', function (e) {
+      if (e.target === ov) return close();
+      var b = e.target.closest && e.target.closest('[data-a]');
+      if (!b) return;
+      var a = b.getAttribute('data-a');
+      if (a === 'pick') pick(); else if (a === 'save') save(); else if (a === 'remove') remove(); else close();
+    });
+    ['keydown', 'keyup', 'keypress'].forEach(function (ev) {
+      ov.addEventListener(ev, function (e) {
+        if (ev === 'keydown' && e.key === 'Escape') close();
+        e.stopPropagation();
+      });
+    });
+    ov.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+
+    return {
+      open: function () {
+        ov.hidden = false; say('');
+        var src = lsGet(PHOTO_SRC_KEY) || lsGet(PHOTO_KEY);
+        var tf = null; try { tf = JSON.parse(lsGet(PHOTO_TF_KEY)); } catch (e) {}
+        if (src) setImage(src, lsGet(PHOTO_SRC_KEY) ? tf : null);
+        saveBtn.focus();
+      }
+    };
+  }
+  function openPhotoEditor() {
+    if (!adminKey) return;
+    if (!phEd) phEd = buildPhotoEditor();
+    phEd.open();
+  }
+
   // ---------------------------------------------------------------- foto do admin
   function readPhoto() {
     try { return localStorage.getItem(PHOTO_KEY) || null; } catch (e) { return null; }
@@ -220,48 +501,6 @@
       sock.emit('admin', { key: adminKey, op: 'photo', photo: photo }, function () {});
     });
   }
-  // abre o seletor de arquivos; recorta no centro (quadrado 320x320) e devolve um JPEG pequeno (dataURL)
-  function pickPhoto() {
-    return new Promise(function (resolve, reject) {
-      var inp = document.createElement('input');
-      inp.type = 'file';
-      inp.accept = 'image/*';
-      inp.style.display = 'none';
-      document.body.appendChild(inp);
-      var settled = false;
-      function end(v, err) {
-        if (settled) return; settled = true;
-        clearTimeout(t);
-        if (inp.parentNode) inp.parentNode.removeChild(inp);
-        err ? reject(err) : resolve(v);
-      }
-      var t = setTimeout(function () { end(null); }, 180000);
-      inp.addEventListener('cancel', function () { end(null); });
-      inp.addEventListener('change', function () {
-        var f = inp.files && inp.files[0];
-        if (!f) return end(null);
-        var url = URL.createObjectURL(f);
-        var img = new Image();
-        img.onload = function () {
-          try {
-            var N = 320, cv = document.createElement('canvas');
-            cv.width = cv.height = N;
-            var side = Math.min(img.naturalWidth, img.naturalHeight);
-            var sx = (img.naturalWidth - side) / 2, sy = (img.naturalHeight - side) / 2;
-            var ctx = cv.getContext('2d');
-            ctx.fillStyle = '#fff8f0'; ctx.fillRect(0, 0, N, N);
-            ctx.drawImage(img, sx, sy, side, side, 0, 0, N, N);
-            URL.revokeObjectURL(url);
-            end(cv.toDataURL('image/jpeg', 0.88));
-          } catch (e) { end(null, e); }
-        };
-        img.onerror = function () { URL.revokeObjectURL(url); end(null, new Error('arquivo não é uma imagem válida.')); };
-        img.src = url;
-      });
-      inp.click();
-    });
-  }
-
   var COMMANDS = {
     help: function () {
       out(c('c b', 'Comandos disponíveis'));
@@ -412,19 +651,7 @@
       var sock = typeof socket !== 'undefined' ? socket : null;
       if (!sock) return out(c('r', 'sem conexão com o servidor.'));
 
-      function call(p) {
-        return new Promise(function (resolve) {
-          var done = false;
-          var to = setTimeout(function () { if (!done) { done = true; resolve({ ok: false, error: 'servidor não respondeu.' }); } }, 8000);
-          p.key = adminKey;
-          sock.emit('admin', p, function (res) {
-            if (done) return; done = true; clearTimeout(to);
-            res = res || { ok: false, error: 'erro' };
-            if (!res.ok && /Chave/.test(res.error || '')) adminKey = '';
-            resolve(res);
-          });
-        });
-      }
+      var call = adminCall;
       function fail(res) { out(c('r', '✘ ') + esc(res.error || 'erro')); }
 
       // ---- ainda sem login: o argumento é a chave
@@ -437,12 +664,15 @@
         adminKey = args.join(' ');
         return call({ op: 'login' }).then(function (res) {
           if (!res.ok) return fail(res);
-          out(c('g', '✔ ') + 'modo admin ativo ' + c('d', '(digite `auth` pra ver as opções)'));
+          out('');
+          out(c('g b', 'Bem-vindo, ' + ADMIN_NAME + '!') + c('d', '  (digite ') + c('y', 'auth') + c('d', ' pra ver as opções)'));
+          out('');
+          showBadge();
           hookReconnect();
           // foto salva de outras vezes: já aplica
           var photo = readPhoto();
           if (photo) return call({ op: 'photo', photo: photo }).then(function (r2) {
-            out(r2.ok ? c('g', '✔ ') + 'foto salva aplicada ' + c('d', '(todos veem no lugar do seu personagem)') : c('r', '✘ ') + esc(r2.error));
+            out(r2.ok ? c('g', '✔ ') + 'foto salva aplicada ' + c('d', '(todos veem no lugar do seu personagem; ajuste pelo canto superior direito)') : c('r', '✘ ') + esc(r2.error));
           });
         });
       }
@@ -450,7 +680,7 @@
       var sub = (args[0] || '').toLowerCase();
       function usage() {
         out(c('c b', 'auth') + c('d', ' — modo admin ativo'));
-        out('  ' + c('g b', pad('foto', 22)) + c('d', 'escolhe uma foto (salva no localStorage) que todos veem no lugar do seu personagem'));
+        out('  ' + c('g b', pad('foto', 22)) + c('d', 'abre o ajuste da foto (também no canto superior direito); todos veem no lugar do seu personagem'));
         out('  ' + c('g b', pad('foto off', 22)) + c('d', 'tira a foto e volta pro personagem'));
         out('  ' + c('g b', pad('show', 22)) + c('d', 'mostra o placar (dentro de uma partida)'));
         out('  ' + c('g b', pad('set <d1> <d2>', 22)) + c('d', 'define o placar (0 a 12)'));
@@ -460,24 +690,18 @@
         out(c('d', 'Chegar a 12 encerra a partida.'));
       }
       if (!sub) return usage();
-      if (sub === 'sair' || sub === 'logout') { adminKey = ''; return out(c('g', '✔ ') + 'saiu do modo admin'); }
+      if (sub === 'sair' || sub === 'logout') { adminKey = ''; hideBadge(); return out(c('g', '✔ ') + 'saiu do modo admin'); }
 
       if (sub === 'foto' || sub === 'photo') {
         if ((args[1] || '').toLowerCase() === 'off') {
-          try { localStorage.removeItem(PHOTO_KEY); } catch (e) {}
+          lsDel(PHOTO_KEY); lsDel(PHOTO_SRC_KEY); lsDel(PHOTO_TF_KEY);
           return call({ op: 'photo_off' }).then(function (res) {
+            paintBadge();
             out(res.ok ? c('g', '✔ ') + 'foto removida' : c('r', '✘ ') + esc(res.error));
           });
         }
-        return pickPhoto().then(function (photo) {
-          if (!photo) return out(c('y', 'nenhuma foto escolhida.'));
-          try { localStorage.setItem(PHOTO_KEY, photo); }
-          catch (e) { out(c('y', '! não deu pra salvar no localStorage (foto vale só até recarregar).')); }
-          return call({ op: 'photo', photo: photo }).then(function (res) {
-            if (!res.ok) return fail(res);
-            out(c('g', '✔ ') + 'foto definida ' + c('d', res.inRoom ? '(todos na sala já veem)' : '(vale quando você entrar numa sala)'));
-          });
-        }, function (err) { out(c('r', '✘ ') + esc(err && err.message || 'não consegui abrir a imagem.')); });
+        openPhotoEditor();
+        return out(c('d', 'editor da foto aberto.'));
       }
 
       var p;
@@ -505,6 +729,7 @@
     out(c('d', '[Process completed]'));
     authed = false;
     adminKey = '';
+    hideBadge();
     setTimeout(function () {
       hideWin();
       body.innerHTML = '';   // na próxima abertura mostra o login de novo
