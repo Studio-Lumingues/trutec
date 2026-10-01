@@ -19,22 +19,11 @@
   var GUIDE = 'assets/guia.png';
   var TYPE_MS = 18;                       // velocidade da "fala" (ms por letra)
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var FLIP_MS = 240;                      // o guia/balão viram de lado só depois que ele já saiu andando
+  // Física do guia (mola contínua: se o destino muda no meio do caminho, a velocidade é mantida = sem soquinho)
+  var SPRING_W = 11.5;                    // rapidez da mola (maior = mais ágil)
+  var SPRING_Z = 0.62;                    // amortecimento: menor = mais elástico/balançando, maior = mais suave
   var SETTLE_MS = 60;                     // quanto o alvo precisa ficar parado antes do guia reposicionar (antes 160)
 
-  // Mola de verdade (elástico) pro guia quando ele vai pra outro canto: massa-mola amortecida
-  // amostrada em 48 pontos e usada como easing `linear(...)`. Navegador sem suporte usa um
-  // cubic-bezier com overshoot forte (bem parecido, só com 1 "balanço").
-  var SP = (function () {
-    var z = 0.36, wd = 10.5, w = wd / Math.sqrt(1 - z * z), n = 48, pts = [], i;
-    for (i = 0; i <= n; i++) {
-      var t = i / n;
-      pts.push(i === n ? 1 : +(1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + (z * w / wd) * Math.sin(wd * t))).toFixed(4));
-    }
-    var lin = 'linear(' + pts.join(',') + ')';
-    try { if (window.CSS && CSS.supports && CSS.supports('transition-timing-function', lin)) return { ease: lin, dur: '1.15s' }; } catch (e) {}
-    return { ease: 'cubic-bezier(.34,1.56,.64,1)', dur: '.7s' };
-  })();
 
   // ---- passos --------------------------------------------------------------
   // target: seletor (ou função) do que fica claro · ui: qual modal fica aberto
@@ -125,19 +114,10 @@
       'filter:url(#boil-sm);opacity:.95}',
       '.tut-spot.tut-none .tut-ring{display:none}',
       '.tut-panel{--gh:clamp(10rem,44vh,23rem);position:fixed;left:0;top:0;display:flex;align-items:flex-start;gap:.5rem;pointer-events:none;',
-      'width:max-content;max-width:calc(100vw - 1.5rem);transition:transform ' + SP.dur + ' ' + SP.ease + ';will-change:transform}',
+      'width:max-content;max-width:calc(100vw - 1.5rem);will-change:transform}',
             '.tut-panel.tut-right{flex-direction:row-reverse}',
       '.tut-guide{flex:none;pointer-events:auto;cursor:pointer;animation:tutBob 2.4s ease-in-out infinite}',
-      '.tut-guide img{display:block;height:var(--gh);width:auto;filter:url(#boil-lg);user-select:none;-webkit-user-select:none}',
-      // wiggle ao trocar de lugar: o boneco balança e o balão faz um "squash" de borracha
-      '.tut-panel.tut-wiggle .tut-guide img{transform-origin:50% 100%;animation:tutWig .9s ease-out}',
-      '.tut-panel.tut-wiggle .tut-bubble{transform-origin:var(--wo,0 50%);animation:tutJelly .8s ease-out}',
-      '@keyframes tutWig{0%{transform:rotate(0)}15%{transform:rotate(calc(var(--lean,1) * -10deg)) scale(1.04,.95)}35%{transform:rotate(calc(var(--lean,1) * 7deg)) scale(.97,1.04)}55%{transform:rotate(calc(var(--lean,1) * -4deg))}75%{transform:rotate(calc(var(--lean,1) * 2deg))}100%{transform:rotate(0)}}',
-      '@keyframes tutJelly{0%{transform:scale(1,1) skewX(0deg)}20%{transform:scale(1.06,.94) skewX(calc(var(--lean,1) * -3deg))}45%{transform:scale(.97,1.04) skewX(calc(var(--lean,1) * 2deg))}70%{transform:scale(1.015,.99) skewX(0deg)}100%{transform:scale(1,1) skewX(0deg)}}',
-      // boing ao clicar em Próximo/Voltar: feedback na hora, mesmo quando o guia não troca de canto
-      '.tut-panel.tut-boing .tut-guide img{transform-origin:50% 100%;animation:tutBoing .8s cubic-bezier(.2,.9,.3,1)}',
-      '.tut-panel.tut-wiggle.tut-boing .tut-guide img{animation:tutWig .9s ease-out,tutBoing .8s cubic-bezier(.2,.9,.3,1)}',
-      '@keyframes tutBoing{0%{scale:1 1}14%{scale:1.2 .78}32%{scale:.88 1.16}50%{scale:1.08 .94}68%{scale:.97 1.03}84%{scale:1.01 .995}100%{scale:1 1}}',
+      '.tut-guide img{transform-origin:50% 100%;display:block;height:var(--gh);width:auto;filter:url(#boil-lg);user-select:none;-webkit-user-select:none}',
       '.tut-panel.tut-talk .tut-guide{animation:tutTalk .32s ease-in-out infinite}',
       '@keyframes tutBob{50%{transform:translateY(-.25rem) rotate(-1.5deg)}}',
       '@keyframes tutTalk{25%{transform:translateY(-.3rem) rotate(2deg)}75%{transform:translateY(-.1rem) rotate(-2deg)}}',
@@ -181,14 +161,14 @@
       'background:#ffd23f;border:2.5px solid #0a0a0a;font:800 .8rem/1.05rem system-ui,sans-serif;text-align:center;color:#0a0a0a}',
       '@media (max-width:600px){.tut-panel{--gh:clamp(7.5rem,25vh,12rem);width:calc(100vw - 1.5rem)}.tut-bubble{flex:1 1 auto;font-size:1.08rem;padding:.8rem .95rem .75rem}',
       '}',
-      '@media (prefers-reduced-motion:reduce){.tut-panel.tut-boing .tut-guide img{animation:none!important}.tut-guide,.tut-panel.tut-talk .tut-guide,.tut-panel.tut-wiggle .tut-guide img,.tut-panel.tut-wiggle .tut-bubble{animation:none}',
+      '@media (prefers-reduced-motion:reduce){.tut-guide,.tut-panel.tut-talk .tut-guide{animation:none}',
       '.tut-spot.tut-move,.tut-panel{transition:none}}'
     ].join('');
     document.head.appendChild(st);
   }
 
   // ---- estado do tutorial ----
-  var root, block, mandatory = false, pending = false, spot, panel, guideImg, bubble, typed, full, countEl, btnNext, btnBack, btnSkip;
+  var root, block, gImg, mandatory = false, pending = false, spot, panel, guideImg, bubble, typed, full, countEl, btnNext, btnBack, btnSkip;
   var idx = 0, running = false, raf = 0, typeTimer = null, moveTimer = 0, relayoutTimer = 0;
   var nodes = [], texts = [], cursor = 0, total = 0, plain = '';
   var settleAt = 0, dirty = false;
@@ -203,8 +183,9 @@
 
   // holofote: segue o elemento (ele pode estar animando, como um modal abrindo)
   var PAD = 8;
-  function track() {
+  function track(now) {
     raf = requestAnimationFrame(track);
+    step(now || performance.now());                   // mola do guia: roda todo quadro, independente do resto
     if (!started) return;
     if (dirty && Date.now() - settleAt > SETTLE_MS) { dirty = false; layout(); }   // modal parou de animar: posiciona UMA vez
     var el = resolve(STEPS[idx].target);
@@ -259,57 +240,84 @@
       curCand = pick; curCandN = cand.length;
       x = cand[pick][0]; y = cand[pick][1]; right = cand[pick][2];
     }
-    var tf = 'translate(' + Math.round(Math.max(0, x)) + 'px,' + Math.round(Math.max(0, y)) + 'px)';
+    var X = Math.max(0, x), Y = Math.max(0, y);
     var hasRight = panel.classList.contains('tut-right');
-    if (entrance || snap) {                           // sem animação: já vira de lado na hora
-      clearTimeout(flipTimer); flipTo = null;
-      panel.classList.toggle('tut-right', right);
+    if (entrance || snap) {                           // sem animação de lado: já vira na hora
+      if (right !== hasRight) panel.classList.toggle('tut-right', right);
+      G.x = G.v = B.x = B.v = 0;
     }
     if (entrance) {                                   // entrada: começa FORA da tela, embaixo, e sobe até o lugar com a mola
-      panel.style.transition = 'none';
-      panel.style.transform = 'translate(' + Math.round(Math.max(0, x)) + 'px,' + (vh + 30) + 'px)';
-      void panel.offsetWidth;
-      panel.style.transition = '';
-      panel.style.transform = tf;
+      P.x = X; P.y = vh + 30; P.vx = P.vy = 0; P.tx = X; P.ty = Y;
       lastX = x; lastY = y; lastWig = Date.now();
       clearTimeout(enterTimer);
-      enterTimer = setTimeout(function () { if (running) wiggle(right); }, 380);   // balança quando chega
+      enterTimer = setTimeout(function () { if (running) kick(0); }, 380);   // boing quando chega
     } else if (snap) {                                // resize: acompanha a janela sem "elástico"
-      panel.style.transition = 'none';
-      panel.style.transform = tf;
-      void panel.offsetWidth;
-      panel.style.transition = '';
+      P.x = P.tx = X; P.y = P.ty = Y; P.vx = P.vy = 0;
       lastX = x; lastY = y;
     } else {
       var now = Date.now(), moved = Math.hypot(x - lastX, y - lastY) > 30;
-      panel.style.transform = tf;                     // a mola (transition do CSS) faz o resto
-      if (moved) panel.style.setProperty('--lean', x >= lastX ? 1 : -1);
-      if (flipTo !== null && right === hasRight) { clearTimeout(flipTimer); flipTo = null; }
-      if (right !== hasRight && flipTo !== right) {
-        // trocou de lado: vira o guia/balão no meio do caminho (e não de uma vez, no ponto de partida)
-        clearTimeout(flipTimer); flipTo = right;
-        flipTimer = setTimeout(function () {
-          flipTo = null;
-          if (!running || !panel) return;
-          panel.classList.toggle('tut-right', right);
-          lastWig = Date.now(); wiggle(right);
-        }, FLIP_MS);
-      } else if (flipTo === null && moved && now - lastWig > 350) { lastWig = now; wiggle(right); }
+      P.tx = X; P.ty = Y;                             // só troca o destino: a mola mantém a velocidade, sem soquinho
+      if (right !== hasRight) flipSide(right);
+      if (moved && now - lastWig > 350) { lastWig = now; kick(x >= lastX ? 1 : -1); }
       lastX = x; lastY = y;
     }
   }
-  function boing() {
-    if (reduced || !panel) return;
-    panel.classList.remove('tut-boing');
-    void panel.offsetWidth;
-    panel.classList.add('tut-boing');
-  }
-  function wiggle(right) {
+
+  // ---- física: posição do painel + squash/stretch + inclinação + offsets de "virar de lado" ----
+  var P = { x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0 };
+  var Q = { q: 0, v: 0 };              // squash (borracha): >0 achata e alarga
+  var T = { a: 0, v: 0 };              // inclinação (graus), puxada pela velocidade horizontal
+  var G = { x: 0, v: 0 }, B = { x: 0, v: 0 };   // offsets do guia e do balão ao trocar de lado
+  var lastT = 0, lastTf = '', lastImgTf = '';
+  function resetPhys() { P.x = P.y = P.vx = P.vy = P.tx = P.ty = 0; Q.q = Q.v = T.a = T.v = G.x = G.v = B.x = B.v = 0; lastT = 0; lastTf = ''; lastImgTf = ''; }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function step(now) {
+    if (!panel) { lastT = 0; return; }
+    var dt = lastT ? Math.min(0.05, (now - lastT) / 1000) : 0.016;
+    lastT = now;
+    if (dt <= 0) return;
+    if (reduced) { P.x = P.tx; P.y = P.ty; P.vx = P.vy = 0; }
+    else {
+      var K = SPRING_W * SPRING_W, C = 2 * SPRING_Z * SPRING_W;
+      var n = Math.max(1, Math.ceil(dt / 0.008)), h = dt / n;
+      for (var i = 0; i < n; i++) {
+        P.vx += (-K * (P.x - P.tx) - C * P.vx) * h; P.x += P.vx * h;
+        P.vy += (-K * (P.y - P.ty) - C * P.vy) * h; P.y += P.vy * h;
+        Q.v += (-220 * Q.q - 11 * Q.v) * h; Q.q += Q.v * h;
+        var tt = clamp(-P.vx * 0.004, -9, 9);
+        T.v += (150 * (tt - T.a) - 13 * T.v) * h; T.a += T.v * h;
+        G.v += (-K * G.x - C * G.v) * h; G.x += G.v * h;
+        B.v += (-K * B.x - C * B.v) * h; B.x += B.v * h;
+      }
+      if (Math.abs(P.x - P.tx) < 0.03 && Math.abs(P.vx) < 0.3) { P.x = P.tx; P.vx = 0; }
+      if (Math.abs(P.y - P.ty) < 0.03 && Math.abs(P.vy) < 0.3) { P.y = P.ty; P.vy = 0; }
+      if (Math.abs(G.x) < 0.02 && Math.abs(G.v) < 0.3) { G.x = G.v = 0; }
+      if (Math.abs(B.x) < 0.02 && Math.abs(B.v) < 0.3) { B.x = B.v = 0; }
+    }
+    var tf = 'translate3d(' + P.x.toFixed(2) + 'px,' + P.y.toFixed(2) + 'px,0)';
+    if (tf !== lastTf) { lastTf = tf; panel.style.transform = tf; }
     if (reduced) return;
-    panel.style.setProperty('--wo', right ? '100% 50%' : '0 50%');   // o balão "estica" a partir do lado do guia
-    panel.classList.remove('tut-wiggle');
-    void panel.offsetWidth;
-    panel.classList.add('tut-wiggle');
+    var speed = Math.sqrt(P.vx * P.vx + P.vy * P.vy);
+    var st = Math.min(0.12, speed / 7000);                // estica um pouquinho quando está rápido
+    var sy = 1 - Q.q + st, sx = 1 + Q.q - st * 0.6;
+    var itf = 'rotate(' + T.a.toFixed(2) + 'deg) scale(' + sx.toFixed(4) + ',' + sy.toFixed(4) + ')';
+    if (itf !== lastImgTf && gImg) { lastImgTf = itf; gImg.style.transform = itf; }
+    guideImg.style.translate = G.x ? G.x.toFixed(2) + 'px 0' : '';
+    bubble.style.translate = B.x ? B.x.toFixed(2) + 'px 0' : '';
+  }
+  // "boing": empurrão na mola de squash (dir: -1/1 = também inclina pro lado do movimento)
+  function kick(dir) {
+    if (reduced) return;
+    Q.v += 3.6;
+    if (dir) T.v += -dir * 70;
+  }
+  function boing() { kick(0); }
+  // trocar de lado sem pulo: vira o layout na hora e deixa a mola "devolver" guia e balão ao lugar
+  function flipSide(right) {
+    var g0 = guideImg.getBoundingClientRect().left, b0 = bubble.getBoundingClientRect().left;
+    panel.classList.toggle('tut-right', right);
+    var g1 = guideImg.getBoundingClientRect().left, b1 = bubble.getBoundingClientRect().left;
+    if (!reduced) { G.x += g0 - g1; B.x += b0 - b1; }
   }
 
 
@@ -492,10 +500,12 @@
         '</div>' +
       '</div>';
     document.body.appendChild(root);
+    resetPhys();
     block = root.querySelector('.tut-block');
     spot = root.querySelector('.tut-spot'); panel = root.querySelector('.tut-panel');
     guideImg = root.querySelector('.tut-guide'); bubble = root.querySelector('.tut-bubble');
     typed = root.querySelector('.tut-typed'); full = root.querySelector('.tut-full');
+    gImg = guideImg.querySelector('img');
     countEl = root.querySelector('.tut-count');
     btnNext = root.querySelector('.tut-go'); btnBack = root.querySelector('.tut-back'); btnSkip = root.querySelector('.tut-skip');
     btnNext.addEventListener('click', next);
