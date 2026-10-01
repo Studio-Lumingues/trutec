@@ -2704,7 +2704,10 @@ html[data-theme="casa"] .table-disc::before {
 }
 .btn-glass:hover { filter: brightness(1.1); background:
     linear-gradient(135deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.09) 45%, rgba(255,255,255,0.18) 100%); }
-.btn-glass:hover::after { left: 120%; transition: left .6s ease; } /* só a ida */
+/* o glass-sweep.js põe .sweep ao passar o mouse e tira só no fim da animação,
+   então o brilho sempre completa o trajeto, mesmo se o mouse sair no meio */
+.btn-glass.sweep::after { animation: glassSweep .6s ease forwards; }
+@keyframes glassSweep { from { left: -60%; } to { left: 120%; } }
 .btn-glass .glass-label {
   position: relative;
   z-index: 2;
@@ -2714,6 +2717,5 @@ html[data-theme="casa"] .table-disc::before {
 }
 .btn-glass:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
-  .btn-glass::after,
-  .btn-glass:hover::after { transition: none; }
+  .btn-glass.sweep::after { animation: none; }
 }
