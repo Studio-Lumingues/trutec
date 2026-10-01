@@ -167,6 +167,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       <div class="lobby-actions">
         <button id="btn-play" type="button" class="btn btn-primary">Jogar</button>
         <button id="btn-create" type="button" class="btn btn-secondary">Criar sala</button>
+        <button id="btn-open-character-editor" type="button" class="btn btn-secondary"><svg class="ic" aria-hidden="true"><use href="#i-brush"/></svg> Personagem</button>
         <button id="btn-help" type="button" class="btn btn-secondary">Ajuda</button>
         <button id="btn-settings" type="button" class="btn btn-secondary btn-icon-only" aria-label="Configurações" title="Configurações"><svg class="ic ic-only" aria-hidden="true"><use href="#i-gear"/></svg></button>
       </div>
@@ -382,8 +383,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <div id="screen-character-editor" class="screen">
     <div class="character-panel character-panel-wide">
       <h3 class="character-title">Editar personagem</h3>
-      <p class="character-hint">Desenhe em cima do boneco pra deixar do seu jeito.</p>
-      <p id="character-phase-timer" class="character-phase-timer"></p>
+      <p class="character-hint">Desenhe em cima do boneco pra deixar do seu jeito. Ao salvar, ele aparece em todas as suas partidas.</p>
 
       <div class="character-editor-layout">
 
@@ -433,12 +433,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
           <img id="character-base" src="assets/personagem.svg" alt="Personagem" draggable="false" />
           <canvas id="character-canvas" width="500" height="500"></canvas>
         </div>
-
-        <!-- quem já salvou o personagem (só aparece na fase antes da partida) -->
-        <aside id="character-ready-panel" class="character-ready-panel hidden">
-          <h4 class="ready-title">Prontos <span id="ready-count"></span></h4>
-          <ul id="ready-list" class="ready-list"></ul>
-        </aside>
 
       </div>
     </div>

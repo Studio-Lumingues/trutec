@@ -97,10 +97,6 @@ socket.on('force_theme', (m) => {
   const t = TruThemes.applyTemp(m.id);
   if (t && typeof setBanner === 'function' && latestState) setBanner('Tema alterado para ' + t.name, 2600);
 });
-socket.on('disconnect', () => {
-  const t = document.getElementById('character-phase-timer');
-  if (t && t.classList.contains('active')) { /* sem mensagem: só o tempo */ }
-});
 
 function lobbyErrorSafe(msg) {
   const el = document.getElementById('lobby-error');
@@ -963,87 +959,40 @@ document.getElementById('btn-copy-code').addEventListener('click', (e) => {
 // INÍCIO DE JOGO
 // ------------------------------------------------------------------
 let matchIntroPlayed = false;
-let characterPhaseInterval = null;
 let phaseWatchdog = null;
 
-// Depois que o host aperta "Iniciar partida", todo mundo cai na tela de
-// personagem por alguns segundos antes da mão ser distribuída de verdade.
-function renderCharacterReady(players) {
-  const panel = document.getElementById('character-ready-panel');
-  const list = document.getElementById('ready-list');
-  const count = document.getElementById('ready-count');
-  if (!panel || !list) return;
-  panel.classList.remove('hidden');
-  list.innerHTML = '';
-  let readyN = 0;
-  for (const p of players) {
-    if (p.ready) readyN++;
-    const li = document.createElement('li');
-    li.className = 'ready-item' + (p.ready ? ' is-ready' : '');
-    const img = document.createElement('img');
-    img.className = 'ready-avatar';
-    img.alt = p.name;
-    img.src = p.character || 'assets/personagem.svg';
-    const info = document.createElement('div');
-    info.className = 'ready-info';
-    const nm = document.createElement('span');
-    nm.className = 'ready-name';
-    nm.innerHTML = nameFxHtml(p.name, p.nameFx) + escapeHtml(p.seat === (mySeat !== null ? mySeat : myWaitingSeat) ? ' (você)' : '');
-    const st = document.createElement('span');
-    st.className = 'ready-status';
-    st.innerHTML = !p.connected ? 'desconectou' : (p.ready ? ICON('check') + ' Pronto' : ICON('pencil') + ' Desenhando…');
-    info.appendChild(nm);
-    info.appendChild(st);
-    li.appendChild(img);
-    li.appendChild(info);
-    list.appendChild(li);
-  }
-  if (count) count.textContent = `${readyN}/${players.length}`;
+// Não existe mais a fase de desenho de 45s antes da partida: o personagem é feito na
+// seção "Personagem" da tela inicial. Quando o host inicia, o servidor ainda abre a
+// "fase de personagem" (character_phase_start); aqui a gente responde na hora com o
+// personagem que a pessoa já salvou (ou o boneco padrão), e todo mundo fica "pronto"
+// sozinho — a partida começa sem ninguém precisar desenhar nem esperar.
+function sendMyCharacter() {
+  const send = (dataUrl) => socket.emit('update_character', { character: dataUrl }, () => {});
+  const saved = getSavedCharacter();
+  if (saved) return send(saved);
+  try {
+    const base = document.getElementById('character-base');
+    const c = document.createElement('canvas');
+    c.width = 500; c.height = 500;
+    c.getContext('2d').drawImage(base, 0, 0, c.width, c.height);
+    send(c.toDataURL('image/png'));
+  } catch (e) { /* sem canvas: o servidor segue com o boneco padrão */ }
 }
 
-// Depois que o host aperta "Iniciar partida", todo mundo cai na tela de
-// personagem por alguns segundos antes da mão ser distribuída de verdade.
-// Se todos salvarem antes do tempo, a partida começa na hora.
-socket.on('character_phase_start', ({ durationMs, players }) => {
-  showScreen('screen-character-editor');
-
-  const backBtn = document.getElementById('btn-close-character-editor');
-  if (backBtn) backBtn.classList.add('hidden');
-
-  const timerEl = document.getElementById('character-phase-timer');
-  if (timerEl) timerEl.classList.add('active');
-
-  if (players) renderCharacterReady(players);
-
-  const endsAt = Date.now() + durationMs;
-  clearInterval(characterPhaseInterval);
-  const tick = () => {
-    const secsLeft = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
-    if (timerEl) timerEl.textContent = `${secsLeft}s`;
-    if (secsLeft <= 0) {
-      clearInterval(characterPhaseInterval);
-      // Tempo acabou e a partida não veio? Pede ao servidor pra ressincronizar.
-      clearTimeout(phaseWatchdog);
-      phaseWatchdog = setTimeout(() => {
-        const onEditor = document.getElementById('screen-character-editor').classList.contains('active');
-        if (!onEditor) return;
-                if (socket.connected) tryRejoin(); else socket.connect();
-      }, 4000);
-    }
-  };
-  tick();
-  characterPhaseInterval = setInterval(tick, 250);
-});
-
-socket.on('character_ready_update', ({ players }) => {
-  renderCharacterReady(players);
+socket.on('character_phase_start', ({ durationMs } = {}) => {
+  sendMyCharacter();
+  // se a partida não vier (conexão/servidor), pede pro servidor ressincronizar
+  clearTimeout(phaseWatchdog);
+  phaseWatchdog = setTimeout(() => {
+    if (!myRoomCode) return;
+    if (document.getElementById('screen-game').classList.contains('active')) return;
+    if (socket.connected) tryRejoin(); else socket.connect();
+  }, (durationMs || 45000) + 4000);
 });
 
 socket.on('character_all_ready', () => {
   if (window.GameAudio) GameAudio.endMusic(); // todo mundo pronto: música some em fade out
-  clearInterval(characterPhaseInterval);
-  const timerEl = document.getElementById('character-phase-timer');
-  });
+});
 
 // Transição pra partida: a tela escurece (fade in), fica preta com o círculo
 // girando e depois some (fade out) revelando a mesa.
@@ -1113,14 +1062,7 @@ function beginMatch(state, dealDelay) {
   if (window.GameAudio) GameAudio.setMatchStarted(true);
   statsCounted = false;
   lastCallSoundKey = null;
-  clearInterval(characterPhaseInterval);
   clearTimeout(phaseWatchdog);
-  const timerEl = document.getElementById('character-phase-timer');
-  if (timerEl) { timerEl.classList.remove('active'); timerEl.textContent = ''; }
-  const backBtn = document.getElementById('btn-close-character-editor');
-  if (backBtn) backBtn.classList.remove('hidden');
-  const readyPanel = document.getElementById('character-ready-panel');
-  if (readyPanel) readyPanel.classList.add('hidden');
 
   mySeat = state.players.find(p => p.hand !== undefined).seat;
   myTeam = state.players.find(p => p.seat === mySeat).team;
