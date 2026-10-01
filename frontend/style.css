@@ -2407,3 +2407,8 @@ html[data-theme="carro"] .table-disc::before {
 .call-box .vote-row { margin: 0.2rem 0; }
 .call-box .vote-row span { opacity: .75; margin-right: 0.35rem; }
 .call-box .vote-row b { font-weight: 800; }
+
+/* foto do admin (JPEG): não passa pelo tremido "hand drawn" do boneco */
+.seat-avatar-img[src^="data:image/jpeg"],
+.wp-avatar img[src^="data:image/jpeg"],
+.ready-avatar[src^="data:image/jpeg"] { filter: none; }

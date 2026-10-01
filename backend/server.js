@@ -111,11 +111,29 @@ function sanitizeStats(stats) {
   return { wins: n(stats.wins), losses: n(stats.losses) };
 }
 
+const B64_PNG = /^data:image\/png;base64,[A-Za-z0-9+\/]+={0,2}$/;
+const B64_JPG = /^data:image\/jpeg;base64,[A-Za-z0-9+\/]+={0,2}$/;
+
 function sanitizeCharacter(character) {
   if (typeof character !== 'string') return null;
-  if (!character.startsWith('data:image/png;base64,')) return null;
   if (character.length > 400000) return null; // ~300KB, generoso pra um canvas 500x500
+  if (!B64_PNG.test(character)) return null;  // só base64 puro (nada de aspas/HTML dentro do src)
   return character;
+}
+
+// Foto do administrador (comando `auth foto`): JPEG pequeno, só base64 puro.
+function sanitizePhoto(photo) {
+  if (typeof photo !== 'string') return null;
+  if (photo.length > 300000) return null;
+  if (!B64_JPG.test(photo)) return null;
+  return photo;
+}
+
+// O que todo mundo vê no lugar do boneco: a foto do admin (se tiver) ou o personagem.
+// Bot que assumiu o lugar de alguém não herda a foto.
+function shownCharacter(p) {
+  if (p.isBot) return p.character || null;
+  return p.adminPhoto || p.character || null;
 }
 
 function shuffle(arr) {
@@ -238,7 +256,7 @@ class Room {
   characterReadyState() {
     return this.players.map(p => ({
       seat: p.seat, name: p.name, team: p.team, connected: p.connected, isBot: !!p.isBot,
-      character: p.character || null,
+      character: shownCharacter(p),
       ready: this.readySeats.has(p.seat)
     }));
   }
@@ -265,7 +283,7 @@ class Room {
       canStart: !this.started && this.players.length === this.maxPlayers && this.teamsReady(),
       teamsReady: this.teamsReady(),
       players: this.players.map(p => ({
-        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: p.character || null, isBot: !!p.isBot,
+        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: shownCharacter(p), isBot: !!p.isBot,
         theme: p.theme || null, stats: p.stats || null
       }))
     };
@@ -665,7 +683,7 @@ class Room {
         team: p.team,
         connected: p.connected,
         isBot: !!p.isBot,
-        character: p.character || null,
+        character: shownCharacter(p),
         theme: p.theme || null,
         stats: p.stats || null,
         cardsLeft: p.hand.length,
@@ -1257,6 +1275,7 @@ io.on('connection', (socket) => {
     const seat = freeSeat(r);
     const team = pickTeam(r, seat);
     const player = { id: socket.id, token: crypto.randomBytes(12).toString('hex'), name, seat, team, connected: true, hand: [], character: sanitizeCharacter(character), theme: sanitizeTheme(extra.theme), stats: sanitizeStats(extra.stats) };
+    if (adminPhoto) player.adminPhoto = adminPhoto; // admin que já definiu a foto antes de entrar na sala
     r.players.push(player);
     socket.join(r.code);
     return player;
@@ -1292,7 +1311,7 @@ io.on('connection', (socket) => {
     doRespondTruco(r, r.playerBySocket(socket.id), action, tell);
   });
 
-  // ---- Terminal do admin: manipular o placar --------------------------
+  // ---- Terminal do admin (comando `auth`): placar e foto ---------------
   // Só funciona se a variável de ambiente TRUTEC_ADMIN_KEY estiver definida
   // no servidor (Render > Environment). O login adm/123 do terminal.js roda
   // no navegador e é público, então NÃO protege nada: a chave de verdade é
@@ -1305,7 +1324,21 @@ io.on('connection', (socket) => {
     const b = crypto.createHash('sha256').update(real).digest();
     return crypto.timingSafeEqual(a, b);
   }
-  socket.on('admin_score', (p, cb) => {
+  let adminPhoto = null; // foto definida por `auth foto` (vale pra este socket e vai pro jogador)
+
+  function pushPhoto() {
+    const r = room();
+    const me = r && r.playerBySocket(socket.id);
+    if (!r || !me) return;
+    if (adminPhoto) me.adminPhoto = adminPhoto; else delete me.adminPhoto;
+    io.to(r.code).emit('lobby_update', r.lobbyState());
+    if (r.characterPhaseTimer && !r.started) io.to(r.code).emit('character_ready_update', { players: r.characterReadyState() });
+    if (r.started) r.broadcastState(io);
+  }
+
+  // `auth` do terminal: login + placar + foto, tudo por aqui.
+  // ops: login | show | set | add | reset | photo | photo_off
+  socket.on('admin', (p, cb) => {
     const reply = (o) => { if (typeof cb === 'function') cb(o); };
     p = p || {};
     if (!process.env.TRUTEC_ADMIN_KEY) return reply({ ok: false, error: 'Comando desligado no servidor (defina TRUTEC_ADMIN_KEY).' });
@@ -1315,6 +1348,15 @@ io.on('connection', (socket) => {
       return reply({ ok: false, error: 'Chave incorreta.' });
     }
     adminFails = 0;
+    if (p.op === 'login') return reply({ ok: true });
+    if (p.op === 'photo') {
+      const photo = sanitizePhoto(p.photo);
+      if (!photo) return reply({ ok: false, error: 'Foto inválida ou grande demais.' });
+      adminPhoto = photo; pushPhoto();
+      return reply({ ok: true, inRoom: !!room() });
+    }
+    if (p.op === 'photo_off') { adminPhoto = null; pushPhoto(); return reply({ ok: true }); }
+
     const r = room();
     if (!r || !r.started || r.gameOver) return reply({ ok: false, error: 'Você precisa estar numa partida em andamento.' });
     if (p.op === 'show') return reply({ ok: true, score: r.score.slice() });

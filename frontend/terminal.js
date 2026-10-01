@@ -25,7 +25,9 @@
   var state = 'user';            // 'user' | 'pass' | 'shell'
   var authed = false, pendingUser = '';
   var hist = [], hidx = 0, saved = null;
-  var adminKey = '';             // chave do `score auth` (só na memória; some ao recarregar/sair)
+  var adminKey = '';             // chave do `auth` (só na memória; some ao recarregar/sair)
+  var PHOTO_KEY = 'trutec-admin-photo'; // foto do admin (localStorage)
+  var reconnectHooked = false;
 
   // ---------------------------------------------------------------- estilo
   var CSS = [
@@ -192,7 +194,7 @@
     ['stats', '', 'suas vitórias e derrotas'],
     ['volume', '[music|sfx] [0-100]', 'vê ou muda o volume'],
     ['server', '', 'testa o servidor (/health)'],
-    ['score', 'auth|show|set|add|reset', 'mexe na pontuação da partida (veja `score`)'],
+    ['auth', '<chave>', 'modo admin: placar, foto... (veja `auth`)'],
     ['settings', '', 'abre as configurações'],
     ['colors', '', 'paleta de cores do terminal'],
     ['ls', '', 'lista os arquivos do projeto'],
@@ -202,6 +204,63 @@
     ['history', '', 'comandos que você já digitou'],
     ['exit', '', 'encerra a sessão (logout)']
   ];
+
+  // ---------------------------------------------------------------- foto do admin
+  function readPhoto() {
+    try { return localStorage.getItem(PHOTO_KEY) || null; } catch (e) { return null; }
+  }
+  // reconectou (queda de rede / Render acordando)? reaplica a foto no novo socket
+  function hookReconnect() {
+    var sock = typeof socket !== 'undefined' ? socket : null;
+    if (!sock || reconnectHooked) return;
+    reconnectHooked = true;
+    sock.on('connect', function () {
+      var photo = readPhoto();
+      if (!adminKey || !photo) return;
+      sock.emit('admin', { key: adminKey, op: 'photo', photo: photo }, function () {});
+    });
+  }
+  // abre o seletor de arquivos; recorta no centro (quadrado 320x320) e devolve um JPEG pequeno (dataURL)
+  function pickPhoto() {
+    return new Promise(function (resolve, reject) {
+      var inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*';
+      inp.style.display = 'none';
+      document.body.appendChild(inp);
+      var settled = false;
+      function end(v, err) {
+        if (settled) return; settled = true;
+        clearTimeout(t);
+        if (inp.parentNode) inp.parentNode.removeChild(inp);
+        err ? reject(err) : resolve(v);
+      }
+      var t = setTimeout(function () { end(null); }, 180000);
+      inp.addEventListener('cancel', function () { end(null); });
+      inp.addEventListener('change', function () {
+        var f = inp.files && inp.files[0];
+        if (!f) return end(null);
+        var url = URL.createObjectURL(f);
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var N = 320, cv = document.createElement('canvas');
+            cv.width = cv.height = N;
+            var side = Math.min(img.naturalWidth, img.naturalHeight);
+            var sx = (img.naturalWidth - side) / 2, sy = (img.naturalHeight - side) / 2;
+            var ctx = cv.getContext('2d');
+            ctx.fillStyle = '#fff8f0'; ctx.fillRect(0, 0, N, N);
+            ctx.drawImage(img, sx, sy, side, side, 0, 0, N, N);
+            URL.revokeObjectURL(url);
+            end(cv.toDataURL('image/jpeg', 0.88));
+          } catch (e) { end(null, e); }
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); end(null, new Error('arquivo não é uma imagem válida.')); };
+        img.src = url;
+      });
+      inp.click();
+    });
+  }
 
   var COMMANDS = {
     help: function () {
@@ -349,47 +408,88 @@
         });
     },
 
-    score: function (args) {
+    auth: function (args) {
       var sock = typeof socket !== 'undefined' ? socket : null;
       if (!sock) return out(c('r', 'sem conexão com o servidor.'));
+
+      function call(p) {
+        return new Promise(function (resolve) {
+          var done = false;
+          var to = setTimeout(function () { if (!done) { done = true; resolve({ ok: false, error: 'servidor não respondeu.' }); } }, 8000);
+          p.key = adminKey;
+          sock.emit('admin', p, function (res) {
+            if (done) return; done = true; clearTimeout(to);
+            res = res || { ok: false, error: 'erro' };
+            if (!res.ok && /Chave/.test(res.error || '')) adminKey = '';
+            resolve(res);
+          });
+        });
+      }
+      function fail(res) { out(c('r', '✘ ') + esc(res.error || 'erro')); }
+
+      // ---- ainda sem login: o argumento é a chave
+      if (!adminKey) {
+        if (!args.length) {
+          out(c('c b', 'auth') + c('d', ' — modo administrador'));
+          out('  ' + c('g b', pad('auth <chave>', 22)) + c('d', 'entra (a chave é a TRUTEC_ADMIN_KEY do servidor; fica só na memória)'));
+          return;
+        }
+        adminKey = args.join(' ');
+        return call({ op: 'login' }).then(function (res) {
+          if (!res.ok) return fail(res);
+          out(c('g', '✔ ') + 'modo admin ativo ' + c('d', '(digite `auth` pra ver as opções)'));
+          hookReconnect();
+          // foto salva de outras vezes: já aplica
+          var photo = readPhoto();
+          if (photo) return call({ op: 'photo', photo: photo }).then(function (r2) {
+            out(r2.ok ? c('g', '✔ ') + 'foto salva aplicada ' + c('d', '(todos veem no lugar do seu personagem)') : c('r', '✘ ') + esc(r2.error));
+          });
+        });
+      }
+
       var sub = (args[0] || '').toLowerCase();
       function usage() {
-        out(c('c b', 'score') + c('d', ' — só dentro de uma partida em andamento'));
-        out('  ' + c('g b', pad('auth <chave>', 22)) + c('d', 'informa a chave de admin (fica só na memória)'));
-        out('  ' + c('g b', pad('show', 22)) + c('d', 'mostra o placar'));
+        out(c('c b', 'auth') + c('d', ' — modo admin ativo'));
+        out('  ' + c('g b', pad('foto', 22)) + c('d', 'escolhe uma foto (salva no localStorage) que todos veem no lugar do seu personagem'));
+        out('  ' + c('g b', pad('foto off', 22)) + c('d', 'tira a foto e volta pro personagem'));
+        out('  ' + c('g b', pad('show', 22)) + c('d', 'mostra o placar (dentro de uma partida)'));
         out('  ' + c('g b', pad('set <d1> <d2>', 22)) + c('d', 'define o placar (0 a 12)'));
         out('  ' + c('g b', pad('add <1|2> <n>', 22)) + c('d', 'soma n (pode ser negativo) à dupla 1 ou 2'));
         out('  ' + c('g b', pad('reset', 22)) + c('d', 'zera os dois lados'));
-        out(c('d', 'Chegar a 12 encerra a partida. A chave é a variável TRUTEC_ADMIN_KEY do servidor.'));
+        out('  ' + c('g b', pad('sair', 22)) + c('d', 'sai do modo admin'));
+        out(c('d', 'Chegar a 12 encerra a partida.'));
       }
       if (!sub) return usage();
-      if (sub === 'auth') {
-        if (!args[1]) return out(c('y', 'Uso: score auth <chave>'));
-        adminKey = args.slice(1).join(' ');
-        return out(c('g', '✔ ') + 'chave guardada nesta sessão ' + c('d', '(o servidor confere a cada comando)'));
+      if (sub === 'sair' || sub === 'logout') { adminKey = ''; return out(c('g', '✔ ') + 'saiu do modo admin'); }
+
+      if (sub === 'foto' || sub === 'photo') {
+        if ((args[1] || '').toLowerCase() === 'off') {
+          try { localStorage.removeItem(PHOTO_KEY); } catch (e) {}
+          return call({ op: 'photo_off' }).then(function (res) {
+            out(res.ok ? c('g', '✔ ') + 'foto removida' : c('r', '✘ ') + esc(res.error));
+          });
+        }
+        return pickPhoto().then(function (photo) {
+          if (!photo) return out(c('y', 'nenhuma foto escolhida.'));
+          try { localStorage.setItem(PHOTO_KEY, photo); }
+          catch (e) { out(c('y', '! não deu pra salvar no localStorage (foto vale só até recarregar).')); }
+          return call({ op: 'photo', photo: photo }).then(function (res) {
+            if (!res.ok) return fail(res);
+            out(c('g', '✔ ') + 'foto definida ' + c('d', res.inRoom ? '(todos na sala já veem)' : '(vale quando você entrar numa sala)'));
+          });
+        }, function (err) { out(c('r', '✘ ') + esc(err && err.message || 'não consegui abrir a imagem.')); });
       }
+
       var p;
       if (sub === 'show' || sub === 'reset') p = { op: sub };
       else if (sub === 'set' && args.length === 3) p = { op: 'set', a: args[1], b: args[2] };
       else if (sub === 'add' && args.length === 3 && (args[1] === '1' || args[1] === '2')) p = { op: 'add', team: +args[1] - 1, n: args[2] };
       else return usage();
-      if (!adminKey) return out(c('y', 'Faça primeiro: score auth <chave>'));
-      p.key = adminKey;
-      return new Promise(function (resolve) {
-        var done = false;
-        var to = setTimeout(function () { if (!done) { done = true; out(c('r', '✘ servidor não respondeu.')); resolve(); } }, 8000);
-        sock.emit('admin_score', p, function (res) {
-          if (done) return; done = true; clearTimeout(to);
-          if (!res || !res.ok) {
-            if (res && /Chave/.test(res.error || '')) adminKey = '';
-            out(c('r', '✘ ') + esc((res && res.error) || 'erro'));
-          } else {
-            var me = (typeof myTeam !== 'undefined' && myTeam !== null) ? myTeam : -1;
-            out(c('g', '✔ ') + 'Dupla 1 ' + c('w b', res.score[0]) + c('d', ' x ') + c('w b', res.score[1]) + ' Dupla 2' +
-              (me >= 0 ? c('d', '   (você está na dupla ' + (me + 1) + ')') : ''));
-          }
-          resolve();
-        });
+      return call(p).then(function (res) {
+        if (!res.ok) return fail(res);
+        var me = (typeof myTeam !== 'undefined' && myTeam !== null) ? myTeam : -1;
+        out(c('g', '✔ ') + 'Dupla 1 ' + c('w b', res.score[0]) + c('d', ' x ') + c('w b', res.score[1]) + ' Dupla 2' +
+          (me >= 0 ? c('d', '   (você está na dupla ' + (me + 1) + ')') : ''));
       });
     },
 
@@ -418,7 +518,7 @@
 
   function runShell(v) {
     var raw = v.trim();
-    if (raw) hist.push(/^score\s+auth\b/i.test(raw) ? 'score auth ****' : raw);
+    if (raw) hist.push(/^auth\b/i.test(raw) && !adminKey ? 'auth ****' : raw);
     hidx = hist.length;
     if (!raw) return showPrompt();
     var parts = raw.split(/\s+/), name = parts[0].toLowerCase(), args = parts.slice(1), r;
@@ -441,8 +541,8 @@
     else if (words[0].toLowerCase() === 'theme' && words.length === 2) {
       pool = themeList().map(function (t) { return t.id; }).concat('list');
       prefix = words[1]; head = words[0] + ' ';
-    } else if (words[0].toLowerCase() === 'score' && words.length === 2) {
-      pool = ['auth', 'show', 'set', 'add', 'reset'];
+    } else if (words[0].toLowerCase() === 'auth' && words.length === 2 && adminKey) {
+      pool = ['foto', 'show', 'set', 'add', 'reset', 'sair'];
       prefix = words[1]; head = words[0] + ' ';
     } else return;
     var m = pool.filter(function (n) { return n.indexOf(prefix.toLowerCase()) === 0; });
@@ -457,7 +557,7 @@
     if (k === 'Enter') {
       e.preventDefault();
       var v = inp.value;
-      if (state === 'shell') { freeze(/^\s*score\s+auth\b/i.test(v) ? 'score auth ****' : v); runShell(v); }
+      if (state === 'shell') { freeze(/^\s*auth\b/i.test(v) && !adminKey ? 'auth ****' : v); runShell(v); }
       else onLoginEnter(v);
     } else if (e.ctrlKey && (k === 'c' || k === 'C')) {
       e.preventDefault();
