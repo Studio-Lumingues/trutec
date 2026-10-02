@@ -211,6 +211,25 @@
     }
   }
 
+  // explosãozinha (jogador entrou na sala): "pof" grave abafado + sopro de ruído
+  // que vai escurecendo. Propositalmente BEM baixinho.
+  function sfxPoof() {
+    if (!sfxReady()) return;
+    var t = ctx.currentTime;
+    var j = 0.92 + Math.random() * 0.16;
+    noiseBurst(t, { type: 'lowpass', f: 1600 * j, f2: 160, q: 0.8, dur: 0.5, peak: 0.16, attack: 0.006 });   // sopro/fumaça
+    var osc = ctx.createOscillator();                                                                        // baque grave
+    var g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(130 * j, t);
+    osc.frequency.exponentialRampToValueAtTime(42, t + 0.28);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.2 * SFX_VOLUME, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.35);
+  }
+
   // clique em qualquer botão da página
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest ? e.target.closest('button') : null;
@@ -432,6 +451,7 @@
     click: sfxClick,
     cardPlay: sfxCardPlay,
     cardDeal: sfxCardDeal,
+    poof: sfxPoof,
     isMuted: function () { return muted; }
   };
 

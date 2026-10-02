@@ -260,6 +260,7 @@ setTimeout(showReconnectOffer, 900);
 // Navegação de telas
 // ------------------------------------------------------------------
 let waitingShownAt = 0;   // quando a sala de espera abriu (pra sincronizar a animação do código)
+let knownSeats = null;     // assentos já vistos na sala (pra detectar quem acabou de entrar)
 let shownRoomCode = null; // código que já está na tela (só anima quando muda)
 function showScreen(id) {
   if (id === 'screen-waiting') waitingShownAt = performance.now();
@@ -1163,6 +1164,25 @@ function renderLobby(lobby) {
       el.classList.add('wr-pop');
       el.style.animationDelay = (revealBase + 250 + i * 100) + 'ms';
     });
+  }
+
+  // quem entrou depois (não conta o 1º retrato da sala): explosãozinha de fumaça + som
+  const seatsNow = new Set(lobby.players.map(p => p.seat));
+  if (revealBase || !knownSeats) {
+    knownSeats = seatsNow;
+  } else {
+    const fresh = lobby.players.filter(p => !knownSeats.has(p.seat));
+    knownSeats = seatsNow;
+    if (fresh.length) {
+      if (window.GameAudio && GameAudio.poof) GameAudio.poof();
+      fresh.forEach((p, i) => {
+        const el = wrap.querySelector('[data-seat="' + p.seat + '"]');
+        if (!el) return;
+        el.classList.add('smoke-in');
+        el.style.animationDelay = (i * 120) + 'ms';
+        if (window.TruSmoke) setTimeout(() => TruSmoke.puff(el), i * 120);
+      });
+    }
   }
 
   updateStartButton(lobby);
