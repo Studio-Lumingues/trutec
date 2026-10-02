@@ -401,7 +401,8 @@ class Room {
     this.vira = null;
     this.manilhaRank = null;
 
-    this.leaderSeat = (this.dealerSeat + 1) % n;
+    // a vez anda pra DIREITA (sentido anti-horário na tela): abre quem está à direita de quem deu
+    this.leaderSeat = (this.dealerSeat + n - 1) % n;
     this.turnSeat = this.leaderSeat;
 
     // Mão de 11 (só 2v2):
@@ -546,7 +547,8 @@ class Room {
   }
 
   advanceDealer() {
-    this.dealerSeat = (this.dealerSeat + 1) % this.players.length;
+    const nPl = this.players.length; // quem dá as cartas também passa pra direita
+    this.dealerSeat = (this.dealerSeat + nPl - 1) % nPl;
   }
 
   currentTrickIndex() {
@@ -567,7 +569,7 @@ class Room {
     if (playedThisTrick >= n) {
       return this.resolveTrick();
     }
-    this.turnSeat = (seat + 1) % n;
+    this.turnSeat = (seat + n - 1) % n; // próximo a jogar = o da direita (mesmo que recebe o truco)
     return { ok: true };
   }
 
