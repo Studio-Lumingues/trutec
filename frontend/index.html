@@ -184,6 +184,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
         <button id="btn-create" type="button" class="btn btn-secondary">Criar sala</button>
         <button id="btn-open-character-editor" type="button" class="btn btn-glass" aria-label="Avatar"><span class="glass-checker" aria-hidden="true"></span><img id="character-preview-img" class="glass-avatar" src="assets/personagem.svg" alt="" draggable="false" /><span class="glass-label">Avatar</span></button>
         <button id="btn-help" type="button" class="btn btn-secondary">Ajuda</button>
+        <button id="btn-account" type="button" class="btn btn-secondary">Entrar com Google</button>
         <button id="btn-settings" type="button" class="btn btn-secondary btn-icon-only" aria-label="Configurações" title="Configurações"><svg class="ic ic-only" aria-hidden="true"><use href="#i-gear"/></svg></button>
       </div>
 
@@ -205,6 +206,42 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
         <button id="join-cancel" type="button" class="btn btn-secondary">Voltar</button>
         <button id="btn-join" type="button" class="btn btn-primary">Entrar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ===================== CONTA (login Google + @) ===================== -->
+  <style>#account-modal [hidden]{display:none !important}</style>
+  <div id="account-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="acc-title">
+    <div class="settings-card">
+      <h2 id="acc-title">Minha conta</h2>
+
+      <div id="acc-loading" hidden>
+        <p class="modal-hint">Carregando…</p>
+      </div>
+
+      <div id="acc-out" hidden>
+        <p class="modal-hint">Entre com sua conta Google para ter um @ e guardar suas vitórias e derrotas.</p>
+        <button id="acc-google" type="button" class="btn btn-primary">Entrar com Google</button>
+      </div>
+
+      <div id="acc-claim" hidden>
+        <p class="modal-hint">Escolha seu @ (3 a 16 caracteres: letras minúsculas, números e _).</p>
+        <input id="acc-handle" class="modal-input" maxlength="16" placeholder="seu_arroba" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        <button id="acc-save" type="button" class="btn btn-primary">Salvar @</button>
+      </div>
+
+      <div id="acc-in" hidden>
+        <h3 id="acc-name"></h3>
+        <p id="acc-record" class="modal-hint"></p>
+        <div class="modal-actions">
+          <a id="acc-view" class="btn btn-secondary" href="#" target="_blank" rel="noopener">Ver perfil</a>
+          <button id="acc-copy" type="button" class="btn btn-secondary">Copiar link</button>
+        </div>
+        <button id="acc-logout" type="button" class="btn btn-ghost">Sair da conta</button>
+      </div>
+
+      <p id="acc-error" class="error-text"></p>
+      <button id="acc-close" type="button" class="btn btn-secondary settings-close-btn">Fechar</button>
     </div>
   </div>
 
@@ -773,12 +810,14 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   </div>
 
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="boil.js"></script>
   <script src="bg-distort.js?v=2"></script>
   <script src="noise.js"></script>
   <script src="seat-zoom.js"></script>
   <script src="stats.js"></script>
+  <script src="account.js"></script>
   <script src="audio.js?v=7"></script>
   <script src="smoke.js?v=2"></script>
   <script src="radio.js"></script>
@@ -789,6 +828,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="favicon.js"></script>
   <script src="tutorial.js"></script>
   <script src="terminal.js?v=3"></script>
-  <script src="client.js?v=26"></script>
+  <script src="client.js?v=27"></script>
 </body>
 </html>
