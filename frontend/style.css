@@ -1282,6 +1282,12 @@ button { font-family: inherit; cursor: pointer; }
   border-radius: inherit;
 }
 
+/* melou: só a maior carta fica clara; as outras escurecem */
+.my-hand .card.melou-dim { filter: grayscale(0.75) brightness(0.36); }
+.my-hand .card.melou-dim::after { background: rgba(0,0,0,0.5); }
+.my-hand .card.melou-top.disabled { filter: none; }
+.my-hand .card.melou-top.disabled::after { background: transparent; }
+
 .actions-bar {
   display: flex;
   gap: 0.375rem;

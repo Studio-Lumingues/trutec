@@ -560,6 +560,9 @@ class Room {
     const player = this.playerBySeat(seat);
     const idx = player.hand.findIndex(c => c.id === cardId);
     if (idx === -1) return { error: 'Carta não encontrada na mão.' };
+    if (this.melouActive() && !this.melouAllowedIds(seat).includes(cardId)) {
+      return { error: 'Melou! Você só pode jogar a sua maior carta.' };
+    }
     const [card] = player.hand.splice(idx, 1);
     this.table.push({ seat, card, hidden: !!hidden });
     if (hidden) this.hiddenCardBySeat[seat] = true;
@@ -571,6 +574,23 @@ class Room {
     }
     this.turnSeat = (seat + n - 1) % n; // próximo a jogar = o da direita (mesmo que recebe o truco)
     return { ok: true };
+  }
+
+  // Melou: todas as vazas até agora empataram e todo mundo ainda tem carta.
+  // Nesse caso cada um é obrigado a jogar a sua maior carta (às cegas não restringe,
+  // porque o jogador nem sabe quais são as cartas).
+  melouActive() {
+    return !this.blind && this.tricks.length >= 1 && this.tricks.every(t => t.tie)
+      && this.players.every(p => p.hand.length > 0);
+  }
+
+  // ids das cartas que o jogador pode jogar no melou (as de maior força; empatadas valem todas)
+  melouAllowedIds(seat) {
+    const p = this.playerBySeat(seat);
+    if (!p || !p.hand.length) return [];
+    let max = -1;
+    for (const c of p.hand) max = Math.max(max, cardStrength(c, this.manilhaRank));
+    return p.hand.filter(c => cardStrength(c, this.manilhaRank) === max).map(c => c.id);
   }
 
   trickStartIndex() {
@@ -598,32 +618,9 @@ class Room {
       if (!t.tie && t.winnerTeam !== null) wins[t.winnerTeam]++;
     }
 
-    // MELOU: se a vaza empatou e ninguém ganhou vaza ainda, cada jogador
-    // mostra a MAIOR carta que ainda tem na mão — quem tiver a maior leva a mão.
-    // Se o showdown também empatar (ou não sobrar carta), segue a regra normal.
-    if (tie && wins[0] === 0 && wins[1] === 0 && this.players.every(p => p.hand.length > 0)) {
-      const picks = this.players.map(p => {
-        let bestCard = null;
-        let bestS = -1;
-        for (const c of p.hand) {
-          const st = cardStrength(c, this.manilhaRank);
-          if (st > bestS) { bestS = st; bestCard = c; }
-        }
-        return { seat: p.seat, card: bestCard, strength: bestS };
-      });
-      const showdown = evaluateEntries(picks, (seat) => this.seatTeam(seat));
-      if (!showdown.tie) {
-        this.busy = true;
-        this.turnSeat = -1;
-        return {
-          ok: true,
-          trickResult: this.tricks[this.tricks.length - 1],
-          maoOver: true,
-          maoWinnerTeam: showdown.winnerTeam,
-          showdown: { picks, winnerSeat: showdown.winnerSeat, winnerTeam: showdown.winnerTeam }
-        };
-      }
-    }
+    // MELOU (vaza empatada, ninguém ganhou ainda): NÃO é mais automático. A mão segue
+    // normalmente, mas cada jogador só pode jogar a sua MAIOR carta (ver melouActive).
+    // Dá pra blefar e pedir truco antes de jogar; a próxima vaza decide (ou a seguinte).
 
     let maoWinnerTeam = null;
     const t1 = this.tricks[0], t2 = this.tricks[1];
@@ -759,6 +756,8 @@ class Room {
         msLeft: Math.max(0, this.viraPickUntil - Date.now()),
         count: this._viraOpts.length
       } : undefined,
+      // melou: só as cartas permitidas (a maior) ficam claras pra quem está jogando
+      melou: this.melouActive() ? { allowedIds: this.melouAllowedIds(viewerSeat) } : undefined,
       blind: this.blind,
       code: this.code,
       mode: this.mode,
@@ -1048,6 +1047,12 @@ function doPlayCard(r, player, payload, tell) {
   if (!r || !r.started || r.gameOver || !player) return;
   if (r.handOver || r.busy || r.holdActive() || r.turnSeat !== player.seat || r.pendingCall) return tell('play_rejected'); // avisa o cliente pra desfazer a jogada instantânea
 
+  // Melou: bot que escolheu uma carta não permitida joga a maior no lugar
+  if (player.isBot && r.melouActive()) {
+    const ok = r.melouAllowedIds(player.seat);
+    if (ok.length && !ok.includes(cardId)) cardId = ok[0];
+  }
+
   // Não pode esconder a carta na primeira rodada (vaza) da mão.
   if (r.tricks.length === 0) hidden = false;
 
@@ -1065,6 +1070,10 @@ function doPlayCard(r, player, payload, tell) {
       winnerTeam: result.trickResult.winnerTeam,
       tie: result.trickResult.tie
     });
+    // melou: avisa que agora todo mundo joga a maior carta (e ainda dá pra pedir truco)
+    if (!result.maoOver && result.trickResult.tie && r.tricks.length === 1 && r.melouActive()) {
+      io.to(r.code).emit('melou', {});
+    }
   }
 
   // Sempre manda o estado com a carta recém-jogada (e a vaza revelada)

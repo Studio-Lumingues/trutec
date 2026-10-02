@@ -2232,6 +2232,8 @@ function renderState(realState) {
     else el.remove();
   });
   const myTurnNow = state.turnSeat === mySeat && !state.pendingCall && !state.peek && !state.vote && !state.viraPick; // na mão de 11 ninguém joga durante a votação nem durante o peek
+  // melou: só a(s) maior(es) carta(s) ficam claras e jogáveis; as outras escurecem
+  const melouAllowed = (state.melou && Array.isArray(state.melou.allowedIds)) ? new Set(state.melou.allowedIds.map(String)) : null;
   myCards.forEach((card, i) => {
     let el = existing.get(String(card.id));
     if (!el) {
@@ -2240,10 +2242,13 @@ function renderState(realState) {
       el.addEventListener('click', () => onCardClick(el._card, el._myTurn, el));
     }
     el._card = card;
-    el._myTurn = myTurnNow;
+    const cardOk = !melouAllowed || melouAllowed.has(String(card.id));
+    el._myTurn = myTurnNow && cardOk;
     el.classList.toggle('manilha', card.rank === state.manilhaRank);
     el.classList.toggle('selected', card.id === selectedCardId);
-    el.classList.toggle('disabled', !myTurnNow);
+    el.classList.toggle('disabled', !el._myTurn);
+    el.classList.toggle('melou-dim', !!melouAllowed && !cardOk);
+    el.classList.toggle('melou-top', !!melouAllowed && cardOk);
     if (handWrap.children[i] !== el) handWrap.insertBefore(el, handWrap.children[i] || null);
   });
 
@@ -2851,7 +2856,7 @@ socket.on('trick_result', ({ winnerSeat, winnerTeam, tie }) => {
 });
 
 socket.on('melou', () => {
-  setBanner('MELOU! Cada um mostra a maior carta da mão…', 1800);
+  setBanner('MELOU! Cada um joga a sua maior carta — dá pra blefar e pedir truco!', 2600);
 });
 
 socket.on('showdown_result', ({ winnerTeam }) => {
