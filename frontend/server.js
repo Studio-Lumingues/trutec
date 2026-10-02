@@ -1548,6 +1548,23 @@ io.on('connection', (socket) => {
     }, 1800);
   });
 
+  // Escolha do vira: o cursor/hover/clique de quem escolhe aparece pros outros da sala.
+  // Só repassa (sem guardar nada); o client só desenha se `seat` for mesmo o de quem está escolhendo.
+  let lastViraCursor = 0;
+  socket.on('vira_cursor', (m) => {
+    const r = room();
+    if (!r || !m || typeof m !== 'object') return;
+    const now = Date.now();
+    const click = m.k !== undefined && m.k !== null && Number(m.k) >= 0;
+    if (!click && now - lastViraCursor < 25) return;      // ~40 msgs/s no máximo (clique sempre passa)
+    lastViraCursor = now;
+    const me = r.playerBySocket(socket.id);
+    if (!me) return;
+    const num = (v) => { v = Number(v); return Number.isFinite(v) ? Math.max(-5, Math.min(6, v)) : 0; };
+    const idx = (v) => { v = Number(v); return Number.isInteger(v) && v >= 0 && v <= 4 ? v : -1; };
+    socket.to(r.code).emit('vira_cursor', { seat: me.seat, x: num(m.x), y: num(m.y), h: idx(m.h), k: idx(m.k) });
+  });
+
   socket.on('chat_message', ({ text }) => {
     const r = room();
     if (!r) return;

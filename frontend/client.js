@@ -109,6 +109,8 @@ function tryRejoin(done) {
 socket.on('connect', () => { if (!rejoinHold) tryRejoin(); });
 // música do SoundCloud da sala (comando `auth musica` do terminal; ver radio.js)
 socket.on('room_music', (m) => { if (window.TruRadio) TruRadio.handle(m); });
+// cursor de quem está escolhendo o vira (mostrado pros outros jogadores; ver updateViraPickUI)
+socket.on('vira_cursor', (m) => handleViraCursor(m));
 // um admin (`theme <id> @nome` no terminal) trocou o meu tema: vale só nesta sessão
 socket.on('force_theme', (m) => {
   if (!m || !window.TruThemes || !TruThemes.applyTemp) return;
@@ -2272,6 +2274,93 @@ function renderState(realState) {
 // ------------------------------------------------------------------
 let viraPickEndsAt = 0, viraPickInterval = null, viraPickSent = false;
 let viraPickOrigin = null; // { cx, cy, w, h, t }: onde a carta clicada está na tela (a animação do vira sai dali)
+let viraPickMine = false, viraLastSend = 0;
+
+// ---- quem ESCOLHE: manda a posição do mouse (relativa à fileira de cartas), a carta sob o mouse e o clique ----
+function sendViraCursor(e, k) {
+  const cardsEl = document.getElementById('vira-pick-cards');
+  if (!cardsEl) return;
+  const r = cardsEl.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  const card = e.target && e.target.closest ? e.target.closest('.vira-pick-card') : null;
+  const h = card ? Array.prototype.indexOf.call(cardsEl.children, card) : -1;
+  const msg = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height, h: h };
+  if (k !== undefined) msg.k = k;
+  socket.emit('vira_cursor', msg);
+}
+['pointermove', 'pointerdown'].forEach((ev) => window.addEventListener(ev, (e) => {
+  if (!viraPickMine || viraPickSent) return;
+  const now = performance.now();
+  if (ev === 'pointermove' && now - viraLastSend < 30) return;
+  viraLastSend = now;
+  sendViraCursor(e);
+}, { passive: true }));
+
+// ---- quem ASSISTE: mouse "cartoon" que segue o do jogador, suavizado ----
+const VIRA_CURSOR_SVG =
+  '<svg viewBox="0 0 34 42" aria-hidden="true"><path d="M4.5 3.5 L4.5 32 L12 25.2 L17 37.5 L22.6 35.2 L17.6 23 L27.5 23 Z" ' +
+  'fill="#fff" stroke="#15101f" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>' +
+  '<path d="M8 10 L8 24.5 L12.2 20.7" fill="none" stroke="#ffd34d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></svg>';
+let viraCur = null; // { el, tx, ty, cx, cy, rot, seen, raf, last, squish }
+function viraCursorEnsure(box) {
+  if (viraCur && viraCur.el.parentNode === box) return viraCur;
+  if (viraCur && viraCur.raf) cancelAnimationFrame(viraCur.raf);
+  const el = document.createElement('div');
+  el.className = 'vira-cursor';
+  el.setAttribute('aria-hidden', 'true');
+  el.innerHTML = VIRA_CURSOR_SVG;
+  box.appendChild(el);
+  viraCur = { el, x: 0.5, y: 0.5, cx: 0, cy: 0, rot: 0, seen: false, raf: 0, last: 0, squish: 0 };
+  return viraCur;
+}
+function viraCursorTick(now) {
+  const c = viraCur;
+  if (!c) return;
+  c.raf = 0;
+  const box = document.getElementById('vira-pick');
+  const cardsEl = document.getElementById('vira-pick-cards');
+  if (!box || box.classList.contains('hidden') || box.classList.contains('mine') || !c.el.parentNode) return;
+  const r = cardsEl.getBoundingClientRect();
+  const tx = r.left + c.x * r.width, ty = r.top + c.y * r.height;
+  const dt = Math.min(0.05, Math.max(0.001, (now - (c.last || now)) / 1000));
+  c.last = now;
+  const k = 1 - Math.exp(-dt * 11);                 // seguir macio (quanto maior, mais colado)
+  const px = c.cx;
+  c.cx += (tx - c.cx) * k; c.cy += (ty - c.cy) * k;
+  const vx = (c.cx - px) / dt;                        // inclina um pouco pro lado em que anda
+  c.rot += (Math.max(-16, Math.min(16, vx / 70)) - c.rot) * (1 - Math.exp(-dt * 8));
+  const sc = c.squish > now ? 0.82 : 1;
+  c.el.style.transform = 'translate3d(' + c.cx.toFixed(1) + 'px,' + c.cy.toFixed(1) + 'px,0) rotate(' + (c.rot - 8).toFixed(1) + 'deg) scale(' + sc + ')';
+  c.raf = requestAnimationFrame(viraCursorTick);
+}
+function handleViraCursor(m) {
+  const st = latestState;
+  const box = document.getElementById('vira-pick');
+  if (!m || !st || !st.viraPick || !box || box.classList.contains('hidden')) return;
+  if (m.seat !== st.viraPick.seat || m.seat === mySeat) return;      // só o cursor de quem está escolhendo
+  const cardsEl = document.getElementById('vira-pick-cards');
+  const c = viraCursorEnsure(box);
+  c.x = +m.x; c.y = +m.y;
+  if (!c.seen) {                                                      // 1º sinal: aparece já no lugar (sem voar do canto)
+    const r = cardsEl.getBoundingClientRect();
+    c.cx = r.left + c.x * r.width; c.cy = r.top + c.y * r.height;
+    c.seen = true; c.el.classList.add('show');
+  }
+  // mesma "mão sobre a carta" que o jogador vê
+  Array.prototype.forEach.call(cardsEl.children, (cd, i) => cd.classList.toggle('sim-hover', i === m.h && !box.classList.contains('sent')));
+  if (m.k >= 0 && cardsEl.children[m.k] && !box.classList.contains('sent')) {   // clicou: a carta escolhida fica em destaque e a animação do vira sai dela
+    const cd = cardsEl.children[m.k];
+    cd.classList.remove('sim-hover');
+    box.classList.add('sent');
+    cd.classList.add('chosen');
+    cd.style.transition = 'none'; void cd.offsetWidth;
+    const r = cd.getBoundingClientRect();
+    viraPickOrigin = { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: r.width, h: r.height, t: performance.now() };
+    cd.style.transition = '';
+    c.squish = performance.now() + 220;
+  }
+  if (!c.raf) { c.last = 0; c.raf = requestAnimationFrame(viraCursorTick); }
+}
 function updateViraPickUI(state) {
   const box = document.getElementById('vira-pick');
   if (!box) return;
@@ -2281,6 +2370,8 @@ function updateViraPickUI(state) {
     box.classList.add('hidden');
     box.dataset.key = '';
     viraPickSent = false;
+    viraPickMine = false;
+    if (viraCur) { if (viraCur.raf) cancelAnimationFrame(viraCur.raf); if (viraCur.el.parentNode) viraCur.el.parentNode.removeChild(viraCur.el); viraCur = null; }
     return;
   }
   const mine = v.seat === mySeat;
@@ -2293,6 +2384,15 @@ function updateViraPickUI(state) {
     viraPickOrigin = null;
     box.classList.remove('sent');
     cardsEl.innerHTML = '';
+    if (viraCur) { if (viraCur.raf) cancelAnimationFrame(viraCur.raf); if (viraCur.el.parentNode) viraCur.el.parentNode.removeChild(viraCur.el); viraCur = null; }
+    if (!mine) { // quem assiste vê as mesmas cartas (só que sem poder clicar)
+      for (let i = 0; i < (v.count || 3); i++) {
+        const d = document.createElement('div');
+        d.className = 'vira-pick-card';
+        d.style.setProperty('--i', i);
+        cardsEl.appendChild(d);
+      }
+    }
     if (mine) {
       for (let i = 0; i < (v.count || 3); i++) {
         const b = document.createElement('button');
@@ -2300,7 +2400,7 @@ function updateViraPickUI(state) {
         b.className = 'vira-pick-card';
         b.style.setProperty('--i', i);
         b.setAttribute('aria-label', 'Carta ' + (i + 1) + ' de ' + (v.count || 3));
-        b.addEventListener('click', () => {
+        b.addEventListener('click', (ev) => {
           if (viraPickSent) return;
           viraPickSent = true;
           box.classList.add('sent');
@@ -2313,6 +2413,7 @@ function updateViraPickUI(state) {
           b.style.transition = '';
           if (window.GameAudio && GameAudio.cardPlay) { try { GameAudio.cardPlay(0); } catch (e) {} }
           socket.emit('pick_vira', { index: i });
+          sendViraCursor(ev, i);   // avisa os outros qual carta foi clicada
         });
         cardsEl.appendChild(b);
       }
@@ -2322,6 +2423,8 @@ function updateViraPickUI(state) {
     box.style.setProperty('--pick-delay', Math.round(wait) + 'ms');
   }
   box.classList.toggle('mine', mine);
+  box.classList.toggle('watch', !mine);
+  viraPickMine = mine;
   viraPickEndsAt = Date.now() + Math.max(0, v.msLeft || 0);
   const owner = state.players.find(p => p.seat === v.seat);
   // "card" com o título grande e a contagem regressiva bem grande logo abaixo

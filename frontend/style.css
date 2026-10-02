@@ -822,11 +822,13 @@ button { font-family: inherit; cursor: pointer; }
   animation: viraPickFade 0.35s ease-out var(--pick-delay, 0ms) both;
 }
 .vira-pick.hidden { display: none; }
-.vira-pick.mine {
+.vira-pick.mine,
+.vira-pick.watch {
   background: rgba(0,0,0,0.55);
   backdrop-filter: blur(0.125rem);
-  pointer-events: auto;
 }
+.vira-pick.mine { pointer-events: auto; }
+.vira-pick.watch .vira-pick-card { cursor: default; }
 /* título + contagem num "card" */
 .vira-pick-title {
   display: flex; flex-direction: column; align-items: center; gap: 0.1rem;
@@ -882,6 +884,24 @@ button { font-family: inherit; cursor: pointer; }
 .vira-pick.sent .vira-pick-card { pointer-events: none; opacity: 0.25; animation: none; translate: none; }
 .vira-pick.sent .vira-pick-card.chosen { opacity: 1; transform: translateY(-0.5rem) scale(1.04); }
 @keyframes viraPickFade { from { opacity: 0; } to { opacity: 1; } }
+/* quem assiste vê o "hover" do jogador na mesma carta */
+.vira-pick:not(.sent) .vira-pick-card.sim-hover {
+  transform: translateY(-0.3rem) rotate(calc((var(--i) - 1) * 3deg)) scale(1.03);
+  box-shadow: 0 0.6rem 1.2rem rgba(0,0,0,0.55), 0 0 0 0.1875rem var(--gold-bright);
+}
+/* mouse "cartoon" de quem está escolhendo (aparece só pra quem assiste) */
+.vira-cursor {
+  position: absolute; left: 0; top: 0;
+  width: clamp(2.2rem, 6vw, 3.4rem);
+  margin: -0.35rem 0 0 -0.45rem;   /* a ponta da seta fica no ponto exato */
+  pointer-events: none;
+  opacity: 0; transition: opacity 0.25s ease;
+  filter: drop-shadow(0 0.25rem 0.3rem rgba(0,0,0,0.55));
+  will-change: transform;
+  z-index: 3;
+}
+.vira-cursor.show { opacity: 1; }
+.vira-cursor svg { display: block; width: 100%; height: auto; overflow: visible; }
 @keyframes viraPickFloat { from { translate: 0 0; } to { translate: 0 -0.35rem; } }
 @keyframes viraPickDeal { from { opacity: 0; transform: translateY(2rem) rotate(0deg) scale(0.85); } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
