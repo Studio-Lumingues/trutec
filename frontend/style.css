@@ -889,50 +889,50 @@ button { font-family: inherit; cursor: pointer; }
   transform: translateY(-0.3rem) rotate(calc((var(--i) - 1) * 3deg)) scale(1.03);
   box-shadow: 0 0.6rem 1.2rem rgba(0,0,0,0.55), 0 0 0 0.1875rem var(--gold-bright);
 }
-/* ponteiro de quem está escolhendo (aparece só pra quem assiste) — estilo macOS, grande e elástico:
-   seta preta normalmente; sobre uma carta vira a mãozinha de "clicável" (com um boing) */
+/* ponteiro de quem está escolhendo (aparece só pra quem assiste): desenhado à mão, grande e elástico.
+   Seta rabiscada; sobre uma carta vira a luvinha apontando. Treme igual ao resto do jogo (#boil-sm)
+   e borra na direção em que anda (motion blur feito no JS). */
 .vira-cursor {
-  --w: clamp(3rem, 7.5vw, 4.4rem);
+  --w: clamp(3.2rem, 8vw, 4.8rem);
   position: absolute; left: 0; top: 0;
   width: var(--w); height: calc(var(--w) * 1.25);
-  margin: calc(var(--w) * -0.133) 0 0 calc(var(--w) * -0.208);   /* a ponta (da seta ou do dedo) fica no ponto exato */
-  transform-origin: 20.8% 13.3%;
+  margin: calc(var(--w) * -0.1) 0 0 calc(var(--w) * -0.13);   /* a ponta (da seta ou do dedo) fica no ponto exato */
+  transform-origin: 13% 8%;
   pointer-events: none;
-  opacity: 0; transition: opacity 0.3s cubic-bezier(.25,.1,.25,1);
-  filter: drop-shadow(0 0.0625rem 0.0625rem rgba(0,0,0,0.35)) drop-shadow(0 0.5rem 0.8rem rgba(0,0,0,0.32));
+  opacity: 0; transition: opacity 0.3s ease;
+  filter: drop-shadow(0 0.4rem 0.45rem rgba(0,0,0,0.5));
   will-change: transform;
   z-index: 3;
 }
 .vira-cursor.show { opacity: 1; }
+.vira-cursor .vc-mb, .vira-cursor .vc-up { position: absolute; inset: 0; transform-origin: 13% 8%; }
 .vira-cursor svg { position: absolute; display: block; overflow: visible; }
+.vira-cursor .vc-arrow, .vira-cursor .vc-hand { filter: url(#boil-sm); }
 .vira-cursor .vc-arrow {
   left: 0; top: 0; width: 100%; height: auto;
-  transform-origin: 20.8% 10.7%;
-  transition: transform 0.32s cubic-bezier(.34,1.7,.5,1), opacity 0.14s ease;
+  transform-origin: 13% 8.3%;
+  transition: transform 0.34s cubic-bezier(.34,1.7,.5,1), opacity 0.14s ease;
 }
 .vira-cursor .vc-hand {
   /* a ponta do dedo cai no mesmo ponto da ponta da seta */
-  left: -18.2%; top: 4.3%; width: 115%; height: auto;
-  transform-origin: 34% 7%;
-  opacity: 0; transform: scale(0.45) rotate(-14deg);
-  transition: transform 0.36s cubic-bezier(.34,1.7,.5,1), opacity 0.14s ease;
+  left: calc(var(--w) * -0.27); top: calc(var(--w) * 0.02); width: 130%; height: auto;
+  transform-origin: 30.8% 5.3%;
+  opacity: 0; transform: scale(0.4) rotate(-16deg);
+  transition: transform 0.38s cubic-bezier(.34,1.7,.5,1), opacity 0.14s ease;
 }
-.vira-cursor.hand .vc-arrow { opacity: 0; transform: scale(0.5) rotate(10deg); }
+.vira-cursor.hand .vc-arrow { opacity: 0; transform: scale(0.45) rotate(12deg); }
 .vira-cursor.hand .vc-hand  { opacity: 1; transform: none; }
 .vira-cursor .vc-ring {
-  position: absolute; left: 20.8%; top: 13.3%;
-  width: calc(var(--w) * 0.9); height: calc(var(--w) * 0.9);
-  margin: calc(var(--w) * -0.45) 0 0 calc(var(--w) * -0.45);
-  border-radius: 50%;
-  background: rgba(255,255,255,0.16);
-  border: 0.0625rem solid rgba(255,255,255,0.55);
-  backdrop-filter: blur(0.25rem);
+  left: 13%; top: 8%;
+  width: calc(var(--w) * 1.5); height: calc(var(--w) * 1.5);
+  margin: calc(var(--w) * -0.75) 0 0 calc(var(--w) * -0.75);
   opacity: 0; transform: scale(0.4);
+  filter: url(#boil-sm);
 }
-.vira-cursor.click .vc-ring { animation: viraCursorRing 0.55s cubic-bezier(.22,1,.36,1); }
+.vira-cursor.click .vc-ring { animation: viraCursorRing 0.5s cubic-bezier(.22,1,.36,1); }
 @keyframes viraCursorRing {
-  0%   { opacity: 0.9; transform: scale(0.4); }
-  100% { opacity: 0;   transform: scale(1.6); }
+  0%   { opacity: 1; transform: scale(0.45); }
+  100% { opacity: 0; transform: scale(1.25); }
 }
 @keyframes viraPickFloat { from { translate: 0 0; } to { translate: 0 -0.35rem; } }
 @keyframes viraPickDeal { from { opacity: 0; transform: translateY(2rem) rotate(0deg) scale(0.85); } to { opacity: 1; } }

@@ -2298,14 +2298,37 @@ function sendViraCursor(e, k) {
 
 // ---- quem ASSISTE: ponteiro estilo macOS que segue o do jogador, suavizado ----
 const VIRA_CURSOR_SVG =
-  '<span class="vc-ring"></span>' +
-  '<svg class="vc-arrow" viewBox="0 0 24 30" aria-hidden="true"><path d="M5 3.2 V21.6 L9.3 17.7 L12.1 24.4 L15.2 23.1 L12.4 16.5 L18.2 16.5 Z" ' +
-  'fill="#000" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>' +
-  // mãozinha (o ponteiro de "clicável"): branca com contorno preto, igual à do macOS
-  '<svg class="vc-hand" viewBox="0 0 28 32" aria-hidden="true"><path d="M7.5 4 C7.5 1.6 11.7 1.6 11.7 4 V11.4 C11.7 9.9 15.2 9.9 15.2 11.6 ' +
-  'V12.6 C15.2 11.1 18.7 11.1 18.7 12.8 V13.8 C18.7 12.4 22.2 12.4 22.2 14 V21.2 C22.2 25.8 19.2 28.8 15.2 28.8 H11.6 ' +
-  'C9.6 28.8 8.5 27.8 7.5 26.2 L3.6 19.7 C2.9 18.4 4.7 17.2 5.9 18.2 L7.5 19.9 Z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/>' +
-  '<path d="M15.2 13.4 V19 M18.7 14.6 V19 M11.7 12 V19" fill="none" stroke="#000" stroke-width="1.1" stroke-linecap="round" opacity=".85"/></svg>';
+  // faíscas do clique (riscos soltos em volta da ponta)
+  '<svg class="vc-ring" viewBox="-50 -50 100 100" aria-hidden="true"><g fill="none" stroke="#fff8f0" stroke-width="5" stroke-linecap="round">' +
+  '<path d="M-1 -27 L-3 -41"/><path d="M22 -17 L33 -27"/><path d="M28 3 L42 5"/><path d="M-24 -14 L-35 -22"/><path d="M-27 9 L-40 14"/><path d="M14 24 L22 35"/></g></svg>' +
+  '<div class="vc-mb"><div class="vc-up">' +
+  // seta rabiscada: gordinha, cheia de curva, creme com contorno de tinta e um riscão de brilho
+  '<svg class="vc-arrow" viewBox="0 0 40 48" aria-hidden="true">' +
+  '<path d="M6 4.1 C4.9 3.7 4.2 4.8 4.5 6 L5.3 36.6 C5.4 38.2 6.9 38.7 8.1 37.6 L13.9 32 L19.5 43.3 C20.2 44.6 21.7 44.8 22.8 44.3 L26.6 42.5 C27.7 42 28 40.7 27.5 39.6 L21.9 28.6 L30.1 28.3 C31.8 28.2 32.5 26.4 31.2 25.2 L8.2 4.7 C7.5 4.2 6.8 4 6 4.1 Z" fill="#fff8f0" stroke="#15101f" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/>' +
+  '<path d="M9.6 13.5 C9.9 18 9.8 22.5 10.1 27.2" fill="none" stroke="#ffd34d" stroke-width="2.6" stroke-linecap="round"/>' +
+  '<path d="M16.6 37.6 L19.4 36.4 M18.3 40.8 L20.7 39.7" fill="none" stroke="#15101f" stroke-width="1.6" stroke-linecap="round" opacity=".55"/></svg>' +
+  // mãozinha de luva (a de "dá pra clicar"): dedão gordo apontando, nós dos dedos riscados
+  '<svg class="vc-hand" viewBox="0 0 52 60" aria-hidden="true">' +
+  '<path d="M11.4 7.2 C11.2 2 20.7 1.8 20.6 7 L20.4 19.4 C22.1 17.6 26.6 17.9 27.1 21 C29.1 19.5 33.2 20.2 33.3 23.4 C35.5 22.3 39.2 23.6 39.1 27.1 L39 36 C39 44.2 33.9 50.2 26 50.1 L21.2 50.1 C16.6 50.2 13.6 47.7 11.5 44.2 L5.5 34.6 C4.3 32.5 7 30.2 9.1 31.8 L11.5 34.3 Z" fill="#fff8f0" stroke="#15101f" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/>' +
+  '<path d="M27.1 23.5 L27 31 M33.3 25.6 L33.1 31.5" fill="none" stroke="#15101f" stroke-width="2.2" stroke-linecap="round"/>' +
+  '<path d="M15.2 9 C15.4 12 15.3 14.5 15.5 17" fill="none" stroke="#ffd34d" stroke-width="2.6" stroke-linecap="round"/>' +
+  '<path d="M12 36.5 C14.2 38.3 15.2 40.3 15.6 43" fill="none" stroke="#15101f" stroke-width="1.8" stroke-linecap="round" opacity=".55"/></svg>' +
+  '</div></div>';
+
+// filtro de "motion blur": borra SÓ na direção em que o mouse anda (o stdDeviation é atualizado a cada quadro)
+let viraBlurNode = null;
+function viraBlurFilter() {
+  if (viraBlurNode && viraBlurNode.isConnected) return viraBlurNode;
+  const NS = 'http://www.w3.org/2000/svg';
+  const s = document.createElementNS(NS, 'svg');
+  s.setAttribute('width', '0'); s.setAttribute('height', '0');
+  s.setAttribute('aria-hidden', 'true');
+  s.style.cssText = 'position:absolute;width:0;height:0;pointer-events:none';
+  s.innerHTML = '<defs><filter id="vira-mb" x="-150%" y="-150%" width="400%" height="400%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="0 0"/></filter></defs>';
+  document.body.appendChild(s);
+  viraBlurNode = s.querySelector('feGaussianBlur');
+  return viraBlurNode;
+}
 let viraCur = null; // { el, tx, ty, cx, cy, rot, seen, raf, last, squish }
 function viraCursorEnsure(box) {
   if (viraCur && viraCur.el.parentNode === box) return viraCur;
@@ -2315,7 +2338,9 @@ function viraCursorEnsure(box) {
   el.setAttribute('aria-hidden', 'true');
   el.innerHTML = VIRA_CURSOR_SVG;
   box.appendChild(el);
-  viraCur = { el, x: 0.5, y: 0.5, cx: 0, cy: 0, vx: 0, vy: 0, sc: 1, scv: 0, st: 0, ang: 0, hand: false, seen: false, raf: 0, last: 0, squish: 0 };
+  viraBlurFilter();
+  viraCur = { el, x: 0.5, y: 0.5, cx: 0, cy: 0, vx: 0, vy: 0, sc: 1, scv: 0, st: 0, ang: 0, bl: 0, hand: false, seen: false, raf: 0, last: 0, squish: 0 };
+  viraCur.mb = el.querySelector('.vc-mb'); viraCur.up = el.querySelector('.vc-up');
   return viraCur;
 }
 function viraCursorTick(now) {
@@ -2342,8 +2367,15 @@ function viraCursorTick(now) {
   const speed = Math.hypot(c.vx, c.vy);
   if (speed > 40) c.ang = Math.atan2(c.vy, c.vx) * 180 / Math.PI;
   c.st += (Math.min(0.26, speed / 3200) - c.st) * (1 - Math.exp(-dt * 14));
-  c.el.style.transform = 'translate3d(' + c.cx.toFixed(1) + 'px,' + c.cy.toFixed(1) + 'px,0) rotate(' + c.ang.toFixed(1) + 'deg) ' +
-    'scale(' + ((1 + c.st) * c.sc).toFixed(3) + ',' + ((1 - c.st * 0.45) * c.sc).toFixed(3) + ') rotate(' + (-c.ang).toFixed(1) + 'deg)';
+  c.el.style.transform = 'translate3d(' + c.cx.toFixed(1) + 'px,' + c.cy.toFixed(1) + 'px,0) scale(' + c.sc.toFixed(3) + ')';
+  // o miolo gira pra direção do movimento: estica e borra naquele eixo, e o desenho gira de volta pra ficar em pé
+  c.mb.style.transform = 'rotate(' + c.ang.toFixed(1) + 'deg) scale(' + (1 + c.st).toFixed(3) + ',' + (1 - c.st * 0.45).toFixed(3) + ')';
+  c.up.style.transform = 'rotate(' + (-c.ang).toFixed(1) + 'deg)';
+  c.bl += (Math.min(9, Math.max(0, speed - 90) / 150) - c.bl) * (1 - Math.exp(-dt * 16));   // motion blur em px
+  if (c.bl > 0.35) {
+    viraBlurFilter().setAttribute('stdDeviation', c.bl.toFixed(2) + ' 0');
+    c.mb.style.filter = 'url(#vira-mb)';
+  } else c.mb.style.filter = 'none';
   c.raf = requestAnimationFrame(viraCursorTick);
 }
 function handleViraCursor(m) {
