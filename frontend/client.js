@@ -2299,8 +2299,13 @@ function sendViraCursor(e, k) {
 // ---- quem ASSISTE: ponteiro estilo macOS que segue o do jogador, suavizado ----
 const VIRA_CURSOR_SVG =
   '<span class="vc-ring"></span>' +
-  '<svg viewBox="0 0 24 30" aria-hidden="true"><path d="M5 3.2 V21.6 L9.3 17.7 L12.1 24.4 L15.2 23.1 L12.4 16.5 L18.2 16.5 Z" ' +
-  'fill="#000" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+  '<svg class="vc-arrow" viewBox="0 0 24 30" aria-hidden="true"><path d="M5 3.2 V21.6 L9.3 17.7 L12.1 24.4 L15.2 23.1 L12.4 16.5 L18.2 16.5 Z" ' +
+  'fill="#000" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>' +
+  // mãozinha (o ponteiro de "clicável"): branca com contorno preto, igual à do macOS
+  '<svg class="vc-hand" viewBox="0 0 28 32" aria-hidden="true"><path d="M7.5 4 C7.5 1.6 11.7 1.6 11.7 4 V11.4 C11.7 9.9 15.2 9.9 15.2 11.6 ' +
+  'V12.6 C15.2 11.1 18.7 11.1 18.7 12.8 V13.8 C18.7 12.4 22.2 12.4 22.2 14 V21.2 C22.2 25.8 19.2 28.8 15.2 28.8 H11.6 ' +
+  'C9.6 28.8 8.5 27.8 7.5 26.2 L3.6 19.7 C2.9 18.4 4.7 17.2 5.9 18.2 L7.5 19.9 Z" fill="#fff" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/>' +
+  '<path d="M15.2 13.4 V19 M18.7 14.6 V19 M11.7 12 V19" fill="none" stroke="#000" stroke-width="1.1" stroke-linecap="round" opacity=".85"/></svg>';
 let viraCur = null; // { el, tx, ty, cx, cy, rot, seen, raf, last, squish }
 function viraCursorEnsure(box) {
   if (viraCur && viraCur.el.parentNode === box) return viraCur;
@@ -2310,7 +2315,7 @@ function viraCursorEnsure(box) {
   el.setAttribute('aria-hidden', 'true');
   el.innerHTML = VIRA_CURSOR_SVG;
   box.appendChild(el);
-  viraCur = { el, x: 0.5, y: 0.5, cx: 0, cy: 0, sc: 1, seen: false, raf: 0, last: 0, squish: 0 };
+  viraCur = { el, x: 0.5, y: 0.5, cx: 0, cy: 0, vx: 0, vy: 0, sc: 1, scv: 0, st: 0, ang: 0, hand: false, seen: false, raf: 0, last: 0, squish: 0 };
   return viraCur;
 }
 function viraCursorTick(now) {
@@ -2324,12 +2329,21 @@ function viraCursorTick(now) {
   const tx = r.left + c.x * r.width, ty = r.top + c.y * r.height;
   const dt = Math.min(0.05, Math.max(0.001, (now - (c.last || now)) / 1000));
   c.last = now;
-  const k = 1 - Math.exp(-dt * 11);                 // seguir macio (quanto maior, mais colado)
-  const px = c.cx;
-  c.cx += (tx - c.cx) * k; c.cy += (ty - c.cy) * k;
-  const target = c.squish > now ? 0.86 : 1;           // clique: afunda de leve e volta suave
-  c.sc += (target - c.sc) * (1 - Math.exp(-dt * 22));
-  c.el.style.transform = 'translate3d(' + c.cx.toFixed(1) + 'px,' + c.cy.toFixed(1) + 'px,0) scale(' + c.sc.toFixed(3) + ')';
+  // mola: o ponteiro é "puxado" até o ponto do mouse, passa um tiquinho e assenta (elástico)
+  const K = 340, D = 2 * 0.62 * Math.sqrt(K);
+  const n = 3, h = dt / n;
+  for (let i = 0; i < n; i++) {
+    c.vx += ((tx - c.cx) * K - c.vx * D) * h; c.vy += ((ty - c.cy) * K - c.vy * D) * h;
+    c.cx += c.vx * h; c.cy += c.vy * h;
+    const ts = c.squish > now ? 0.8 : 1;             // clique: afunda e volta com um "boing"
+    c.scv += ((ts - c.sc) * 520 - c.scv * 24) * h; c.sc += c.scv * h;
+  }
+  // estica na direção em que anda (e achata um pouco de lado), voltando ao normal quando para
+  const speed = Math.hypot(c.vx, c.vy);
+  if (speed > 40) c.ang = Math.atan2(c.vy, c.vx) * 180 / Math.PI;
+  c.st += (Math.min(0.26, speed / 3200) - c.st) * (1 - Math.exp(-dt * 14));
+  c.el.style.transform = 'translate3d(' + c.cx.toFixed(1) + 'px,' + c.cy.toFixed(1) + 'px,0) rotate(' + c.ang.toFixed(1) + 'deg) ' +
+    'scale(' + ((1 + c.st) * c.sc).toFixed(3) + ',' + ((1 - c.st * 0.45) * c.sc).toFixed(3) + ') rotate(' + (-c.ang).toFixed(1) + 'deg)';
   c.raf = requestAnimationFrame(viraCursorTick);
 }
 function handleViraCursor(m) {
@@ -2342,9 +2356,12 @@ function handleViraCursor(m) {
   c.x = +m.x; c.y = +m.y;
   if (!c.seen) {                                                      // 1º sinal: aparece já no lugar (sem voar do canto)
     const r = cardsEl.getBoundingClientRect();
-    c.cx = r.left + c.x * r.width; c.cy = r.top + c.y * r.height;
+    c.cx = r.left + c.x * r.width; c.cy = r.top + c.y * r.height; c.vx = c.vy = 0;
     c.seen = true; c.el.classList.add('show');
   }
+  // sobre uma carta (e antes do clique): a seta vira a mãozinha de clicar
+  c.hand = m.h >= 0 || (m.k >= 0 && m.k !== undefined && m.k !== null);
+  c.el.classList.toggle('hand', c.hand);
   // mesma "mão sobre a carta" que o jogador vê
   Array.prototype.forEach.call(cardsEl.children, (cd, i) => cd.classList.toggle('sim-hover', i === m.h && !box.classList.contains('sent')));
   if (m.k >= 0 && cardsEl.children[m.k] && !box.classList.contains('sent')) {   // clicou: a carta escolhida fica em destaque e a animação do vira sai dela
