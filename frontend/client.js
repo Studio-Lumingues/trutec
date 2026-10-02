@@ -1087,7 +1087,7 @@ function setRoomCode(code) {
   el.setAttribute('role', 'img');
   el.setAttribute('aria-label', 'Código da sala: ' + code);
   // se a tela acabou de abrir, espera o card terminar de crescer antes das letras
-  const base = performance.now() - waitingShownAt < 700 ? 450 : 80;
+  const base = performance.now() - waitingShownAt < 900 ? 650 : 80;
   const STEP = 130;
   el.textContent = '';
   Array.from(code).forEach((ch, i) => {
