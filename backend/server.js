@@ -1178,6 +1178,15 @@ io.on('connection', (socket) => {
     reply({ ok: true });
   });
 
+  // Só confere se a sala/lugar ainda existe (sem entrar). O cliente usa isso pra
+  // decidir se mostra a oferta "Reconectar" ao abrir o site.
+  socket.on('check_session', ({ code, token } = {}, cb) => {
+    if (typeof cb !== 'function') return;
+    const r = rooms.get(String(code || '').toUpperCase());
+    const ok = !!(r && token && r.players.some(x => x.token === token));
+    cb({ ok });
+  });
+
   // Reconexão: se a conexão cair (Render free, wifi, celular), o cliente volta
   // com o token que recebeu ao entrar e retoma o lugar na sala.
   socket.on('rejoin_room', ({ code, token } = {}, cb) => {

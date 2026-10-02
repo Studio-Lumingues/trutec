@@ -220,9 +220,25 @@ socket.on('disconnect', (reason) => {
 window.addEventListener('online', () => { if (myRoomCode && !socket.connected) socket.connect(); });
 
 // ---- oferta de reconectar (ao abrir o site com uma sala salva) ----
+// Antes de mostrar a oferta, pergunta ao servidor se a sala ainda existe.
+// Se não existe (ou o lugar sumiu), apaga a sessão e não mostra nada.
 function showReconnectOffer() {
   const s = readSession();
   if (!s || myRoomCode) return;
+  let answered = false;
+  const decide = (res) => {
+    if (answered) return; answered = true;
+    if (myRoomCode) return;                       // já entrou numa sala nesse meio tempo
+    if (res && res.ok) return renderReconnectOffer(s);
+    if (res && res.ok === false) clearSession();  // sala acabou: esquece
+    // sem resposta (servidor antigo/dormindo): não mostra, mas mantém a sessão
+  };
+  const ask = () => socket.emit('check_session', { code: s.code, token: s.token }, decide);
+  if (socket.connected) ask(); else { socket.connect(); socket.once('connect', ask); }
+  setTimeout(() => decide(null), 20000);          // Render acordando: desiste de esperar
+}
+function renderReconnectOffer(s) {
+  if (document.getElementById('reconnect-offer')) return;
   const box = document.createElement('div');
   box.id = 'reconnect-offer';
   box.className = 'reconnect-offer';
@@ -242,12 +258,12 @@ function showReconnectOffer() {
     const fail = (msg) => {
       if (finished) return; finished = true; rejoinHold = false;
       myRoomCode = null; myToken = null;
-      err.textContent = msg; go.remove();
+      err.textContent = msg; go.remove();   // timeout: mantém a sessão (o servidor pode só estar acordando)
     };
     const run = () => {
       clearTimeout(timer);
       rejoinHold = false;
-      tryRejoin((res) => { finished = true; if (!(res && res.ok)) { rejoinHold = false; myRoomCode = null; myToken = null; err.textContent = (res && res.error) || 'Não foi possível voltar.'; go.remove(); } });
+      tryRejoin((res) => { finished = true; if (!(res && res.ok)) { rejoinHold = false; myRoomCode = null; myToken = null; err.textContent = (res && res.error) || 'Não foi possível voltar.'; go.remove(); clearSession(); setTimeout(() => box.remove(), 2500); } });
     };
     const timer = setTimeout(() => fail('O servidor não respondeu. Tente de novo em instantes.'), 15000);
     if (socket.connected) run(); else { socket.connect(); socket.once('connect', run); }
