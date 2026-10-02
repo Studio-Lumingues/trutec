@@ -3220,3 +3220,13 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   white-space: nowrap;
 }
 .seat-name .bot-tag { vertical-align: 0.12em; }
+
+/* Ícone de parceiro (estilo MSN) ao lado do nome, dentro da partida */
+.seat-name .partner-icon {
+  display: inline-block;
+  width: 1.45em;
+  height: 1.1em;
+  margin-left: 0.4em;
+  vertical-align: -0.2em;
+  overflow: visible;
+}

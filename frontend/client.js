@@ -1152,7 +1152,7 @@ function smoothCardResize(change) {
 function handleLobbyUpdate(lobby) {
   lastRealLobby = lobby;
   if (teamSwapBusy > 0 || teamDrag) { deferredLobby = lobby; return; }   // troca/arraste em andamento: espera acabar
-  smoothCardResize(() => renderLobby(lobby));
+  smoothCardResize(() => renderLobby(mergePendingBots(lobby)));
 }
 function renderLobby(lobby) {
   const revealBase = setRoomCode(lobby.code); // ms de espera se o código é novo (anima), 0 se já estava na tela
@@ -1305,6 +1305,7 @@ function openBotModal(target) {
       return;
     }
     const taken = new Set(((lastRealLobby && lastRealLobby.players) || []).map(p => p.persona).filter(Boolean));
+    pendingBots.forEach(b => taken.add(b.persona));      // bot que acabei de pedir e o servidor ainda não confirmou
     botListEl.innerHTML = '';
     bots.forEach((b) => {
       const btn = document.createElement('button');
@@ -1324,33 +1325,57 @@ function openBotModal(target) {
     });
   });
 }
+// Bots que o host acabou de pedir e o servidor ainda não confirmou: já contam como
+// "na sala" (a janela marca como já escolhido na hora e o lobby não perde o bot
+// se chegar uma atualização do servidor no meio do caminho).
+const pendingBots = [];   // [{ persona, player }]
+function mergePendingBots(lobby) {
+  const have = new Set(lobby.players.map(p => p.persona).filter(Boolean));
+  const extra = pendingBots.filter(b => !have.has(b.persona));
+  if (!extra.length) return lobby;
+  const used = new Set(lobby.players.map(p => p.seat));
+  const players = lobby.players.slice();
+  extra.forEach(b => {
+    let seat = b.player.seat;
+    if (used.has(seat)) { seat = 0; while (used.has(seat)) seat++; }
+    used.add(seat);
+    players.push(Object.assign({}, b.player, { seat }));
+  });
+  const full = players.length === lobby.maxPlayers;
+  const teamsReady = lobby.mode !== '2v2' || [0, 1].every(k => players.filter(p => p.team === k).length === 2);
+  return Object.assign({}, lobby, { players, canStart: full && teamsReady, teamsReady });
+}
 function chooseBot(bot) {
   const t = botTarget;
   closeBotModal();
   if (!t) return;
-  addBotInstantly(t, bot);
+  const entry = addBotInstantly(t, bot);
   socket.emit('add_bot', { team: t.team, slot: t.slot, persona: bot.persona }, (res) => {
+    const i = pendingBots.indexOf(entry);
+    if (i >= 0) pendingBots.splice(i, 1);
     t.done(res);
     if (res && !res.ok && lastRealLobby) {                 // recusado: desfaz o bot que apareceu
-      knownSeats = new Set(lastRealLobby.players.map(p => p.seat));
-      renderLobby(lastRealLobby);
+      const shown = mergePendingBots(lastRealLobby);
+      knownSeats = new Set(shown.players.map(p => p.seat));
+      renderLobby(shown);
     }
   });
 }
 // Desenha o lobby já com o bot (a resposta do servidor depois só confirma, igualzinho).
 function addBotInstantly(t, bot) {
-  const base = lastRealLobby;
-  if (!base || teamSwapBusy > 0 || teamDrag) return;
+  if (!lastRealLobby || teamSwapBusy > 0 || teamDrag) return null;
+  const base = mergePendingBots(lastRealLobby);          // já inclui bots pedidos antes e ainda não confirmados
   const used = new Set(base.players.map(p => p.seat));
   let seat = 0; while (used.has(seat)) seat++;
   const team = base.mode === '2v2' && t.team !== undefined ? t.team : seat % 2;
-  const players = base.players.concat([{
+  const player = {
     seat, name: bot.name, team, slot: t.slot, connected: true, character: bot.avatar,
     nameFx: null, isBot: true, persona: bot.persona, theme: null, stats: null
-  }]);
-  const full = players.length === base.maxPlayers;
-  const teamsReady = base.mode !== '2v2' || [0, 1].every(k => players.filter(p => p.team === k).length === 2);
-  renderLobby(Object.assign({}, base, { players, canStart: full && teamsReady, teamsReady }));
+  };
+  const entry = { persona: bot.persona, player };
+  pendingBots.push(entry);
+  renderLobby(mergePendingBots(lastRealLobby));
+  return entry;
 }
 document.getElementById('bot-cancel').addEventListener('click', closeBotModal);
 botModal.addEventListener('click', (e) => { if (e.target === botModal) closeBotModal(); });
@@ -2093,7 +2118,7 @@ function renderState(realState) {
       setSeatAway(figEl, !p.isBot && p.connected === false);
     }
     if (nameEl) {
-      setNameEl(nameEl, p.name, (n === 4 && p.team === myTeam) ? ' (parceiro)' : '', p.nameFx, p.isBot);
+      setNameEl(nameEl, p.name, '', p.nameFx, p.isBot, n === 4 && p.team === myTeam);
       nameEl.classList.toggle('active-turn', isActive);
     }
     if (handEl) {
@@ -2761,12 +2786,36 @@ function nameFxHtml(name, fx) {
   return fx && NAME_FX.has(fx) ? `<span class="nfx nfx-${fx}">${escapeHtml(name)}</span>` : escapeHtml(name);
 }
 // escreve o nome num elemento só quando algo mudou (recriar a cada atualização reiniciaria a animação)
-function setNameEl(el, name, suffix, fx, isBot) {
+// Ícone de parceiro (dois bonequinhos, estilo MSN): aparece ao lado do nome do seu parceiro de dupla.
+let partnerIconReady = false;
+function ensurePartnerIcon() {
+  if (partnerIconReady) return;
+  partnerIconReady = true;
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+  holder.setAttribute('aria-hidden', 'true');
+  holder.innerHTML =
+    '<svg xmlns="http://www.w3.org/2000/svg"><defs>' +
+    '<radialGradient id="pt-g" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#d9ffbf"/><stop offset=".55" stop-color="#5fc23a"/><stop offset="1" stop-color="#2f8a1e"/></radialGradient>' +
+    '<radialGradient id="pt-b" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#e3f6ff"/><stop offset=".55" stop-color="#4aa8e6"/><stop offset="1" stop-color="#1f66b0"/></radialGradient>' +
+    '<linearGradient id="pt-o" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffb52e" stop-opacity=".1"/><stop offset=".5" stop-color="#ffc84a"/><stop offset="1" stop-color="#ff9a1f" stop-opacity=".2"/></linearGradient>' +
+    '</defs><symbol id="i-partner" viewBox="0 0 64 48">' +
+    '<circle cx="21" cy="12" r="9.5" fill="url(#pt-g)"/>' +
+    '<path d="M6 44 L6 29 Q6 21 15 21 L27 21 Q36 21 36 29 L36 44 Z" fill="url(#pt-g)"/>' +
+    '<circle cx="42" cy="9" r="10.5" fill="url(#pt-b)"/>' +
+    '<path d="M24 47 L24 27 Q24 18.5 34 18.5 L50 18.5 Q60 18.5 60 27 L60 47 Z" fill="url(#pt-b)"/>' +
+    '<path d="M2 28 C12 18 26 22 38 31 C47 37 56 40 63 38" fill="none" stroke="url(#pt-o)" stroke-width="3.2" stroke-linecap="round"/>' +
+    '</symbol></svg>';
+  document.body.appendChild(holder);
+}
+function setNameEl(el, name, suffix, fx, isBot, isPartner) {
   name = (name === undefined || name === null || String(name).trim() === '') ? 'Jogador' : name;
-  const sig = name + '|' + (suffix || '') + '|' + (fx || '') + '|' + (isBot ? 'bot' : '');
+  const sig = name + '|' + (suffix || '') + '|' + (fx || '') + '|' + (isBot ? 'bot' : '') + '|' + (isPartner ? 'pt' : '');
   // só pula a escrita se o elemento realmente já mostra esse nome
   // (se estiver com o placeholder "—", escreve de novo)
   if (el.dataset.sig === sig && el.textContent.trim() !== '—') return;
   el.dataset.sig = sig;
-  el.innerHTML = nameFxHtml(name, fx) + (isBot ? '<span class="bot-tag">BOT</span>' : '') + escapeHtml(suffix || '');
+  if (isPartner) ensurePartnerIcon();
+  el.innerHTML = nameFxHtml(name, fx) + (isBot ? '<span class="bot-tag">BOT</span>' : '') + escapeHtml(suffix || '') +
+    (isPartner ? '<svg class="partner-icon" role="img" aria-label="Seu parceiro" viewBox="0 0 64 48"><title>Seu parceiro</title><use href="#i-partner"/></svg>' : '');
 }
