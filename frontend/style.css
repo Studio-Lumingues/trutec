@@ -3002,6 +3002,29 @@ html[data-theme="casa"] .table-disc::before {
   .lobby-actions .btn, .btn-icon-only .ic { transition: none; }
 }
 
+/* Bonecos dos botões de vidro (Avatar e Social): o tamanho NÃO acompanha mais
+   a largura do botão. Eles têm tamanho fixo (--bh = altura do botão em
+   repouso x 2.3) e, no hover, só dão "zoom" a partir do próprio centro
+   (transform: scale). Assim o centro fica parado no mesmo lugar e eles não
+   escorregam pro lado quando o botão cresce.
+   --bh: altura do botão em repouso (2 x 1.0625rem + 1.35rem + borda).
+   --s: zoom no hover (altura do botão em hover / --bh; hoje ~ 5.75 / 3.6). */
+.lobby-actions .btn-glass { --bh: 3.6rem; --s: 1; }
+.lobby-actions .btn-glass .glass-avatar,
+.lobby-actions .btn-glass .glass-duo {
+  height: calc(var(--bh) * 2.3);
+  transition: transform .22s ease;
+}
+.lobby-actions .btn-glass .glass-avatar { transform: translateY(-46%) scale(var(--s)); }
+.lobby-actions .btn-glass .glass-duo    { transform: translate(8.333%, -46%) scale(var(--s)); }
+@media (hover: hover) and (pointer: fine) {
+  .lobby-actions .btn-glass:hover { --s: 1.6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lobby-actions .btn-glass .glass-avatar,
+  .lobby-actions .btn-glass .glass-duo { transition: none; }
+}
+
 
 /* ==========================================================================
    Seletor de cor personalizada (círculo arco-íris em vez do quadrado)
