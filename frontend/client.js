@@ -354,16 +354,25 @@ function getSavedCharacter() {
     clearTimeout(toolbarResizeTimer);
     bar.style.transition = 'none';
     bar.style.height = '';                              // altura natural pra medir
+    bar.style.alignSelf = ''; bar.style.justifyContent = '';
     change();
     const to = bar.offsetHeight;
     if (Math.abs(to - from) < 2) { bar.style.overflow = ''; return; }
     bar.style.overflow = 'hidden';
+    // durante a animação o card cresce/encolhe a partir do CENTRO e mantém o espaçamento
+    // do Desenho; sem isso ele pulava do centro pro topo (e o conteúdo se reagrupava de
+    // uma vez) na troca Pele <-> Desenho. Ao final, o CSS normal assume sem diferença visual.
+    if (window.matchMedia('(min-width: 901px)').matches) {
+      bar.style.alignSelf = 'center';
+      bar.style.justifyContent = 'space-between';
+    }
     bar.style.height = from + 'px';
     void bar.offsetHeight;                              // aplica o ponto de partida
     bar.style.transition = 'height .6s cubic-bezier(.22, 1, .36, 1)';
     bar.style.height = to + 'px';
     toolbarResizeTimer = setTimeout(() => {
       bar.style.transition = ''; bar.style.height = ''; bar.style.overflow = '';
+      bar.style.alignSelf = ''; bar.style.justifyContent = '';
     }, 650);
   }
 
