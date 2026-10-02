@@ -278,6 +278,22 @@ class Room {
   }
 
   // Quantos jogadores tem em cada time no momento (só faz sentido no 2v2).
+  // Posição (0 = em cima, 1 = embaixo) de cada jogador dentro da dupla, na sala de espera.
+  // Só visual: garante que ninguém repita a posição e preenche as que faltam.
+  normalizeSlots() {
+    for (const t of [0, 1]) {
+      const used = new Set();
+      const list = this.players.filter(p => p.team === t);
+      for (const p of list) {
+        if ((p.slot === 0 || p.slot === 1) && !used.has(p.slot)) used.add(p.slot);
+        else p.slot = undefined;
+      }
+      for (const p of list) {
+        if (p.slot === undefined) { p.slot = used.has(0) ? 1 : 0; used.add(p.slot); }
+      }
+    }
+  }
+
   teamCounts() {
     const counts = [0, 0];
     for (const p of this.players) counts[p.team]++;
@@ -321,8 +337,8 @@ class Room {
       // pro host apertar "Iniciar".
       canStart: !this.started && this.players.length === this.maxPlayers && this.teamsReady(),
       teamsReady: this.teamsReady(),
-      players: this.players.map(p => ({
-        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: shownCharacter(p), nameFx: fxOf(p), isBot: !!p.isBot,
+      players: (this.normalizeSlots(), this.players).map(p => ({
+        seat: p.seat, name: p.name, team: p.team, slot: p.slot, connected: p.connected, character: shownCharacter(p), nameFx: fxOf(p), isBot: !!p.isBot,
         theme: p.theme || null, stats: p.stats || null
       }))
     };
@@ -1247,6 +1263,7 @@ io.on('connection', (socket) => {
 
     if (target.team !== team && r.teamCounts()[team] >= 2) return cb && cb({ ok: false, error: 'Essa dupla já está cheia.' });
 
+    if (target.team !== team) target.slot = undefined; // pega a 1ª vaga da dupla nova
     target.team = team;
     io.to(r.code).emit('lobby_update', r.lobbyState());
     cb && cb({ ok: true });
@@ -1264,9 +1281,38 @@ io.on('connection', (socket) => {
     const a = r.playerBySeat(seatA), b = r.playerBySeat(seatB);
     if (!a || !b || a === b) return reply({ ok: false, error: 'Jogador não encontrado.' });
     if (a.team !== b.team) {
+      r.normalizeSlots();
       const t = a.team; a.team = b.team; b.team = t;
+      const sl = a.slot; a.slot = b.slot; b.slot = sl;
       io.to(r.code).emit('lobby_update', r.lobbyState());
     }
+    reply({ ok: true });
+  });
+
+  // Host põe um jogador numa posição exata (dupla + em cima/embaixo). Se já tem
+  // alguém lá, os dois trocam de lugar.
+  socket.on('place_player', ({ seat, team, slot } = {}, cb) => {
+    const reply = (o) => { if (typeof cb === 'function') cb(o); };
+    const r = room();
+    if (!r) return reply({ ok: false, error: 'Sala não encontrada.' });
+    const host = r.playerBySocket(socket.id);
+    if (!host || host.seat !== 0) return reply({ ok: false, error: 'Só o host pode escolher as duplas.' });
+    if (r.started || r.characterPhaseTimer) return reply({ ok: false, error: 'A partida já começou.' });
+    if (r.mode !== '2v2') return reply({ ok: false, error: 'Só é possível escolher duplas no modo 2v2.' });
+    if ((team !== 0 && team !== 1) || (slot !== 0 && slot !== 1)) return reply({ ok: false, error: 'Posição inválida.' });
+    const a = r.playerBySeat(seat);
+    if (!a) return reply({ ok: false, error: 'Jogador não encontrado.' });
+    r.normalizeSlots();
+    const b = r.players.find(p => p !== a && p.team === team && p.slot === slot);
+    if (b) {
+      const t = a.team, sl = a.slot;
+      a.team = b.team; a.slot = b.slot;
+      b.team = t; b.slot = sl;
+    } else {
+      if (a.team !== team && r.teamCounts()[team] >= 2) return reply({ ok: false, error: 'Essa dupla já está cheia.' });
+      a.team = team; a.slot = slot;
+    }
+    io.to(r.code).emit('lobby_update', r.lobbyState());
     reply({ ok: true });
   });
 

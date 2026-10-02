@@ -1137,14 +1137,14 @@ function autoBalanceTeams(lobby) {
   }
 }
 
-function playerCardHtml(p, draggable) {
+function playerCardHtml(p, draggable, slot) {
   const avatarSrc = p.character || 'assets/personagem.svg';
   return `
-    <div class="team-card${draggable ? ' team-card-draggable' : ''}" data-seat="${p.seat}">
+    <div class="team-card${draggable ? ' team-card-draggable' : ''}" data-seat="${p.seat}" data-slot="${slot}">
       <div class="wp-avatar"><img src="${avatarSrc}" alt="" draggable="false" /></div>
       <span class="wp-name">${nameFxHtml(p.name, p.nameFx)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
       ${p.isBot && draggable ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}
-      ${!p.isBot && p.seat !== 0 && draggable ? '<button type="button" class="bot-remove-btn kick-btn" title="Expulsar da sala" aria-label="Expulsar da sala">×</button>' : ''}
+      ${!p.isBot && p.seat !== 0 && draggable ? '<button type="button" class="bot-remove-btn kick-btn" title="Expulsar da sala" aria-label="Expulsar da sala">' + ICON('exit') + 'Expulsar</button>' : ''}
     </div>
   `;
 }
@@ -1158,17 +1158,23 @@ function renderTeamsBoard(lobby, canEdit) {
 
   for (const team of [0, 1]) {
     const teamPlayers = lobby.players.filter(p => p.team === team);
-    const missing = Math.max(0, 2 - teamPlayers.length);
 
     const col = document.createElement('div');
     col.className = `team-column team-column-${team === 0 ? 'a' : 'b'}`;
     col.dataset.team = String(team);
 
-    let bodyHtml = teamPlayers.map(p => playerCardHtml(p, canEdit)).join('');
-    for (let i = 0; i < missing; i++) {
-      bodyHtml += canEdit
-        ? `<div class="team-slot-empty has-bot-btn"><span class="slot-wait">Aguardando…</span><button type="button" class="bot-add-btn">+ Adicionar bot</button></div>`
-        : `<div class="team-slot-empty">Aguardando…</div>`;
+    // posições da dupla: 0 = em cima, 1 = embaixo (o host escolhe arrastando)
+    const slots = [null, null];
+    teamPlayers.forEach((p) => {
+      const want = (p.slot === 0 || p.slot === 1) && !slots[p.slot] ? p.slot : (slots[0] ? 1 : 0);
+      slots[want] = p;
+    });
+    let bodyHtml = '';
+    for (let i = 0; i < 2; i++) {
+      if (slots[i]) bodyHtml += playerCardHtml(slots[i], canEdit, i);
+      else bodyHtml += canEdit
+        ? `<div class="team-slot-empty has-bot-btn" data-slot="${i}"><span class="slot-wait">Aguardando…</span><button type="button" class="bot-add-btn">+ Adicionar bot</button></div>`
+        : `<div class="team-slot-empty" data-slot="${i}">Aguardando…</div>`;
     }
 
     col.innerHTML = `
@@ -1205,7 +1211,7 @@ function renderClassicList(lobby, canEdit) {
           <span class="wp-team">Time ${p.team + 1}</span>
         </div>
         ${p.isBot && canEdit ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}
-        ${!p.isBot && p.seat !== 0 && canEdit ? '<button type="button" class="bot-remove-btn kick-btn" title="Expulsar da sala" aria-label="Expulsar da sala">×</button>' : ''}
+        ${!p.isBot && p.seat !== 0 && canEdit ? '<button type="button" class="bot-remove-btn kick-btn" title="Expulsar da sala" aria-label="Expulsar da sala">' + ICON('exit') + 'Expulsar</button>' : ''}
       `;
     } else {
       row.className += ' wp-row-empty' + (canEdit ? ' has-bot-btn' : '');
@@ -1313,6 +1319,9 @@ function onTeamDragMove(e) {
   const el = document.elementFromPoint(e.clientX, e.clientY);
   const col = el && el.closest('.team-column');
   if (col) col.classList.add('team-column-hover');
+  document.querySelectorAll('.team-slot-hover').forEach(n => n.classList.remove('team-slot-hover'));
+  const slotUnder = el && el.closest ? el.closest('.team-column [data-slot]') : null;
+  if (slotUnder && slotUnder !== teamDrag.sourceEl) slotUnder.classList.add('team-slot-hover');
 }
 
 function onTeamDragEnd(e) {
@@ -1328,87 +1337,60 @@ function onTeamDragEnd(e) {
   teamDrag.sourceEl.classList.remove('team-card-source-dragging');
   teamDrag.ghost.remove();
 
-  // Toque rápido sem arrastar: alterna o jogador pra outra dupla direto.
   const seat = teamDrag.seat;
   const sourceEl = teamDrag.sourceEl;
-  const sourceCol = sourceEl.closest('.team-column');
-  const currentTeam = sourceCol ? parseInt(sourceCol.dataset.team, 10) : null;
-  let targetTeam = null;
-  if (col) {
-    targetTeam = parseInt(col.dataset.team, 10);
-  } else if (!teamDrag.moved) {
-    if (currentTeam !== null) targetTeam = currentTeam === 0 ? 1 : 0;
-  }
-
+  const wasMoved = teamDrag.moved;
   teamDrag = null;
+  document.querySelectorAll('.team-slot-hover').forEach(n => n.classList.remove('team-slot-hover'));
 
-  if (targetTeam !== null && targetTeam !== currentTeam) {
-    // Troca INSTANTÂNEA pro host: move o card na tela na hora (se houver vaga)
-    // e só depois confirma com o servidor. Os outros jogadores recebem pelo
-    // lobby_update, com o delay normal da rede.
-    const targetCol = document.querySelector('.team-column[data-team="' + targetTeam + '"]');
-    if (targetCol && !targetCol.querySelector('.team-slot-empty')) {
-      if (!col) { // toque rápido (sem arrastar): não dá pra saber quem substituir
-        const errEl = document.getElementById('waiting-error');
-        if (errEl) errEl.textContent = 'Dupla cheia: arraste o jogador em cima de quem você quer substituir.';
-        return;
-      }
-      // dupla cheia: solta em cima de alguém pra substituir (ele vai pra dupla de quem foi arrastado)
-      if (!dropEl) return;
-      const cards = Array.from(targetCol.querySelectorAll('.team-card'));
-      let victim = dropEl.closest && dropEl.closest('.team-card');
-      if (!victim || !targetCol.contains(victim)) {
-        // não caiu exatamente em cima de um card: pega o mais próximo na vertical
-        victim = cards.sort((a, b) => {
-          const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
-          return Math.abs(ra.top + ra.height / 2 - dropY) - Math.abs(rb.top + rb.height / 2 - dropY);
-        })[0];
-      }
-      if (victim) swapPlayers(sourceEl, victim, seat, parseInt(victim.dataset.seat, 10), currentTeam, targetTeam);
-      return;
-    }
-    const errEl0 = document.getElementById('waiting-error');
-    if (errEl0) errEl0.textContent = '';
-    const moved = moveCardToColumn(sourceEl, targetCol);
-    socket.emit('set_player_team', { seat, team: targetTeam }, (res) => {
-      if (res && !res.ok) {
-        if (moved && sourceCol && sourceEl.isConnected) moveCardToColumn(sourceEl, sourceCol); // desfaz
-        const errEl = document.getElementById('waiting-error');
-        if (errEl) errEl.textContent = res.error || 'Não foi possível mudar a dupla.';
-      }
-    });
-  }
-}
-
-// Substitui: A (arrastado) vai pra dupla de B e B vai pra dupla de A.
-// A tela do host troca na hora; o servidor troca os dois de uma vez (swap_player_teams). Enquanto isso o auto-balanceamento
-// e os lobby_update ficam em espera pra não brigar com a troca.
-function swapPlayers(cardA, cardB, seatA, seatB, teamA, teamB) {
   const errEl = document.getElementById('waiting-error');
   if (errEl) errEl.textContent = '';
+  const srcCol = sourceEl.closest('.team-column');
+  const curTeam = srcCol ? parseInt(srcCol.dataset.team, 10) : null;
 
-  function swapDom() {
-    const mark = document.createComment('');
-    cardA.replaceWith(mark);
-    cardB.replaceWith(cardA);
-    mark.replaceWith(cardB);
+  let targetCol = col, slotEl = null;
+  if (!targetCol) {
+    // soltou fora das duplas: nada. Toque rápido (sem arrastar): vai pra outra dupla, na 1ª vaga livre
+    if (wasMoved || curTeam === null) return;
+    targetCol = document.querySelector('.team-column[data-team="' + (1 - curTeam) + '"]');
+    slotEl = targetCol && targetCol.querySelector('.team-slot-empty');
+    if (!slotEl) { if (errEl) errEl.textContent = 'Dupla cheia: arraste o jogador em cima de quem você quer substituir.'; return; }
+  } else {
+    // a posição (em cima / embaixo) é a que está sob o mouse; se caiu no meio, a mais próxima
+    slotEl = dropEl && dropEl.closest ? dropEl.closest('[data-slot]') : null;
+    if (!slotEl || !targetCol.contains(slotEl)) {
+      slotEl = Array.from(targetCol.querySelectorAll('[data-slot]')).sort((x, y) => {
+        const rx = x.getBoundingClientRect(), ry = y.getBoundingClientRect();
+        return Math.abs(rx.top + rx.height / 2 - dropY) - Math.abs(ry.top + ry.height / 2 - dropY);
+      })[0];
+    }
   }
-  function finish() {
+  if (!slotEl || slotEl === sourceEl) return;
+  movePlayerToSlot(sourceEl, slotEl, seat, parseInt(targetCol.dataset.team, 10), parseInt(slotEl.dataset.slot, 10));
+}
+
+// Troca de lugar na tela (instantâneo) e confirma com o servidor. Se o destino tem
+// alguém, os dois trocam; se está vazio, o jogador vai pra lá. Funciona dentro da mesma
+// dupla (em cima <-> embaixo) e entre duplas, mesmo com as duas cheias.
+function swapNodes(a, b) {
+  const mark = document.createComment('');
+  a.replaceWith(mark);
+  b.replaceWith(a);
+  mark.replaceWith(b);
+  const t = a.dataset.slot; a.dataset.slot = b.dataset.slot; b.dataset.slot = t;
+}
+function movePlayerToSlot(cardEl, targetEl, seat, team, slot) {
+  const errEl = document.getElementById('waiting-error');
+  if (errEl) errEl.textContent = '';
+  teamSwapBusy++;
+  swapNodes(cardEl, targetEl);
+  socket.emit('place_player', { seat, team, slot }, (res) => {
+    if (res && !res.ok) {
+      if (cardEl.isConnected && targetEl.isConnected) swapNodes(cardEl, targetEl); // desfaz na tela
+      if (errEl) errEl.textContent = res.error || 'Não foi possível mover o jogador.';
+    }
     teamSwapBusy = Math.max(0, teamSwapBusy - 1);
     if (teamSwapBusy === 0 && deferredLobby) { const l = deferredLobby; deferredLobby = null; handleLobbyUpdate(l); }
-  }
-  function fail(res) {
-    if (cardA.isConnected && cardB.isConnected) swapDom(); // desfaz na tela
-    if (errEl) errEl.textContent = (res && res.error) || 'Não foi possível substituir o jogador.';
-    finish();
-  }
-
-  teamSwapBusy++;
-  swapDom(); // instantâneo
-  // troca ATÔMICA no servidor: com as duas duplas cheias, mover um por vez sempre dava "dupla cheia"
-  socket.emit('swap_player_teams', { seatA, seatB }, (res) => {
-    if (res && !res.ok) return fail(res);
-    finish();
   });
 }
 

@@ -2983,3 +2983,19 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .kick-text b { color: var(--cream); }
 .btn-danger-solid { background: #c0392b; color: #fff8f0; }
 .btn-danger-solid:hover { background: #d84a3a; }
+
+/* Botão "Expulsar": pílula vermelha com ícone de saída */
+.bot-remove-btn.kick-btn {
+  width: auto; height: auto; margin-left: auto; padding: 0.28rem 0.6rem 0.28rem 0.5rem;
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  border-radius: 999px; border: 1px solid rgba(255,110,100,0.55);
+  background: rgba(192,57,43,0.22); color: #ffb4ab;
+  font: 700 0.68rem/1 inherit; letter-spacing: 0.02em; white-space: nowrap;
+  transition: opacity .15s ease, background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
+}
+.bot-remove-btn.kick-btn .ic { width: 0.85rem; height: 0.85rem; flex: none; margin-right: 0; vertical-align: 0; }
+.bot-remove-btn.kick-btn:hover { background: #c0392b; border-color: #c0392b; color: #fff; }
+.bot-remove-btn.kick-btn:active { transform: scale(0.95); }
+
+/* Posição (em cima / embaixo) sob o mouse enquanto arrasta um jogador */
+.team-slot-hover { outline: 2px dashed var(--gold-bright); outline-offset: 2px; }
