@@ -2102,7 +2102,8 @@ document.getElementById('btn-esconder').addEventListener('click', () => {
 // ------------------------------------------------------------------
 function updateActionButtons(state) {
   const isMyTurn = state.turnSeat === mySeat;
-  const canCall = isMyTurn && !state.pendingCall && !state.gameOver;
+  const maoDe11 = !!state.score && (state.score[0] === 11 || state.score[1] === 11); // mão de 11: truco bloqueado
+  const canCall = isMyTurn && !state.pendingCall && !state.gameOver && !maoDe11;
   const nextLevelByStake = { 1: 'truco', 3: 'seis', 6: 'nove', 9: 'doze' };
   const nextLevel = nextLevelByStake[state.stake];
 
@@ -2114,6 +2115,7 @@ function updateActionButtons(state) {
   } else {
     btnTruco.disabled = true;
   }
+  btnTruco.title = maoDe11 ? 'Na mão de 11 não pode pedir truco' : '';
 
   document.getElementById('btn-correr').disabled = !isMyTurn || !!state.pendingCall || state.gameOver;
   const btnEsconder = document.getElementById('btn-esconder');

@@ -222,7 +222,8 @@ module.exports = function createBot(deps) {
     // --- pedir truco? ---
     const idx = STAKE_SEQUENCE.indexOf(room.stake);
     const nextValue = STAKE_SEQUENCE[idx + 1];
-    const canCall = !room.pendingCall && nextValue && room.lastRaiserTeam !== team;
+    const maoDe11 = room.score[0] === 11 || room.score[1] === 11; // mão de 11: não pode pedir truco
+    const canCall = !maoDe11 && !room.pendingCall && nextValue && room.lastRaiserTeam !== team;
     if (canCall) {
       const { mine, theirs } = teamScores(room, team);
       const s = room.stake;
