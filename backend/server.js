@@ -10,6 +10,8 @@ const crypto = require('crypto');
 const cors = require('cors');
 const { Server } = require('socket.io');
 const createBot = require('./bot');
+const createBotChat = require('./bot-chat');
+const BOT_AVATARS = require('./bot-avatars');
 
 const app = express();
 const server = http.createServer(app);
@@ -228,7 +230,6 @@ class Room {
     this.music = null; // { url, startedAt, by } — música do SoundCloud tocando na sala (`auth musica`)
     this.characterPhaseTimer = null; // setTimeout ativo durante os 45s de "desenhar o personagem"
     this.characterPhaseEndsAt = 0;
-    this.bannedIds = new Set(); // clientIds expulsos pelo host: não podem entrar de novo nessa sala
 
     // Estado de jogo (preenchido em startGame)
     this.deck = [];
@@ -278,22 +279,6 @@ class Room {
   }
 
   // Quantos jogadores tem em cada time no momento (só faz sentido no 2v2).
-  // Posição (0 = em cima, 1 = embaixo) de cada jogador dentro da dupla, na sala de espera.
-  // Só visual: garante que ninguém repita a posição e preenche as que faltam.
-  normalizeSlots() {
-    for (const t of [0, 1]) {
-      const used = new Set();
-      const list = this.players.filter(p => p.team === t);
-      for (const p of list) {
-        if ((p.slot === 0 || p.slot === 1) && !used.has(p.slot)) used.add(p.slot);
-        else p.slot = undefined;
-      }
-      for (const p of list) {
-        if (p.slot === undefined) { p.slot = used.has(0) ? 1 : 0; used.add(p.slot); }
-      }
-    }
-  }
-
   teamCounts() {
     const counts = [0, 0];
     for (const p of this.players) counts[p.team]++;
@@ -337,8 +322,8 @@ class Room {
       // pro host apertar "Iniciar".
       canStart: !this.started && this.players.length === this.maxPlayers && this.teamsReady(),
       teamsReady: this.teamsReady(),
-      players: (this.normalizeSlots(), this.players).map(p => ({
-        seat: p.seat, name: p.name, team: p.team, slot: p.slot, connected: p.connected, character: shownCharacter(p), nameFx: fxOf(p), isBot: !!p.isBot, persona: p.persona || null,
+      players: this.players.map(p => ({
+        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: shownCharacter(p), nameFx: fxOf(p), isBot: !!p.isBot,
         theme: p.theme || null, stats: p.stats || null
       }))
     };
@@ -650,24 +635,10 @@ class Room {
     const respondingTeam = team === 0 ? 1 : 0;
     // Quem responde é só o adversário à direita de quem pediu (na tela: o boneco da direita).
     // Se quiser inverter o lado, troque n - 1 por 1.
-    // Exceção: se esse adversário é um bot e o parceiro dele é humano, é o HUMANO quem responde.
-    const respondingSeat = this.responderSeatFor(seat);
+    const n = this.players.length;
+    const respondingSeat = (seat + n - 1) % n;
     this.pendingCall = { level, value: levelValue, callingTeam: team, respondingTeam, callingSeat: seat, respondingSeat, previousStake: this.stake };
     return { ok: true };
-  }
-
-  // Assento de quem responde a um pedido feito por `callerSeat`: o adversário à direita.
-  // Se ele for um bot com parceiro humano (conectado), a decisão fica com o parceiro humano;
-  // o bot só responde sozinho quando a dupla dele é toda de bots (ou no 1v1).
-  responderSeatFor(callerSeat) {
-    const n = this.players.length;
-    const nominal = (callerSeat + n - 1) % n;
-    const p = this.playerBySeat(nominal);
-    if (p && p.isBot && n === 4) {
-      const partner = this.players.find(x => x.team === p.team && x.seat !== p.seat);
-      if (partner && !partner.isBot && partner.connected) return partner.seat;
-    }
-    return nominal;
   }
 
   respondCall(seat, action) {
@@ -701,9 +672,10 @@ class Room {
       const newCallingTeam = team;
       const newRespondingTeam = this.pendingCall.callingTeam;
       const nextLevel = NEXT_CALL_NAME[this.pendingCall.value];
+      const nPl = this.players.length;
       this.pendingCall = {
         level: nextLevel, value: nextValue, callingTeam: newCallingTeam,
-        respondingTeam: newRespondingTeam, callingSeat: seat, respondingSeat: this.responderSeatFor(seat),
+        respondingTeam: newRespondingTeam, callingSeat: seat, respondingSeat: (seat + nPl - 1) % nPl,
         previousStake: this.pendingCall.value
       };
       return { ok: true, reraised: true };
@@ -790,30 +762,42 @@ class Room {
 //   jogador retoma o lugar se voltar com o token, ex.: queda de conexão).
 // ---------------------------------------------------------------------------
 const brain = createBot({ Room, cardStrength, buildDeck, STAKE_SEQUENCE });
+// Conversa dos bots no chat (ver bot-chat.js): cada persona escreve do seu jeito.
+const botChat = createBotChat({ io, alive: (r) => rooms.get(r.code) === r });
+const PERSONA_NAMES = { jailson: 'Jailson', joao: 'João', thiago: 'Thiago' };
+// Escolhe a personalidade do bot: a pedida (se válida), senão uma que ainda não está na sala.
+function pickPersona(r, wanted) {
+  if (wanted && PERSONA_NAMES[wanted]) return wanted;
+  const used = new Set(r.players.map(p => p.persona).filter(Boolean));
+  const keys = Object.keys(PERSONA_NAMES);
+  const free = keys.filter(k => !used.has(k));
+  const list = free.length ? free : keys;
+  return list[Math.floor(Math.random() * list.length)];
+}
 
 // Quais modos trocam quem sai por um bot no meio da partida (depois de BOT_GRACE_MS).
 const BOT_REPLACES = { '2v2': true, '1v1': true };
 const BOT_GRACE_MS = 10000; // quem cai fica "reconectando" por 10s; depois o bot assume (2v2)
 
-// Os 3 bots: cada um com nome, boneco e jeito de jogar (ver PERSONAS em bot.js).
-//   jailson = na moral (pede pouco truco, às vezes dá facão)
-//   joao    = doidão (truca muito, com carta ou sem carta)
-//   thiago  = racional (só pede com motivo, mas às vezes dá facão)
-const BOT_AVATARS = require('./bot-avatars');
-const BOT_PERSONAS = [
-  { persona: 'jailson', name: 'Jailson', avatar: BOT_AVATARS.jailson,
-    desc: 'Na moral. Pede pouco truco, mas de vez em quando dá um facão.' },
-  { persona: 'joao',    name: 'João',    avatar: BOT_AVATARS.joao,
-    desc: 'O doidão. Truca bastante, com carta ou sem carta.' },
-  { persona: 'thiago',  name: 'Thiago',  avatar: BOT_AVATARS.thiago,
-    desc: 'O racional. Só pede truco com motivo, mas às vezes dá facão também.' }
-];
+const BOT_NAMES = ['Bot Tião', 'Bot Zezé', 'Bot Chico', 'Bot Neide', 'Bot Baiano', 'Bot Dona Maria', 'Bot Zeca', 'Bot Lurdes'];
+const BOT_AVATAR_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">' +
+  '<g stroke="#0a0a0a" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M250 108 L250 58" fill="none"/><circle cx="250" cy="42" r="18" fill="#ff2e63"/>' +
+  '<path d="M112 112 L388 108 C404 108 414 120 414 136 L412 268 C412 284 402 296 386 296 L114 300 C98 300 88 288 88 272 L90 136 C90 120 98 112 112 112 Z" fill="#8fd3ff"/>' +
+  '<path d="M88 176 L56 178 L58 238 L90 236 Z" fill="#8fd3ff"/><path d="M412 176 L444 178 L442 238 L410 236 Z" fill="#8fd3ff"/>' +
+  '<circle cx="186" cy="192" r="36" fill="#fff8f0"/><circle cx="314" cy="192" r="36" fill="#fff8f0"/>' +
+  '<circle cx="190" cy="196" r="13" fill="#0a0a0a"/><circle cx="310" cy="196" r="13" fill="#0a0a0a"/>' +
+  '<path d="M182 258 L318 256" fill="none"/>' +
+  '<path d="M186 300 L184 328 M314 300 L316 328" fill="none"/>' +
+  '<path d="M150 328 L352 324 C368 324 378 336 378 352 L376 440 C376 456 366 466 350 466 L152 470 C136 470 124 458 124 442 L126 344 C126 336 136 328 150 328 Z" fill="#8fd3ff"/>' +
+  '<circle cx="250" cy="396" r="22" fill="#ff2e63"/></g></svg>';
+const BOT_AVATAR = 'data:image/svg+xml;base64,' + Buffer.from(BOT_AVATAR_SVG).toString('base64');
 
-// Escolhe um dos 3 bots que ainda não está na sala (se os 3 já estiverem, repete um).
-function pickBot(r) {
-  const used = new Set(r.players.map(p => p.persona).filter(Boolean));
-  const free = BOT_PERSONAS.filter(b => !used.has(b.persona));
-  const list = free.length ? free : BOT_PERSONAS;
+function pickBotName(r) {
+  const used = new Set(r.players.map(p => p.name));
+  const free = BOT_NAMES.filter(n => !used.has(n));
+  const list = free.length ? free : BOT_NAMES;
   return list[Math.floor(Math.random() * list.length)];
 }
 
@@ -892,6 +876,7 @@ function botAct(r) {
 // (mesmo código, mesmas duplas, bots mantidos) pra jogar de novo sem criar sala.
 function endGame(r, winnerTeam) {
   io.to(r.code).emit('game_over', { winnerTeam, score: r.score.slice() });
+  botChat.gameResult(r, winnerTeam);
   resetRoomToLobby(r);
 }
 
@@ -931,14 +916,14 @@ function botTakeover(r, p) {
   p.origName = p.name;
   p.origCharacter = p.character;
   p.replacedHuman = true;
-  const pick = pickBot(r);
-  p.name = pick.name;
-  p.character = pick.avatar;
-  p.persona = pick.persona;
+  p.persona = pickPersona(r);
+  p.name = PERSONA_NAMES[p.persona];
+  p.character = BOT_AVATARS[p.persona] || BOT_AVATAR;
   p.isBot = true;
   p.connected = true;
   io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${p.origName} saiu — ${p.name} assumiu o lugar.`, ts: Date.now() });
   r.broadcastState(io); // atualiza nome/boneco na mesa e já deixa o bot agir se for a vez
+  botChat.say(r, p, 'takeover');
 }
 
 // Menor assento livre (0..maxPlayers-1) — assentos não podem repetir mesmo
@@ -1071,6 +1056,7 @@ function doPlayCard(r, player, payload, tell) {
     io.to(r.code).emit('mao_result', {
       winnerTeam, points, score: r.score, teamName: r.teamName(winnerTeam)
     });
+    botChat.handResult(r, winnerTeam);
     setTimeout(() => {
       if (isGameOver) {
         endGame(r, winnerTeam);
@@ -1092,6 +1078,7 @@ function doCallTruco(r, player, level, tell) {
     byTeam: player.team, byName: player.name, level, value: r.pendingCall.value
   });
   r.broadcastState(io);
+  if (player.isBot) botChat.say(r, player, level === 'truco' ? 'call' : 'raise');
 }
 
 function doRespondTruco(r, player, action, tell) {
@@ -1107,6 +1094,8 @@ function doRespondTruco(r, player, action, tell) {
       winnerTeam: result.winnerTeam, points: result.points, score: r.score,
       teamName: r.teamName(result.winnerTeam), ran: true
     });
+    if (player.isBot) botChat.say(r, player, 'run');
+    else botChat.sayAny(r, r.players.filter(p => p.team !== player.team), 'ran');
     setTimeout(() => {
       if (isGameOver) {
         endGame(r, result.winnerTeam);
@@ -1121,10 +1110,10 @@ function doRespondTruco(r, player, action, tell) {
 
   io.to(r.code).emit('call_response', { action, byName: player.name });
   r.broadcastState(io);
+  if (player.isBot) botChat.say(r, player, action === 'aumentar' ? 'raise' : 'accept');
 }
 
 io.on('connection', (socket) => {
-  const clientId = String((socket.handshake.auth && socket.handshake.auth.clientId) || '').slice(0, 64);
   let currentRoomCode = null;
   const tell = (ev, msg) => socket.emit(ev, msg);
 
@@ -1153,7 +1142,6 @@ io.on('connection', (socket) => {
     if (!r) return cb && cb({ ok: false, error: 'Sala não encontrada.' });
     if (r.players.length >= r.maxPlayers) return cb && cb({ ok: false, error: 'Sala cheia.' });
     if (r.started) return cb && cb({ ok: false, error: 'Partida já começou.' });
-    if (clientId && r.bannedIds.has(clientId)) return cb && cb({ ok: false, error: 'Você foi expulso dessa sala e não pode entrar nela de novo.' });
 
     const player = joinRoomInternal(r, socket, name || 'Jogador', character, { theme, stats });
     currentRoomCode = code;
@@ -1195,7 +1183,7 @@ io.on('connection', (socket) => {
       p.isBot = false;
       p.name = p.origName;
       p.character = p.origCharacter;
-      delete p.replacedHuman; delete p.origName; delete p.origCharacter; delete p.persona;
+      delete p.replacedHuman; delete p.origName; delete p.origCharacter;
       io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${p.name} voltou e retomou o lugar.`, ts: Date.now() });
     }
     clearTimeout(p._takeoverTimer); p._takeoverTimer = null;
@@ -1227,7 +1215,7 @@ io.on('connection', (socket) => {
   socket.on('quick_join', ({ name, mode, character, theme, stats }, cb) => {
     mode = mode === '2v2' ? '2v2' : '1v1';
     let r = Array.from(rooms.values()).find(
-      x => x.isPublic && !x.started && x.mode === mode && x.players.length < x.maxPlayers && !(clientId && x.bannedIds.has(clientId))
+      x => x.isPublic && !x.started && x.mode === mode && x.players.length < x.maxPlayers
     );
     if (!r) {
       const code = genRoomCode();
@@ -1278,7 +1266,6 @@ io.on('connection', (socket) => {
 
     if (target.team !== team && r.teamCounts()[team] >= 2) return cb && cb({ ok: false, error: 'Essa dupla já está cheia.' });
 
-    if (target.team !== team) target.slot = undefined; // pega a 1ª vaga da dupla nova
     target.team = team;
     io.to(r.code).emit('lobby_update', r.lobbyState());
     cb && cb({ ok: true });
@@ -1296,38 +1283,9 @@ io.on('connection', (socket) => {
     const a = r.playerBySeat(seatA), b = r.playerBySeat(seatB);
     if (!a || !b || a === b) return reply({ ok: false, error: 'Jogador não encontrado.' });
     if (a.team !== b.team) {
-      r.normalizeSlots();
       const t = a.team; a.team = b.team; b.team = t;
-      const sl = a.slot; a.slot = b.slot; b.slot = sl;
       io.to(r.code).emit('lobby_update', r.lobbyState());
     }
-    reply({ ok: true });
-  });
-
-  // Host põe um jogador numa posição exata (dupla + em cima/embaixo). Se já tem
-  // alguém lá, os dois trocam de lugar.
-  socket.on('place_player', ({ seat, team, slot } = {}, cb) => {
-    const reply = (o) => { if (typeof cb === 'function') cb(o); };
-    const r = room();
-    if (!r) return reply({ ok: false, error: 'Sala não encontrada.' });
-    const host = r.playerBySocket(socket.id);
-    if (!host || host.seat !== 0) return reply({ ok: false, error: 'Só o host pode escolher as duplas.' });
-    if (r.started || r.characterPhaseTimer) return reply({ ok: false, error: 'A partida já começou.' });
-    if (r.mode !== '2v2') return reply({ ok: false, error: 'Só é possível escolher duplas no modo 2v2.' });
-    if ((team !== 0 && team !== 1) || (slot !== 0 && slot !== 1)) return reply({ ok: false, error: 'Posição inválida.' });
-    const a = r.playerBySeat(seat);
-    if (!a) return reply({ ok: false, error: 'Jogador não encontrado.' });
-    r.normalizeSlots();
-    const b = r.players.find(p => p !== a && p.team === team && p.slot === slot);
-    if (b) {
-      const t = a.team, sl = a.slot;
-      a.team = b.team; a.slot = b.slot;
-      b.team = t; b.slot = sl;
-    } else {
-      if (a.team !== team && r.teamCounts()[team] >= 2) return reply({ ok: false, error: 'Essa dupla já está cheia.' });
-      a.team = team; a.slot = slot;
-    }
-    io.to(r.code).emit('lobby_update', r.lobbyState());
     reply({ ok: true });
   });
 
@@ -1354,56 +1312,16 @@ io.on('connection', (socket) => {
         if (counts[team] >= 2) team = 1 - team;
       }
     }
-    // qual bot? (o host escolhe numa janela; sem escolha, sorteia um que ainda não está na sala)
-    let pick;
-    const wantPersona = payload && typeof payload.persona === 'string' ? payload.persona : null;
-    if (wantPersona) {
-      pick = BOT_PERSONAS.find(b => b.persona === wantPersona);
-      if (!pick) return reply({ ok: false, error: 'Bot não encontrado.' });
-      if (r.players.some(p => p.persona === wantPersona)) return reply({ ok: false, error: 'Esse bot já está na sala.' });
-    } else {
-      pick = pickBot(r);
-    }
     const token = crypto.randomBytes(12).toString('hex');
-    const bot = {
-      id: 'bot:' + token, token, name: pick.name, seat, team,
-      connected: true, hand: [], character: pick.avatar, persona: pick.persona, isBot: true
+    const persona = pickPersona(r, payload && payload.persona);
+    const newBot = {
+      id: 'bot:' + token, token, name: PERSONA_NAMES[persona], seat, team,
+      connected: true, hand: [], character: BOT_AVATARS[persona] || BOT_AVATAR, isBot: true, persona
     };
-    // no 2v2 o bot ocupa a posição (em cima / embaixo) do slot em que o host clicou
-    if (r.mode === '2v2' && payload && (payload.slot === 0 || payload.slot === 1)) {
-      r.normalizeSlots();
-      if (!r.players.some(p => p.team === team && p.slot === payload.slot)) bot.slot = payload.slot;
-    }
-    r.players.push(bot);
+    r.players.push(newBot);
     io.to(r.code).emit('lobby_update', r.lobbyState());
     reply({ ok: true });
-  });
-
-  // Lista dos bots (nome, descrição e desenho) pra janela "qual bot?" do host.
-  socket.on('get_bot_catalog', (cb) => {
-    if (typeof cb !== 'function') return;
-    cb({ ok: true, bots: BOT_PERSONAS.map(b => ({ persona: b.persona, name: b.name, desc: b.desc, avatar: b.avatar })) });
-  });
-
-  // Host expulsa um jogador (humano) da sala de espera.
-  socket.on('kick_player', ({ seat } = {}, cb) => {
-    const reply = (o) => { if (typeof cb === 'function') cb(o); };
-    const r = room();
-    if (!r) return reply({ ok: false, error: 'Sala não encontrada.' });
-    const host = r.playerBySocket(socket.id);
-    if (!host || host.seat !== 0) return reply({ ok: false, error: 'Só o host pode expulsar jogadores.' });
-    if (r.started || r.characterPhaseTimer) return reply({ ok: false, error: 'A partida já começou.' });
-    const target = r.playerBySeat(seat);
-    if (!target || target.isBot) return reply({ ok: false, error: 'Jogador não encontrado.' });
-    if (target === host) return reply({ ok: false, error: 'Você não pode se expulsar.' });
-    const sock = io.sockets.sockets.get(target.id);
-    const targetCid = sock && sock.handshake && sock.handshake.auth ? String(sock.handshake.auth.clientId || '').slice(0, 64) : (target.clientId || '');
-    if (targetCid) r.bannedIds.add(targetCid);
-    r.players = r.players.filter(p => p !== target);
-    if (sock) { sock.emit('kicked'); sock.leave(r.code); }
-    io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${target.name} foi expulso da sala.`, ts: Date.now() });
-    io.to(r.code).emit('lobby_update', r.lobbyState());
-    reply({ ok: true });
+    botChat.say(r, newBot, 'join');
   });
 
   socket.on('remove_bot', ({ seat } = {}, cb) => {
@@ -1660,8 +1578,9 @@ io.on('connection', (socket) => {
     if (!r) return;
     const player = r.playerBySocket(socket.id);
     if (!player || !text) return;
-    const msg = { name: player.name, nameFx: fxOf(player), seat: player.seat, text: String(text).slice(0, 200), ts: Date.now() };
+    const msg = { name: player.name, nameFx: fxOf(player), seat: player.seat, isBot: !!player.isBot, text: String(text).slice(0, 200), ts: Date.now() };
     io.to(r.code).emit('chat_message', msg);
+    if (!player.isBot) botChat.reply(r, msg.text, player.name); // às vezes um bot responde
   });
 
 
