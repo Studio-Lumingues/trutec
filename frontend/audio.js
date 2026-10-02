@@ -120,7 +120,7 @@
   function wantedTrack() {
     if (muted || matchStarted || radioOn) return null;
     if (currentScreen === 'screen-character-editor') return null; // editor de avatar: sem música
-    if (currentScreen === 'screen-lobby' || currentScreen === 'screen-waiting') return 'song';
+    if (currentScreen === 'screen-lobby' || currentScreen === 'screen-waiting' || currentScreen === 'screen-social') return 'song';
     return null;
   }
 

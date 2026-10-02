@@ -3745,3 +3745,159 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .account-pill:hover { filter: brightness(1.15); background: rgba(40,40,40,0.65); }
 .account-pill:active { transform: translateY(1px) scale(0.98); }
 .account-pill:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+
+/* ---------------------------------------------------------------- */
+/* Tela SOCIAL: mesmo painel do editor de avatar (xadrez girando),   */
+/* aba "Social" em controle de vidro e os 3 bots lado a lado.        */
+/* Celular: os bots ficam um sobre o outro.                          */
+/* ---------------------------------------------------------------- */
+#screen-social.screen {
+  align-items: flex-start;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.75rem;
+}
+#screen-social .character-panel-wide {
+  --ck-a: #3b3b3b;
+  --ck-b: #0a0a0a;
+  --ck-size: 5rem;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--ck-b);
+  margin: auto;
+  width: min(60rem, 100%);
+  max-width: 100%;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+#screen-social .character-panel-wide::before {
+  content: "";
+  position: absolute;
+  left: -150%;
+  top: -150%;
+  width: 400%;
+  height: 400%;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-conic-gradient(var(--ck-a) 0% 25%, var(--ck-b) 0% 50%) 0 0 / var(--ck-size) var(--ck-size);
+  animation: checkerSpin 120s linear infinite;
+}
+#screen-social .character-title {
+  margin: 0.25rem 0 1.5rem;
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+}
+#screen-social.active .character-panel { animation: editorDrop 0.65s both; transform-origin: 50% 100%; }
+#screen-social.active { animation: editorNoScroll 0.7s; }
+@media (prefers-reduced-motion: reduce) {
+  #screen-social .character-panel-wide::before,
+  #screen-social.active .character-panel,
+  #screen-social.active { animation: none; }
+}
+
+/* card de vidro com a aba (igual ao card de ferramentas do editor) */
+.social-toolbar {
+  position: relative;
+  isolation: isolate;
+  width: min(21rem, 100%);
+  margin: 0 auto 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1.6rem;
+  background: linear-gradient(145deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.09) 100%);
+  -webkit-backdrop-filter: blur(0.8rem) saturate(1.8) brightness(1.08);
+  backdrop-filter: blur(0.8rem) saturate(1.8) brightness(1.08);
+  box-shadow: 0 1.5rem 3rem rgba(0,0,0,0.5);
+}
+.social-toolbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgba(255,255,255,0.5);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+/* a pílula do .editor-tabs ocupa a largura toda (só há uma aba) */
+.social-tabs::before { width: calc(100% - 0.5rem); }
+.social-tab-btn {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.5625rem 0.625rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-shadow: 0 1px 0.4rem rgba(0,0,0,0.5);
+  transition: color 0.3s ease;
+}
+.social-tab-btn.active { color: #040303; text-shadow: none; }
+
+/* os 3 bots */
+.social-panel-body { animation: tabPanelIn 0.4s ease both; }
+.social-bots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+.social-bot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 1.4rem;
+  background: linear-gradient(145deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.09) 100%);
+  border: 1px solid rgba(255,255,255,0.4);
+  -webkit-backdrop-filter: blur(0.6rem) saturate(1.6);
+  backdrop-filter: blur(0.6rem) saturate(1.6);
+  box-shadow: 0 1rem 2rem rgba(0,0,0,0.4);
+}
+.social-bot-photo {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 1.125rem;
+  overflow: hidden;
+  background: #fff8f0;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.social-bot-photo img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  pointer-events: none;
+  user-select: none;
+  filter: url(#boil-lg);
+}
+.social-bot-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--cream);
+  text-shadow: 0 1px 0.4rem rgba(0,0,0,0.5);
+}
+#screen-social .character-back-btn { margin-top: 1.25rem; }
+
+@media (max-width: 700px) {
+  #screen-social .character-panel-wide { padding: 1rem 1rem 1.25rem; }
+  .social-bots { grid-template-columns: 1fr; gap: 1rem; }
+  .social-bot { width: min(18rem, 100%); margin: 0 auto; }
+}

@@ -184,6 +184,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
         <button id="btn-play" type="button" class="btn btn-primary">Jogar</button>
         <button id="btn-create" type="button" class="btn btn-secondary">Criar sala</button>
         <button id="btn-open-character-editor" type="button" class="btn btn-glass" aria-label="Avatar"><span class="glass-checker" aria-hidden="true"></span><img id="character-preview-img" class="glass-avatar" src="assets/personagem.svg" alt="" draggable="false" /><span class="glass-label">Avatar</span></button>
+        <button id="btn-open-social" type="button" class="btn btn-glass" aria-label="Social"><span class="glass-checker" aria-hidden="true"></span><img class="glass-avatar" src="assets/social/jailson.png" alt="" draggable="false" /><span class="glass-label">Social</span></button>
         <button id="btn-help" type="button" class="btn btn-secondary">Ajuda</button>
         <button id="btn-settings" type="button" class="btn btn-secondary btn-icon-only" aria-label="Configurações" title="Configurações"><svg class="ic ic-only" aria-hidden="true"><use href="#i-gear"/></svg></button>
       </div>
@@ -589,6 +590,38 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
     </div>
   </div>
 
+  <!-- ===================== TELA: SOCIAL ===================== -->
+  <div id="screen-social" class="screen">
+    <div class="character-panel character-panel-wide social-panel">
+      <h3 class="character-title">Social</h3>
+
+      <div class="social-toolbar">
+        <div class="editor-tabs social-tabs" role="tablist">
+          <button type="button" class="social-tab-btn active" data-tab="social" role="tab" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg> Social</button>
+        </div>
+      </div>
+
+      <div class="social-panel-body" data-social-panel="social">
+        <div class="social-bots" role="list">
+          <div class="social-bot" role="listitem">
+            <div class="social-bot-photo"><img src="assets/social/thiago.jpg" alt="Thiago" draggable="false" /></div>
+            <div class="social-bot-name">Thiago<span class="bot-tag">BOT</span></div>
+          </div>
+          <div class="social-bot" role="listitem">
+            <div class="social-bot-photo"><img src="assets/social/jailson.png" alt="Jailson" draggable="false" /></div>
+            <div class="social-bot-name">Jailson<span class="bot-tag">BOT</span></div>
+          </div>
+          <div class="social-bot" role="listitem">
+            <div class="social-bot-photo"><img src="assets/social/joao.jpg" alt="João" draggable="false" /></div>
+            <div class="social-bot-name">João<span class="bot-tag">BOT</span></div>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" id="btn-close-social" class="btn btn-ghost character-back-btn btn-back-arrow" aria-label="Voltar" title="Voltar"><svg class="ic ic-only" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
+    </div>
+  </div>
+
   <!-- ===================== TELA: SALA DE ESPERA ===================== -->
   <div id="screen-waiting" class="screen">
     <div class="lobby-card">
@@ -818,7 +851,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="seat-zoom.js"></script>
   <script src="stats.js"></script>
   <script src="account.js"></script>
-  <script src="audio.js?v=7"></script>
+  <script src="audio.js?v=8"></script>
   <script src="smoke.js?v=2"></script>
   <script src="radio.js"></script>
   <script src="editor-music.js"></script>
@@ -829,5 +862,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="tutorial.js"></script>
   <script src="terminal.js?v=3"></script>
   <script src="client.js?v=27"></script>
+  <script src="social.js"></script>
 </body>
 </html>
