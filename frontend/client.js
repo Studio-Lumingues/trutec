@@ -1142,9 +1142,11 @@ document.getElementById('btn-play').addEventListener('click', () => {
   openModal(joinModal);
   codeInput.focus();
 });
-document.getElementById('btn-create').addEventListener('click', () => openModal(createModal));
+// "Criar sala" agora fica dentro do modal Jogar: fecha o Jogar e abre a escolha 1v1 / 2v2
+document.getElementById('btn-create').addEventListener('click', () => { closeModal(joinModal); openModal(createModal); });
 document.getElementById('join-cancel').addEventListener('click', () => closeModal(joinModal));
-document.getElementById('create-cancel').addEventListener('click', () => closeModal(createModal));
+// Voltar da escolha de modo: volta pro modal Jogar
+document.getElementById('create-cancel').addEventListener('click', () => { closeModal(createModal); openModal(joinModal); });
 document.getElementById('btn-help').addEventListener('click', () => {
   openModal(helpModal);
   const body = helpModal.querySelector('.help-body');

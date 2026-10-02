@@ -2152,6 +2152,10 @@ html.noise-js body::after { display: none; }
 .settings-card .error-text { text-align: center; }
 .modal-actions { display: flex; gap: 0.625rem; margin-top: 0.75rem; }
 .modal-actions .btn { flex: 1; font-size: 1.05rem; }
+/* divisória "ou" + botão Criar sala dentro do modal Jogar */
+.join-or { display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0 0.75rem; opacity: 0.6; font-size: 0.95rem; font-weight: 600; }
+.join-or::before, .join-or::after { content: ""; flex: 1; height: 1px; background: rgba(255,248,240,0.35); }
+.join-create-btn { width: 100%; font-size: 1.05rem; }
 .create-modes { display: flex; gap: 0.75rem; margin-bottom: 0.5rem; }
 .create-modes .btn { flex: 1; font-size: 1.3rem; padding: 1.25rem 0.5rem; }
 .modal-code-input { text-align: center; text-transform: uppercase; letter-spacing: 0.1875rem; font-size: 1.3rem; }
