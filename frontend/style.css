@@ -893,7 +893,7 @@ button { font-family: inherit; cursor: pointer; }
    Seta rabiscada; sobre uma carta vira a luvinha apontando. Treme igual ao resto do jogo (#boil-sm)
    e borra na direção em que anda (motion blur feito no JS). */
 .vira-cursor {
-  --w: clamp(3.2rem, 8vw, 4.8rem);
+  --w: clamp(4rem, 10vw, 6rem);
   position: absolute; left: 0; top: 0;
   width: var(--w); height: calc(var(--w) * 1.25);
   margin: calc(var(--w) * -0.1) 0 0 calc(var(--w) * -0.13);   /* a ponta (da seta ou do dedo) fica no ponto exato */
@@ -905,7 +905,8 @@ button { font-family: inherit; cursor: pointer; }
   z-index: 3;
 }
 .vira-cursor.show { opacity: 1; }
-.vira-cursor .vc-mb, .vira-cursor .vc-up { position: absolute; inset: 0; transform-origin: 13% 8%; }
+.vira-cursor .vc-mb, .vira-cursor .vc-up, .vira-cursor .vc-tr, .vira-cursor .vc-sh { position: absolute; inset: 0; transform-origin: 13% 8%; }
+.vira-cursor .vc-tr { opacity: 0; }
 .vira-cursor svg { position: absolute; display: block; overflow: visible; }
 .vira-cursor .vc-arrow, .vira-cursor .vc-hand { filter: url(#boil-sm); }
 .vira-cursor .vc-arrow {
@@ -915,7 +916,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .vira-cursor .vc-hand {
   /* a ponta do dedo cai no mesmo ponto da ponta da seta */
-  left: calc(var(--w) * -0.27); top: calc(var(--w) * 0.02); width: 130%; height: auto;
+  left: calc(var(--w) * -0.362); top: calc(var(--w) * 0.0015); width: 160%; height: auto;
   transform-origin: 30.8% 5.3%;
   opacity: 0; transform: scale(0.4) rotate(-16deg);
   transition: transform 0.38s cubic-bezier(.34,1.7,.5,1), opacity 0.14s ease;
