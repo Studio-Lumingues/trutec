@@ -220,9 +220,25 @@ socket.on('disconnect', (reason) => {
 window.addEventListener('online', () => { if (myRoomCode && !socket.connected) socket.connect(); });
 
 // ---- oferta de reconectar (ao abrir o site com uma sala salva) ----
+// Antes de mostrar a oferta, pergunta ao servidor se a sala ainda existe.
+// Se não existe (ou o lugar sumiu), apaga a sessão e não mostra nada.
 function showReconnectOffer() {
   const s = readSession();
   if (!s || myRoomCode) return;
+  let answered = false;
+  const decide = (res) => {
+    if (answered) return; answered = true;
+    if (myRoomCode) return;                       // já entrou numa sala nesse meio tempo
+    if (res && res.ok) return renderReconnectOffer(s);
+    if (res && res.ok === false) clearSession();  // sala acabou: esquece
+    // sem resposta (servidor antigo/dormindo): não mostra, mas mantém a sessão
+  };
+  const ask = () => socket.emit('check_session', { code: s.code, token: s.token }, decide);
+  if (socket.connected) ask(); else { socket.connect(); socket.once('connect', ask); }
+  setTimeout(() => decide(null), 20000);          // Render acordando: desiste de esperar
+}
+function renderReconnectOffer(s) {
+  if (document.getElementById('reconnect-offer')) return;
   const box = document.createElement('div');
   box.id = 'reconnect-offer';
   box.className = 'reconnect-offer';
@@ -242,12 +258,12 @@ function showReconnectOffer() {
     const fail = (msg) => {
       if (finished) return; finished = true; rejoinHold = false;
       myRoomCode = null; myToken = null;
-      err.textContent = msg; go.remove();
+      err.textContent = msg; go.remove();   // timeout: mantém a sessão (o servidor pode só estar acordando)
     };
     const run = () => {
       clearTimeout(timer);
       rejoinHold = false;
-      tryRejoin((res) => { finished = true; if (!(res && res.ok)) { rejoinHold = false; myRoomCode = null; myToken = null; err.textContent = (res && res.error) || 'Não foi possível voltar.'; go.remove(); } });
+      tryRejoin((res) => { finished = true; if (!(res && res.ok)) { rejoinHold = false; myRoomCode = null; myToken = null; err.textContent = (res && res.error) || 'Não foi possível voltar.'; go.remove(); clearSession(); setTimeout(() => box.remove(), 2500); } });
     };
     const timer = setTimeout(() => fail('O servidor não respondeu. Tente de novo em instantes.'), 15000);
     if (socket.connected) run(); else { socket.connect(); socket.once('connect', run); }
@@ -1264,10 +1280,14 @@ let botTarget = null;      // { team, slot, done } do slot em que o host clicou
 
 function loadBotCatalog(cb) {
   if (botCatalog) return cb(botCatalog);
-  socket.emit('get_bot_catalog', (res) => {
+  let answered = false;
+  const finish = (res) => {
+    if (answered) return; answered = true;
     if (res && res.ok && Array.isArray(res.bots)) botCatalog = res.bots;
     cb(botCatalog);
-  });
+  };
+  socket.emit('get_bot_catalog', finish);
+  setTimeout(() => finish(null), 3000);   // servidor sem esse evento: não fica "Carregando…" pra sempre
 }
 function closeBotModal() { botModal.classList.add('hidden'); botTarget = null; }
 function openBotModal(target) {
@@ -2073,7 +2093,7 @@ function renderState(realState) {
       setSeatAway(figEl, !p.isBot && p.connected === false);
     }
     if (nameEl) {
-      setNameEl(nameEl, p.name, (n === 4 && p.team === myTeam) ? ' (parceiro)' : '', p.nameFx);
+      setNameEl(nameEl, p.name, (n === 4 && p.team === myTeam) ? ' (parceiro)' : '', p.nameFx, p.isBot);
       nameEl.classList.toggle('active-turn', isActive);
     }
     if (handEl) {
@@ -2674,10 +2694,10 @@ function sendChat() {
   input.value = '';
 }
 
-socket.on('chat_message', ({ name, text, seat, nameFx }) => {
+socket.on('chat_message', ({ name, text, seat, nameFx, isBot }) => {
   const wrap = document.getElementById('chat-messages');
   const row = document.createElement('div');
-  row.innerHTML = `<b>${nameFxHtml(name, nameFx)}:</b> ${escapeHtml(text)}`;
+  row.innerHTML = `<b>${nameFxHtml(name, nameFx)}${isBot ? '<span class="bot-tag">BOT</span>' : ''}:</b> ${escapeHtml(text)}`;
   wrap.appendChild(row);
   wrap.scrollTop = wrap.scrollHeight;
   if (seat !== undefined && seat !== null) showBubble(seat, text);
@@ -2741,12 +2761,12 @@ function nameFxHtml(name, fx) {
   return fx && NAME_FX.has(fx) ? `<span class="nfx nfx-${fx}">${escapeHtml(name)}</span>` : escapeHtml(name);
 }
 // escreve o nome num elemento só quando algo mudou (recriar a cada atualização reiniciaria a animação)
-function setNameEl(el, name, suffix, fx) {
+function setNameEl(el, name, suffix, fx, isBot) {
   name = (name === undefined || name === null || String(name).trim() === '') ? 'Jogador' : name;
-  const sig = name + '|' + (suffix || '') + '|' + (fx || '');
+  const sig = name + '|' + (suffix || '') + '|' + (fx || '') + '|' + (isBot ? 'bot' : '');
   // só pula a escrita se o elemento realmente já mostra esse nome
   // (se estiver com o placeholder "—", escreve de novo)
   if (el.dataset.sig === sig && el.textContent.trim() !== '—') return;
   el.dataset.sig = sig;
-  el.innerHTML = nameFxHtml(name, fx) + escapeHtml(suffix || '');
+  el.innerHTML = nameFxHtml(name, fx) + (isBot ? '<span class="bot-tag">BOT</span>' : '') + escapeHtml(suffix || '');
 }

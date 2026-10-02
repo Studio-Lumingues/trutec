@@ -3209,3 +3209,14 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .bot-option-name { font-weight: 800; font-size: 1.25rem; }
 .bot-option-taken { margin-left: 0.6rem; font-size: 0.8rem; font-weight: 600; opacity: 0.8; }
 .bot-option-desc { margin-top: 0.15rem; font-size: 0.95rem; opacity: 0.85; line-height: 1.3; }
+
+
+/* Tag BOT dentro da partida (nome embaixo do boneco) e no chat */
+.seat-name .bot-tag,
+.chat-messages .bot-tag {
+  font-size: 0.62em;
+  margin-left: 0.4em;
+  margin-right: 0.15em;
+  white-space: nowrap;
+}
+.seat-name .bot-tag { vertical-align: 0.12em; }
