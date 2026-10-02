@@ -8,7 +8,7 @@
 <!-- ícone estático (reserva); o favicon.js troca por quadros animados -->
 <link rel="icon" type="image/png" href="assets/personagem.png" />
 <link rel="apple-touch-icon" href="assets/personagem.png" />
-<link rel="stylesheet" href="style.css?v=15" />
+<link rel="stylesheet" href="style.css?v=16" />
 <script>
 try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentElement.classList.add('colorblind'); } catch (e) {}
 try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documentElement.classList.add('leaving-intro'); } catch (e) {}
@@ -105,6 +105,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
 
 
   <div id="screen-lobby" class="screen active">
+    <button id="btn-account" type="button" class="account-pill">Entrar com Google</button>
     <div class="lobby-row">
 
     <div class="lobby-stack">
@@ -184,7 +185,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
         <button id="btn-create" type="button" class="btn btn-secondary">Criar sala</button>
         <button id="btn-open-character-editor" type="button" class="btn btn-glass" aria-label="Avatar"><span class="glass-checker" aria-hidden="true"></span><img id="character-preview-img" class="glass-avatar" src="assets/personagem.svg" alt="" draggable="false" /><span class="glass-label">Avatar</span></button>
         <button id="btn-help" type="button" class="btn btn-secondary">Ajuda</button>
-        <button id="btn-account" type="button" class="btn btn-secondary">Entrar com Google</button>
         <button id="btn-settings" type="button" class="btn btn-secondary btn-icon-only" aria-label="Configurações" title="Configurações"><svg class="ic ic-only" aria-hidden="true"><use href="#i-gear"/></svg></button>
       </div>
 
