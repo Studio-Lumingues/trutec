@@ -2085,6 +2085,7 @@ function renderState(realState) {
   renderMiniCard(document.getElementById('vira-card'), state.vira);
   // rodada nova: o vira entra com a animação (fade in virado -> vira -> vai pro monte)
   if (state.vira && (viraForce || state.maoNumber !== viraMaoSeen)) {
+    viraShowSnap();
     const freshHand = viraForce || viraMaoSeen !== null; // reconectar no meio da mão não anima
     viraMaoSeen = state.maoNumber;
     viraForce = false;
@@ -2388,8 +2389,24 @@ function viraIntroCleanup() {
   viraIntro.anims.forEach(a => { try { a.cancel(); } catch (e) {} });
   if (viraIntro.el && viraIntro.el.parentNode) viraIntro.el.parentNode.removeChild(viraIntro.el);
   const disp = document.querySelector('.vira-display');
+  viraShowSnap();
   if (disp) disp.classList.remove('vira-pending');
   viraIntro = null;
+}
+
+// Fim da mão: o vira antigo some em fade out (e fica escondido até o vira novo chegar)
+function viraFadeOut() {
+  const disp = document.querySelector('.vira-display');
+  if (disp) disp.classList.add('vira-out');
+}
+// Volta a mostrar o vira na hora (sem fade in)
+function viraShowSnap() {
+  const disp = document.querySelector('.vira-display');
+  if (!disp || !disp.classList.contains('vira-out')) return;
+  disp.classList.add('vira-snap');
+  disp.classList.remove('vira-out');
+  void disp.offsetWidth; // aplica sem transição
+  disp.classList.remove('vira-snap');
 }
 
 function playViraIntro(card, delayMs) {
@@ -2769,6 +2786,7 @@ socket.on('showdown_result', ({ winnerTeam }) => {
 });
 
 socket.on('mao_result', ({ winnerTeam, points, teamName, ran }) => {
+  viraFadeOut();
   const mine = winnerTeam === myTeam;
   setBanner(`${mine ? 'Vocês' : 'Eles'} ${ran ? 'ganharam por fuga' : 'venceram a mão'}: +${points} pontos!`);
 });

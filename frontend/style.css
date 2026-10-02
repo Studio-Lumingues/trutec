@@ -813,6 +813,10 @@ button { font-family: inherit; cursor: pointer; }
   box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.4);
 }
 /* Animação do vira (começo da rodada): o vira do monte espera o card que voa */
+.vira-display { transition: opacity 0.5s ease; }
+.vira-display.vira-out { opacity: 0; }
+.vira-display.vira-snap { transition: none; }
+@media (prefers-reduced-motion: reduce) { .vira-display { transition: none; } }
 .vira-label { transition: opacity 0.25s ease; }
 .vira-display.vira-pending #vira-card,
 .vira-display.vira-pending .vira-label { opacity: 0; }
