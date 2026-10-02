@@ -2899,3 +2899,70 @@ html[data-theme="casa"] .table-disc::before {
 .code-input:focus { outline: none; border-bottom-color: var(--gold-bright); }
 #import-modal .code-preview { width: min(9rem, 40vw); }
 #import-modal .code-msg { min-height: 1.2rem; margin: 0.5rem 0 0.75rem; }
+
+/* ==========================================================================
+   Reconectar na partida
+   ========================================================================== */
+.reconnect-offer {
+  position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%); z-index: 9600;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.6rem 1rem;
+  width: max-content; max-width: calc(100vw - 1.5rem); box-sizing: border-box;
+  padding: 0.7rem 0.8rem 0.7rem 1.1rem; border-radius: 1rem;
+  background: rgba(10,10,10,0.92); color: var(--cream);
+  border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 0.6rem 1.8rem rgba(0,0,0,0.5);
+  backdrop-filter: blur(6px); animation: roIn .25s ease-out;
+}
+@keyframes roIn { from { opacity: 0; transform: translate(-50%, 0.6rem); } }
+.reconnect-offer .ro-text { display: flex; flex-direction: column; gap: 0.1rem; font-size: 0.85rem; line-height: 1.25; }
+.reconnect-offer .ro-text b { font-size: 0.95rem; }
+.reconnect-offer .ro-text span { opacity: 0.75; }
+.reconnect-offer .ro-code { font-style: normal; font-weight: 700; letter-spacing: 0.12em; }
+.reconnect-offer .ro-actions { display: flex; align-items: center; gap: 0.4rem; }
+.reconnect-offer .ro-go {
+  padding: 0.6rem 1.1rem; border: 0; border-radius: 0.7rem; cursor: pointer;
+  background: var(--cream); color: #040303; font: 700 0.95rem/1 inherit;
+}
+.reconnect-offer .ro-go:disabled { opacity: 0.6; cursor: default; }
+.reconnect-offer .ro-no {
+  width: 2.2rem; height: 2.2rem; border: 0; border-radius: 0.6rem; cursor: pointer;
+  background: rgba(255,255,255,0.08); color: var(--cream); font-size: 0.95rem;
+}
+.reconnect-offer .ro-no:hover { background: rgba(255,255,255,0.16); }
+.reconnect-offer .ro-err { flex-basis: 100%; margin: 0; text-align: center; font-size: 0.82rem; color: #ff8a8a; }
+.reconnect-offer .ro-err:empty { display: none; }
+
+.conn-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9700;
+  display: flex; align-items: center; justify-content: center; gap: 0.8rem; flex-wrap: wrap;
+  padding: calc(0.55rem + env(safe-area-inset-top, 0px)) 1rem 0.55rem;
+  background: #b3261e; color: #fff; font-size: 0.9rem; font-weight: 600; text-align: center;
+}
+.conn-bar[hidden] { display: none; }
+.conn-bar .cb-btn {
+  padding: 0.4rem 0.9rem; border: 0; border-radius: 0.6rem; cursor: pointer;
+  background: #fff8f0; color: #040303; font: 700 0.85rem/1 inherit;
+}
+
+/* Barra do código (exportar/importar): pílula escura, texto centralizado */
+.code-bar {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 100%; box-sizing: border-box; min-height: 3.1rem;
+  margin: 0.5rem 0 0; padding: 0.55rem 2.8rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.16);
+  color: var(--cream);
+  transition: background .15s, border-color .15s;
+}
+div.code-bar { cursor: pointer; user-select: none; }
+div.code-bar:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.3); }
+div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border-color: var(--gold-bright); background: rgba(255,255,255,0.1); }
+.code-bar .cb-code {
+  font: 600 1.05rem/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.code-bar .cb-ic { position: absolute; right: 1rem; top: 50%; width: 1.1rem; height: 1.1rem; margin-top: -0.55rem; opacity: 0.6; }
+.code-bar-input { cursor: text; }
+.code-bar .code-input {
+  margin: 0; padding: 0; width: 100%; border: 0; border-radius: 0; background: transparent;
+}

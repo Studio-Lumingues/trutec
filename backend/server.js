@@ -1574,6 +1574,7 @@ io.on('connection', (socket) => {
     // limpa salas vazias/abandonadas (bots não contam como "alguém na sala")
     const anyoneConnected = r.players.some(p => !p.isBot && p.connected);
     if (!anyoneConnected) {
+      // partida em andamento: dá mais tempo pra todo mundo voltar (queda de internet, aba fechada)
       setTimeout(() => {
         const stillThere = rooms.get(r.code);
         if (stillThere && !stillThere.players.some(p => !p.isBot && p.connected)) {
@@ -1581,7 +1582,7 @@ io.on('connection', (socket) => {
           if (stillThere._botTimer) clearTimeout(stillThere._botTimer);
           rooms.delete(r.code);
         }
-      }, 30000);
+      }, r.started ? 180000 : 30000);
     }
   });
 });

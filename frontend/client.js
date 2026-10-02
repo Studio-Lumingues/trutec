@@ -80,15 +80,20 @@ socket.on('connect_error', (err) => {
 
 // Se a conexão cair e voltar (Render free, wifi, celular), o socket ganha um id
 // novo e o servidor não sabe mais quem somos. Aqui retomamos o lugar na sala.
-function tryRejoin() {
-  if (!myRoomCode || !myToken) return;
+let rejoinHold = false; // true enquanto o botão "Reconectar" cuida da reconexão (evita pedido duplicado)
+function tryRejoin(done) {
+  if (typeof done !== 'function') done = null;
+  if (!myRoomCode || !myToken) return done && done({ ok: false, error: 'Sessão não encontrada.' });
   socket.emit('rejoin_room', { code: myRoomCode, token: myToken }, (res) => {
-    if (res && res.ok) return;
+    if (res && res.ok) { onRejoined(res); return done && done(res); }
+    clearSession();
+    if (done) return done(res || { ok: false });
+    hideConnBar();
     alert((res && res.error ? res.error : 'Não foi possível voltar para a sala.') + ' Voltando ao início.');
     location.reload();
   });
 }
-socket.on('connect', tryRejoin);
+socket.on('connect', () => { if (!rejoinHold) tryRejoin(); });
 // música do SoundCloud da sala (comando `auth musica` do terminal; ver radio.js)
 socket.on('room_music', (m) => { if (window.TruRadio) TruRadio.handle(m); });
 // um admin (`theme <id> @nome` no terminal) trocou o meu tema: vale só nesta sessão
@@ -126,6 +131,104 @@ let lastRenderedTableLen = 0;
 // Jogada otimista: quando EU jogo uma carta, ela aparece na mesa na hora
 // (sem esperar o servidor). O estado real do servidor só confirma depois.
 let optimisticPlay = null; // { cardId, hidden, mao, timer }
+
+
+// ------------------------------------------------------------------
+// RECONECTAR NA PARTIDA
+// - A sessão (código da sala + token) fica salva no navegador. Se a aba fechar,
+//   a página recarregar ou a internet cair, aparece "Reconectar" no lobby.
+// - Se a conexão cair com a partida aberta, uma barrinha avisa e deixa
+//   reconectar na hora (o socket.io também tenta sozinho).
+// - O servidor mantém o lugar (no 2v2 um bot segura enquanto você volta).
+// ------------------------------------------------------------------
+const SESSION_KEY = 'trutec-session';
+const SESSION_MAX_AGE = 30 * 60 * 1000; // depois disso a sala provavelmente já acabou
+function saveSession() {
+  if (!myRoomCode || !myToken) return;
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ code: myRoomCode, token: myToken, ts: Date.now() })); } catch (e) {}
+}
+function clearSession() { try { localStorage.removeItem(SESSION_KEY); } catch (e) {} }
+function readSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (!s || typeof s.code !== 'string' || typeof s.token !== 'string') return null;
+    if (Date.now() - (+s.ts || 0) > SESSION_MAX_AGE) { clearSession(); return null; }
+    return s;
+  } catch (e) { return null; }
+}
+window.addEventListener('pagehide', saveSession); // renova o prazo quando a aba fecha
+
+function onRejoined(res) {
+  myWaitingSeat = res.seat;
+  saveSession();
+  hideConnBar();
+  const offer = document.getElementById('reconnect-offer');
+  if (offer) offer.remove();
+  const lobby = document.getElementById('screen-lobby');
+  if (!res.started && lobby && lobby.classList.contains('active')) showScreen('screen-waiting');
+}
+
+// ---- barra "Conexão perdida" (durante a sala/partida) ----
+let connBar = null;
+function showConnBar() {
+  if (!connBar) {
+    connBar = document.createElement('div');
+    connBar.className = 'conn-bar';
+    connBar.setAttribute('role', 'alert');
+    connBar.innerHTML = '<span class="cb-text">Conexão perdida. Reconectando…</span><button type="button" class="cb-btn">Reconectar agora</button>';
+    connBar.querySelector('.cb-btn').addEventListener('click', () => {
+      connBar.querySelector('.cb-text').textContent = 'Reconectando…';
+      if (!socket.connected) socket.connect(); else tryRejoin();
+    });
+    document.body.appendChild(connBar);
+  }
+  connBar.querySelector('.cb-text').textContent = 'Conexão perdida. Reconectando…';
+  connBar.hidden = false;
+}
+function hideConnBar() { if (connBar) connBar.hidden = true; }
+socket.on('disconnect', (reason) => {
+  if (!myRoomCode) return;
+  showConnBar();
+  if (reason === 'io server disconnect') socket.connect(); // o servidor fechou: o socket.io não tenta sozinho
+});
+window.addEventListener('online', () => { if (myRoomCode && !socket.connected) socket.connect(); });
+
+// ---- oferta de reconectar (ao abrir o site com uma sala salva) ----
+function showReconnectOffer() {
+  const s = readSession();
+  if (!s || myRoomCode) return;
+  const box = document.createElement('div');
+  box.id = 'reconnect-offer';
+  box.className = 'reconnect-offer';
+  box.innerHTML =
+    '<div class="ro-text"><b>Você estava numa partida</b><span>Sala <em class="ro-code"></em></span></div>' +
+    '<div class="ro-actions"><button type="button" class="ro-go">Reconectar</button>' +
+    '<button type="button" class="ro-no" aria-label="Dispensar" title="Dispensar">✕</button></div>' +
+    '<p class="ro-err" aria-live="polite"></p>';
+  box.querySelector('.ro-code').textContent = s.code;
+  const go = box.querySelector('.ro-go'), err = box.querySelector('.ro-err');
+  box.querySelector('.ro-no').addEventListener('click', () => { clearSession(); box.remove(); });
+  go.addEventListener('click', () => {
+    go.disabled = true; go.textContent = 'Reconectando…'; err.textContent = '';
+    myRoomCode = s.code; myToken = s.token;
+    rejoinHold = true;
+    let finished = false;
+    const fail = (msg) => {
+      if (finished) return; finished = true; rejoinHold = false;
+      myRoomCode = null; myToken = null;
+      err.textContent = msg; go.remove();
+    };
+    const run = () => {
+      clearTimeout(timer);
+      rejoinHold = false;
+      tryRejoin((res) => { finished = true; if (!(res && res.ok)) { rejoinHold = false; myRoomCode = null; myToken = null; err.textContent = (res && res.error) || 'Não foi possível voltar.'; go.remove(); } });
+    };
+    const timer = setTimeout(() => fail('O servidor não respondeu. Tente de novo em instantes.'), 15000);
+    if (socket.connected) run(); else { socket.connect(); socket.once('connect', run); }
+  });
+  document.body.appendChild(box);
+}
+setTimeout(showReconnectOffer, 900);
 
 // ------------------------------------------------------------------
 // Navegação de telas
@@ -723,14 +826,14 @@ function getSavedCharacter() {
   function openExport() {
     exportMsg.textContent = '';
     exportCode.value = '';
-    exportView.textContent = 'Gerando o código…';
+    exportView.querySelector('.cb-code').textContent = 'Gerando o código…';
     exportImg.src = buildMerged().toDataURL('image/png');
     exportModal.classList.remove('hidden');
     document.getElementById('export-copy').focus();
     encodeAvatar().then((code) => {
       exportCode.value = code;
-      exportView.textContent = shortCode(code);
-    }, () => { exportCode.value = ''; exportView.textContent = '—'; exportMsg.textContent = 'Não consegui gerar o código.'; });
+      exportView.querySelector('.cb-code').textContent = shortCode(code);
+    }, () => { exportCode.value = ''; exportView.querySelector('.cb-code').textContent = '—'; exportMsg.textContent = 'Não consegui gerar o código.'; });
   }
   function closeExport() { exportModal.classList.add('hidden'); document.getElementById('btn-avatar-share').focus(); }
   document.getElementById('btn-avatar-share').addEventListener('click', openExport);
@@ -867,6 +970,7 @@ function enterRoom(res) {
   myRoomCode = res.code;
   myWaitingSeat = res.seat;
   myToken = res.token || null;
+  saveSession();
   closeModal(joinModal);
   closeModal(createModal);
   showScreen('screen-waiting');
@@ -891,6 +995,7 @@ document.querySelectorAll('.create-modes .btn').forEach((btn) => {
 });
 
 document.getElementById('btn-leave-waiting').addEventListener('click', () => {
+  clearSession();
   location.reload();
 });
 
@@ -1440,6 +1545,7 @@ function playGameIntro() {
 const LEAVE_HOLD_MS = 700;      // tempo na tela preta antes de recarregar
 const LEAVE_AFTER_MS = 500;     // tempo na tela preta depois de recarregar
 function leaveToLobby() {
+  clearSession();
   const overlay = document.getElementById('game-intro');
   try { sessionStorage.setItem('trutec-leave-intro', '1'); } catch (e) {}
   if (!overlay) return location.reload();
