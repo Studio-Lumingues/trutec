@@ -24,6 +24,7 @@
   var msg = document.getElementById('social-msg');
   var backMe = document.getElementById('sp-backme');
   var avatarEl = document.getElementById('sp-avatar');
+  var nameEl = document.getElementById('sp-name');
   var handleEl = document.getElementById('sp-handle');
   var sinceEl = document.getElementById('sp-since');
   var winsEl = document.getElementById('sp-wins');
@@ -96,11 +97,13 @@
     colWrap.hidden = !any;
   }
 
-  // d = { title, since, wins, losses, avatar, collection, other }
+  // d = { name, handle, since, wins, losses, avatar, collection, other }
   function paint(d) {
     var wins = num(d.wins), losses = num(d.losses), total = wins + losses;
     avatarEl.src = safeImg(d.avatar) || DEFAULT_AVATAR;
-    handleEl.textContent = d.title;
+    nameEl.textContent = d.name || 'Jogador';
+    handleEl.textContent = d.handle ? '@' + d.handle : '';
+    handleEl.hidden = !d.handle;
     sinceEl.textContent = d.since || '';
     winsEl.textContent = wins;
     lossesEl.textContent = losses;
@@ -125,7 +128,7 @@
       if (Array.isArray(arr)) slots = [0, 1, 2].map(function (i) { return arr[i] && arr[i].img ? arr[i].img : null; });
     } catch (e) {}
     return {
-      title: name || 'Jogador', since: '', wins: st.wins, losses: st.losses,
+      name: name || 'Jogador', handle: '', since: '', wins: st.wins, losses: st.losses,
       avatar: avatar, collection: slots, other: false
     };
   }
@@ -156,7 +159,7 @@
         say('');
         shownHandle = String(p.handle || handle);
         paint({
-          title: '@' + shownHandle, since: since, wins: p.wins, losses: p.losses,
+          name: p.name || p.displayName || shownHandle, handle: shownHandle, since: since, wins: p.wins, losses: p.losses,
           avatar: p.character, collection: p.collection, other: true
         });
       })
