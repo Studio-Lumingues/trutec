@@ -22,6 +22,35 @@ module.exports = function createBot(deps) {
 
   const FULL_DECK = buildDeck();
 
+  // ---------------------------------------------------------------- personalidades
+  // Cada bot da sala (p.persona, definido no server.js) joga com um "temperamento":
+  //   samples      quantas hipóteses ele simula (mais = joga mais certinho)
+  //   callMinP     chance mínima de ganhar a mão pra ele pedir truco "de verdade"
+  //   callEV       só pede se o valor esperado compensar (false = pede no feeling)
+  //   callChance   chance de realmente pedir quando a mão justifica
+  //   bluff        chance de dar FACÃO (pedir sem ter mão) quando a mão não justifica
+  //   bluffEarly   se pode dar facão já na 1ª vaza (senão só depois da 1ª)
+  //   bluffHigh    multiplicador do facão quando a aposta já está alta (seis/nove)
+  //   raiseMinP    chance mínima pra aumentar em resposta a um truco
+  //   raiseChance  chance de aumentar quando a mão justifica
+  //   raiseBluff   chance de aumentar no blefe (mão mediana)
+  //   acceptBias   quanto ele "perdoa" na hora de aceitar (positivo = quase não foge)
+  const PERSONAS = {
+    // na moral: pede pouco truco, às vezes dá facão
+    jailson: { samples: 140, callMinP: 0.68, callEV: true,  callChance: 0.6,  bluff: 0.10, bluffEarly: false, bluffHigh: 0.3,
+               raiseMinP: 0.75, raiseChance: 0.7, raiseBluff: 0.02, acceptBias: 0.03 },
+    // doidão: truca bastante, com carta ou sem carta
+    joao:    { samples: 100, callMinP: 0.45, callEV: false, callChance: 0.95, bluff: 0.4 , bluffEarly: true,  bluffHigh: 0.6,
+               raiseMinP: 0.5,  raiseChance: 0.75, raiseBluff: 0.2,  acceptBias: 0.08 },
+    // racional: só pede com motivo, mas às vezes dá facão
+    thiago:  { samples: 220, callMinP: 0.58, callEV: true,  callChance: 0.9,  bluff: 0.07, bluffEarly: false, bluffHigh: 0.4,
+               raiseMinP: 0.68, raiseChance: 0.8, raiseBluff: 0.03, acceptBias: 0.0 }
+  };
+  function personaOf(room, seat) {
+    const p = room.playerBySeat(seat);
+    return PERSONAS[p && p.persona] || PERSONAS.thiago;
+  }
+
   // ---------------------------------------------------------------- utilidades
   function shuffleInPlace(a) {
     for (let i = a.length - 1; i > 0; i--) {
@@ -210,7 +239,8 @@ module.exports = function createBot(deps) {
     const me = room.playerBySeat(seat);
     const hand = me.hand;
     const team = me.team;
-    const samples = makeSamples(room, seat, SAMPLES_PLAY, oppRaised(room, team));
+    const ps = personaOf(room, seat);
+    const samples = makeSamples(room, seat, ps.samples || SAMPLES_PLAY, oppRaised(room, team));
 
     // avalia cada carta possível
     const cands = hand.map(c => ({ card: c, p: winProb(room, seat, c, samples), s: cardStrength(c, room.manilhaRank) }));
@@ -233,9 +263,14 @@ module.exports = function createBot(deps) {
       const eAcc = p * gameValue(mine + nextValue, theirs) + (1 - p) * gameValue(mine, theirs + nextValue);
       const eCall = fold * gameValue(mine + s, theirs) + (1 - fold) * eAcc;
       const margin = 0.01 + 0.008 * idx; // mais cauteloso nos níveis altos
-      let call = p >= 0.55 && eCall > eNo + margin && Math.random() < 0.88;
-      // blefe raro: só no primeiro truco e com a mão já em andamento
-      if (!call && s === 1 && room.tricks.length >= 1 && p > 0.25 && p < 0.5 && Math.random() < 0.06) call = true;
+      const justified = p >= ps.callMinP && (!ps.callEV || eCall > eNo + margin);
+      let call = justified && Math.random() < ps.callChance;
+      // FACÃO (blefe): pede truco sem a mão justificar. Quanto mais alta a aposta, menos blefa.
+      if (!call && !justified && (ps.bluffEarly || room.tricks.length >= 1)) {
+        const bluffP = ps.bluff * (idx >= 1 ? ps.bluffHigh : 1) * (idx >= 2 ? 0.5 : 1);
+        // sem mão nenhuma (p muito baixo) só o doidão blefa
+        if ((p > 0.25 || ps.bluffEarly) && Math.random() < bluffP) call = true;
+      }
       if (call) return { type: 'call', level: NEXT_LEVEL[room.stake] };
     }
 
@@ -255,7 +290,8 @@ module.exports = function createBot(deps) {
     const team = me.team;
     const pc = room.pendingCall;
     const V = pc.value, P = pc.previousStake;
-    const samples = makeSamples(room, seat, SAMPLES_ESTIMATE, true);
+    const ps = personaOf(room, seat);
+    const samples = makeSamples(room, seat, Math.round((ps.samples || SAMPLES_PLAY) * 1.15), true);
     const p = winProb(room, seat, null, samples);
     const { mine, theirs } = teamScores(room, team);
 
@@ -265,13 +301,15 @@ module.exports = function createBot(deps) {
     // aumentar? (só se ainda há nível acima e a mão é forte)
     const vi = STAKE_SEQUENCE.indexOf(V);
     const up = STAKE_SEQUENCE[vi + 1];
-    if (up && p >= 0.68) {
+    if (up) {
       const accProb = 0.55; // chance de o adversário aceitar o aumento
       const eUpAcc = p * gameValue(mine + up, theirs) + (1 - p) * gameValue(mine, theirs + up);
       const eRaise = (1 - accProb) * gameValue(mine + V, theirs) + accProb * eUpAcc;
-      if (eRaise > eAccept + 0.02 && Math.random() < 0.8) return 'aumentar';
+      if (p >= ps.raiseMinP && eRaise > eAccept + 0.02 && Math.random() < ps.raiseChance) return 'aumentar';
+      // aumento no blefe (mão mediana): mais comum no João
+      if (p < ps.raiseMinP && p > 0.3 && Math.random() < ps.raiseBluff) return 'aumentar';
     }
-    if (eAccept > eFold + 0.005) return 'aceitar';
+    if (eAccept + ps.acceptBias > eFold + 0.005) return 'aceitar';
     return 'fugir';
   }
 

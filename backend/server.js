@@ -650,10 +650,24 @@ class Room {
     const respondingTeam = team === 0 ? 1 : 0;
     // Quem responde é só o adversário à direita de quem pediu (na tela: o boneco da direita).
     // Se quiser inverter o lado, troque n - 1 por 1.
-    const n = this.players.length;
-    const respondingSeat = (seat + n - 1) % n;
+    // Exceção: se esse adversário é um bot e o parceiro dele é humano, é o HUMANO quem responde.
+    const respondingSeat = this.responderSeatFor(seat);
     this.pendingCall = { level, value: levelValue, callingTeam: team, respondingTeam, callingSeat: seat, respondingSeat, previousStake: this.stake };
     return { ok: true };
+  }
+
+  // Assento de quem responde a um pedido feito por `callerSeat`: o adversário à direita.
+  // Se ele for um bot com parceiro humano (conectado), a decisão fica com o parceiro humano;
+  // o bot só responde sozinho quando a dupla dele é toda de bots (ou no 1v1).
+  responderSeatFor(callerSeat) {
+    const n = this.players.length;
+    const nominal = (callerSeat + n - 1) % n;
+    const p = this.playerBySeat(nominal);
+    if (p && p.isBot && n === 4) {
+      const partner = this.players.find(x => x.team === p.team && x.seat !== p.seat);
+      if (partner && !partner.isBot && partner.connected) return partner.seat;
+    }
+    return nominal;
   }
 
   respondCall(seat, action) {
@@ -687,10 +701,9 @@ class Room {
       const newCallingTeam = team;
       const newRespondingTeam = this.pendingCall.callingTeam;
       const nextLevel = NEXT_CALL_NAME[this.pendingCall.value];
-      const nPl = this.players.length;
       this.pendingCall = {
         level: nextLevel, value: nextValue, callingTeam: newCallingTeam,
-        respondingTeam: newRespondingTeam, callingSeat: seat, respondingSeat: (seat + nPl - 1) % nPl,
+        respondingTeam: newRespondingTeam, callingSeat: seat, respondingSeat: this.responderSeatFor(seat),
         previousStake: this.pendingCall.value
       };
       return { ok: true, reraised: true };
@@ -782,25 +795,22 @@ const brain = createBot({ Room, cardStrength, buildDeck, STAKE_SEQUENCE });
 const BOT_REPLACES = { '2v2': true, '1v1': true };
 const BOT_GRACE_MS = 10000; // quem cai fica "reconectando" por 10s; depois o bot assume (2v2)
 
-const BOT_NAMES = ['Bot Tião', 'Bot Zezé', 'Bot Chico', 'Bot Neide', 'Bot Baiano', 'Bot Dona Maria', 'Bot Zeca', 'Bot Lurdes'];
-const BOT_AVATAR_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">' +
-  '<g stroke="#0a0a0a" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">' +
-  '<path d="M250 108 L250 58" fill="none"/><circle cx="250" cy="42" r="18" fill="#ff2e63"/>' +
-  '<path d="M112 112 L388 108 C404 108 414 120 414 136 L412 268 C412 284 402 296 386 296 L114 300 C98 300 88 288 88 272 L90 136 C90 120 98 112 112 112 Z" fill="#8fd3ff"/>' +
-  '<path d="M88 176 L56 178 L58 238 L90 236 Z" fill="#8fd3ff"/><path d="M412 176 L444 178 L442 238 L410 236 Z" fill="#8fd3ff"/>' +
-  '<circle cx="186" cy="192" r="36" fill="#fff8f0"/><circle cx="314" cy="192" r="36" fill="#fff8f0"/>' +
-  '<circle cx="190" cy="196" r="13" fill="#0a0a0a"/><circle cx="310" cy="196" r="13" fill="#0a0a0a"/>' +
-  '<path d="M182 258 L318 256" fill="none"/>' +
-  '<path d="M186 300 L184 328 M314 300 L316 328" fill="none"/>' +
-  '<path d="M150 328 L352 324 C368 324 378 336 378 352 L376 440 C376 456 366 466 350 466 L152 470 C136 470 124 458 124 442 L126 344 C126 336 136 328 150 328 Z" fill="#8fd3ff"/>' +
-  '<circle cx="250" cy="396" r="22" fill="#ff2e63"/></g></svg>';
-const BOT_AVATAR = 'data:image/svg+xml;base64,' + Buffer.from(BOT_AVATAR_SVG).toString('base64');
+// Os 3 bots: cada um com nome, boneco e jeito de jogar (ver PERSONAS em bot.js).
+//   jailson = na moral (pede pouco truco, às vezes dá facão)
+//   joao    = doidão (truca muito, com carta ou sem carta)
+//   thiago  = racional (só pede com motivo, mas às vezes dá facão)
+const BOT_AVATARS = require('./bot-avatars');
+const BOT_PERSONAS = [
+  { persona: 'jailson', name: 'Jailson', avatar: BOT_AVATARS.jailson },
+  { persona: 'joao',    name: 'João',    avatar: BOT_AVATARS.joao },
+  { persona: 'thiago',  name: 'Thiago',  avatar: BOT_AVATARS.thiago }
+];
 
-function pickBotName(r) {
-  const used = new Set(r.players.map(p => p.name));
-  const free = BOT_NAMES.filter(n => !used.has(n));
-  const list = free.length ? free : BOT_NAMES;
+// Escolhe um dos 3 bots que ainda não está na sala (se os 3 já estiverem, repete um).
+function pickBot(r) {
+  const used = new Set(r.players.map(p => p.persona).filter(Boolean));
+  const free = BOT_PERSONAS.filter(b => !used.has(b.persona));
+  const list = free.length ? free : BOT_PERSONAS;
   return list[Math.floor(Math.random() * list.length)];
 }
 
@@ -918,8 +928,10 @@ function botTakeover(r, p) {
   p.origName = p.name;
   p.origCharacter = p.character;
   p.replacedHuman = true;
-  p.name = pickBotName(r);
-  p.character = BOT_AVATAR;
+  const pick = pickBot(r);
+  p.name = pick.name;
+  p.character = pick.avatar;
+  p.persona = pick.persona;
   p.isBot = true;
   p.connected = true;
   io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${p.origName} saiu — ${p.name} assumiu o lugar.`, ts: Date.now() });
@@ -1180,7 +1192,7 @@ io.on('connection', (socket) => {
       p.isBot = false;
       p.name = p.origName;
       p.character = p.origCharacter;
-      delete p.replacedHuman; delete p.origName; delete p.origCharacter;
+      delete p.replacedHuman; delete p.origName; delete p.origCharacter; delete p.persona;
       io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${p.name} voltou e retomou o lugar.`, ts: Date.now() });
     }
     clearTimeout(p._takeoverTimer); p._takeoverTimer = null;
@@ -1340,9 +1352,10 @@ io.on('connection', (socket) => {
       }
     }
     const token = crypto.randomBytes(12).toString('hex');
+    const pick = pickBot(r);
     r.players.push({
-      id: 'bot:' + token, token, name: pickBotName(r), seat, team,
-      connected: true, hand: [], character: BOT_AVATAR, isBot: true
+      id: 'bot:' + token, token, name: pick.name, seat, team,
+      connected: true, hand: [], character: pick.avatar, persona: pick.persona, isBot: true
     });
     io.to(r.code).emit('lobby_update', r.lobbyState());
     reply({ ok: true });
