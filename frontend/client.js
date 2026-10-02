@@ -1087,7 +1087,7 @@ function setRoomCode(code) {
   el.setAttribute('role', 'img');
   el.setAttribute('aria-label', 'Código da sala: ' + code);
   // se a tela acabou de abrir, espera o card terminar de crescer antes das letras
-  const base = performance.now() - waitingShownAt < 900 ? 650 : 80;
+  const base = performance.now() - waitingShownAt < 700 ? 450 : 80;
   const STEP = 130;
   el.textContent = '';
   Array.from(code).forEach((ch, i) => {
@@ -1106,8 +1106,37 @@ function setRoomCode(code) {
 
 let teamSwapBusy = 0;          // >0 enquanto uma substituição (2 pedidos ao servidor) está em andamento
 let deferredLobby = null;      // lobby_update recebido nesse meio tempo
+// Altura do card da sala: quando entra conteúdo (código, jogadores, botão) ou muda
+// a quantidade de jogadores, o card cresce/encolhe de forma suave em vez de pular.
+// Mede a altura antes e depois da mudança e anima só a altura (centro da tela fixo,
+// então ele abre pra cima e pra baixo ao mesmo tempo).
+let cardResizeTimer = null;
+function smoothCardResize(change) {
+  const card = document.querySelector('#screen-waiting .lobby-card');
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!card || reduced || !card.offsetParent) return change();
+  const from = card.offsetHeight;                      // altura real (ignora o scale da entrada)
+  clearTimeout(cardResizeTimer);
+  card.style.transition = 'none';
+  card.style.height = '';                              // volta à altura natural pra medir
+  change();
+  const to = card.offsetHeight;
+  if (Math.abs(to - from) < 2) { card.style.overflow = ''; return; }
+  card.style.overflow = 'hidden';
+  card.style.height = from + 'px';
+  void card.offsetHeight;                              // aplica o ponto de partida
+  card.style.transition = 'height .6s cubic-bezier(.22, 1, .36, 1)';
+  card.style.height = to + 'px';
+  cardResizeTimer = setTimeout(() => {
+    card.style.transition = ''; card.style.height = ''; card.style.overflow = '';
+  }, 650);
+}
+
 function handleLobbyUpdate(lobby) {
   if (teamSwapBusy > 0) { deferredLobby = lobby; return; }
+  smoothCardResize(() => renderLobby(lobby));
+}
+function renderLobby(lobby) {
   const revealBase = setRoomCode(lobby.code); // ms de espera se o código é novo (anima), 0 se já estava na tela
   currentRoomCodeForCopy = lobby.code;
   const wrap = document.getElementById('waiting-players');
@@ -1133,7 +1162,7 @@ function handleLobbyUpdate(lobby) {
   if (revealBase) {
     wrap.querySelectorAll('.wp-row, .team-column').forEach((el, i) => {
       el.classList.add('wr-pop');
-      el.style.animationDelay = (revealBase + 400 + i * 100) + 'ms';
+      el.style.animationDelay = (revealBase + 250 + i * 100) + 'ms';
     });
   }
 
