@@ -67,7 +67,7 @@
     var ring = document.createElement('div');
     ring.setAttribute('aria-hidden', 'true');
     ring.style.cssText = 'position:fixed;pointer-events:none;z-index:61;border-radius:50%;will-change:transform,opacity;' +
-      'mix-blend-mode:screen;filter:url(#ring-wobble);' +
+      'mix-blend-mode:screen;' +
       'left:' + (x - RING_BASE / 2) + 'px;top:' + (y - RING_BASE / 2) + 'px;' +
       'width:' + RING_BASE + 'px;height:' + RING_BASE + 'px;background:' + RING_BG;
     document.body.appendChild(ring);
