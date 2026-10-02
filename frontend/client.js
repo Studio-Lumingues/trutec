@@ -1334,6 +1334,7 @@ function onTeamDragEnd(e) {
   const dropEl = el, dropY = e.clientY;
   document.querySelectorAll('.team-column').forEach(c => c.classList.remove('team-column-hover'));
 
+  const dropFrom = { x: parseFloat(teamDrag.ghost.style.left) || 0, y: parseFloat(teamDrag.ghost.style.top) || 0 };
   teamDrag.sourceEl.classList.remove('team-card-source-dragging');
   teamDrag.ghost.remove();
 
@@ -1366,7 +1367,7 @@ function onTeamDragEnd(e) {
     }
   }
   if (!slotEl || slotEl === sourceEl) return;
-  movePlayerToSlot(sourceEl, slotEl, seat, parseInt(targetCol.dataset.team, 10), parseInt(slotEl.dataset.slot, 10));
+  movePlayerToSlot(sourceEl, slotEl, seat, parseInt(targetCol.dataset.team, 10), parseInt(slotEl.dataset.slot, 10), dropFrom);
 }
 
 // Troca de lugar na tela (instantâneo) e confirma com o servidor. Se o destino tem
@@ -1379,18 +1380,53 @@ function swapNodes(a, b) {
   mark.replaceWith(b);
   const t = a.dataset.slot; a.dataset.slot = b.dataset.slot; b.dataset.slot = t;
 }
-function movePlayerToSlot(cardEl, targetEl, seat, team, slot) {
+// Animação (FLIP): o card solto "voa" do ponto onde estava no ar até o slot, com uma
+// molinha suave no final; quem estava no slot escorrega pro lugar que ficou livre.
+function animateSlotMove(cardEl, targetEl, from, rSrc0, rTgt0) {
+  if (REDUCED_MOTION || !cardEl.animate) return [];
+  const anims = [];
+  const rCard = cardEl.getBoundingClientRect();
+  const rTgt = targetEl.getBoundingClientRect();
+  cardEl.style.position = 'relative';
+  cardEl.style.zIndex = '5';
+  const a1 = cardEl.animate([
+    { transform: 'translate(' + (from.x - rCard.left) + 'px,' + (from.y - rCard.top) + 'px) scale(1.07)', boxShadow: '0 0.9rem 1.6rem rgba(0,0,0,0.55)' },
+    { transform: 'translate(0,0) scale(1)', boxShadow: '0 0 0 rgba(0,0,0,0)' }
+  ], { duration: 460, easing: 'cubic-bezier(.22,1.15,.36,1)' });
+  a1.finished.then(() => { cardEl.style.position = ''; cardEl.style.zIndex = ''; }, () => {});
+  anims.push(a1);
+  const a2 = targetEl.animate([
+    { transform: 'translate(' + (rTgt0.left - rTgt.left) + 'px,' + (rTgt0.top - rTgt.top) + 'px)' },
+    { transform: 'translate(0,0)' }
+  ], { duration: 380, easing: 'cubic-bezier(.3,.9,.3,1)' });
+  anims.push(a2);
+  return anims;
+}
+function movePlayerToSlot(cardEl, targetEl, seat, team, slot, from) {
   const errEl = document.getElementById('waiting-error');
   if (errEl) errEl.textContent = '';
+  const rSrc0 = cardEl.getBoundingClientRect();
+  const rTgt0 = targetEl.getBoundingClientRect();
   teamSwapBusy++;
   swapNodes(cardEl, targetEl);
+  const anims = from ? animateSlotMove(cardEl, targetEl, from, rSrc0, rTgt0) : [];
+  // o lobby_update só redesenha a mesa depois da resposta do servidor E do fim da animação
+  let pending = 1 + anims.length;
+  let failed = false;
+  const done = () => {
+    if (--pending > 0) return;
+    teamSwapBusy = Math.max(0, teamSwapBusy - 1);
+    if (teamSwapBusy === 0 && deferredLobby) { const l = deferredLobby; deferredLobby = null; handleLobbyUpdate(l); }
+  };
+  anims.forEach(an => an.finished.then(done, done));
   socket.emit('place_player', { seat, team, slot }, (res) => {
     if (res && !res.ok) {
+      failed = true;
+      anims.forEach(an => an.cancel());
       if (cardEl.isConnected && targetEl.isConnected) swapNodes(cardEl, targetEl); // desfaz na tela
       if (errEl) errEl.textContent = res.error || 'Não foi possível mover o jogador.';
     }
-    teamSwapBusy = Math.max(0, teamSwapBusy - 1);
-    if (teamSwapBusy === 0 && deferredLobby) { const l = deferredLobby; deferredLobby = null; handleLobbyUpdate(l); }
+    done();
   });
 }
 
