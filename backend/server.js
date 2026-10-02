@@ -1628,6 +1628,23 @@ io.on('connection', (socket) => {
     r.resolveViraPick(i, true);
   });
 
+  // Escolha do vira: o cursor/hover/clique de quem escolhe aparece pros outros da sala.
+  // Só repassa (nada é guardado) e só aceita de quem está escolhendo agora (viraPickSeat).
+  let lastViraCursor = 0;
+  socket.on('vira_cursor', (m) => {
+    const r = room();
+    if (!r || !r.started || r.gameOver || !r.viraPickOn || !m || typeof m !== 'object') return;
+    const me = r.playerBySocket(socket.id);
+    if (!me || me.isBot || me.seat !== r.viraPickSeat) return;
+    const now = Date.now();
+    const click = m.k !== undefined && m.k !== null && Number(m.k) >= 0;
+    if (!click && now - lastViraCursor < 25) return;      // ~40 msgs/s no máximo (o clique sempre passa)
+    lastViraCursor = now;
+    const num = (v) => { v = Number(v); return Number.isFinite(v) ? Math.max(-5, Math.min(6, v)) : 0; };
+    const idx = (v) => { v = Number(v); return Number.isInteger(v) && v >= 0 && v <= 4 ? v : -1; };
+    socket.to(r.code).emit('vira_cursor', { seat: me.seat, x: num(m.x), y: num(m.y), h: idx(m.h), k: idx(m.k) });
+  });
+
   // Sinal pro parceiro enquanto há um truco pendente contra a dupla.
   // Só os companheiros de dupla recebem (adversários nunca), e bots são ignorados.
   const PARTNER_SIGNALS = { vamos: 'Vamos!', nao: 'Não vamos...', algo: 'Tenho alguma coisa', nada: 'Não tenho nada' };

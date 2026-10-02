@@ -2412,8 +2412,8 @@ function updateViraPickUI(state) {
           viraPickOrigin = { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: r.width, h: r.height, t: performance.now() };
           b.style.transition = '';
           if (window.GameAudio && GameAudio.cardPlay) { try { GameAudio.cardPlay(0); } catch (e) {} }
+          sendViraCursor(ev, i);   // avisa os outros qual carta foi clicada (antes do pick_vira: depois dele a escolha já acabou no servidor)
           socket.emit('pick_vira', { index: i });
-          sendViraCursor(ev, i);   // avisa os outros qual carta foi clicada
         });
         cardsEl.appendChild(b);
       }
