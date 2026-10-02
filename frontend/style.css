@@ -3437,29 +3437,29 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 
 /* ---------------------------------------------------------------- */
-/* Card discreto com os créditos da música (só no editor de avatar)  */
+/* Créditos da música: fica no cantinho de baixo do card de          */
+/* ferramentas (logo abaixo do "Salvar avatar")                      */
 /* ---------------------------------------------------------------- */
 .editor-music-card {
-  position: fixed;
-  left: 50%;
-  bottom: 0.6rem;
-  z-index: 9000;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.35rem 0.8rem 0.35rem 0.65rem;
+  justify-content: center;
+  gap: 0.5rem;
+  align-self: center;
+  max-width: 100%;
+  margin: -0.1rem 0 0.1rem;
+  padding: 0.3rem 0.8rem 0.3rem 0.65rem;
   border-radius: 999px;
-  background: rgba(0,0,0,0.55);
-  border: 1px solid rgba(255,255,255,0.12);
-  backdrop-filter: blur(6px);
+  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(255,255,255,0.14);
   color: #fff;
   font: 500 0.68rem/1.2 system-ui, sans-serif;
+  text-align: left;
   opacity: 0;
-  transform: translate(-50%, 0.6rem);
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition: opacity 0.5s ease;
   pointer-events: none;
 }
-.editor-music-card.show { opacity: 0.85; transform: translate(-50%, 0); }
+.editor-music-card.show { opacity: 0.9; }
 .editor-music-card .emc-note { font-size: 0.95rem; opacity: 0.7; }
 .editor-music-card .emc-title { font-weight: 700; letter-spacing: 0.02em; }
 .editor-music-card .emc-credit { opacity: 0.65; font-size: 0.62rem; letter-spacing: 0.03em; }
@@ -3506,19 +3506,6 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
 }
-/* reflexo de luz no topo, como o vidro curvo */
-#screen-character-editor .character-toolbar::after {
-  content: "";
-  position: absolute;
-  left: 6%;
-  right: 6%;
-  top: 0.35rem;
-  height: 22%;
-  z-index: -1;
-  border-radius: 1.2rem 1.2rem 60% 60% / 1.2rem 1.2rem 100% 100%;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0));
-}
 #screen-character-editor .character-toolbar .editor-tabs,
 #screen-character-editor .character-toolbar label,
 #screen-character-editor .character-toolbar .skin-hint { text-shadow: 0 1px 0.4rem rgba(0,0,0,0.5); }
@@ -3527,3 +3514,9 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 @media (min-width: 901px) {
   #screen-character-editor .character-toolbar { flex: 0 0 21rem; width: 21rem; }
 }
+
+/* troca de aba (Desenho / Pele): o conteúdo novo entra com fade; a altura  */
+/* do card é animada pelo client.js (smoothToolbarResize)                   */
+.editor-tab-panel.active { animation: tabPanelIn 0.4s ease both; }
+@keyframes tabPanelIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .editor-tab-panel.active { animation: none; } }

@@ -338,13 +338,40 @@ function getSavedCharacter() {
   const tabButtons = document.querySelectorAll('.editor-tab-btn');
   const tabPanels = document.querySelectorAll('.editor-tab-panel');
 
+  // Altura do card de ferramentas: ao trocar Desenho/Pele ele encolhe/cresce de
+  // forma suave (mesmo esquema do card da sala: mede antes e depois e anima a altura).
+  let toolbarResizeTimer = null;
+  function smoothToolbarResize(change) {
+    const bar = document.querySelector('#screen-character-editor .character-toolbar');
+    const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!bar || reduced || !bar.offsetParent) return change();
+    const from = bar.offsetHeight;
+    clearTimeout(toolbarResizeTimer);
+    bar.style.transition = 'none';
+    bar.style.height = '';                              // altura natural pra medir
+    change();
+    const to = bar.offsetHeight;
+    if (Math.abs(to - from) < 2) { bar.style.overflow = ''; return; }
+    bar.style.overflow = 'hidden';
+    bar.style.height = from + 'px';
+    void bar.offsetHeight;                              // aplica o ponto de partida
+    bar.style.transition = 'height .6s cubic-bezier(.22, 1, .36, 1)';
+    bar.style.height = to + 'px';
+    toolbarResizeTimer = setTimeout(() => {
+      bar.style.transition = ''; bar.style.height = ''; bar.style.overflow = '';
+    }, 650);
+  }
+
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
-      tabButtons.forEach(b => b.classList.remove('active'));
-      tabPanels.forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      const panel = document.querySelector(`.editor-tab-panel[data-tab-panel="${btn.dataset.tab}"]`);
-      if (panel) panel.classList.add('active');
+      if (btn.classList.contains('active')) return;
+      smoothToolbarResize(() => {
+        tabButtons.forEach(b => b.classList.remove('active'));
+        tabPanels.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const panel = document.querySelector(`.editor-tab-panel[data-tab-panel="${btn.dataset.tab}"]`);
+        if (panel) panel.classList.add('active');
+      });
     });
   });
 
