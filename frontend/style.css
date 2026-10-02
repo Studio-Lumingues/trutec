@@ -812,12 +812,70 @@ button { font-family: inherit; cursor: pointer; }
   border-radius: 0.5rem;
   box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.4);
 }
+/* Escolha do vira: 3 cartas viradas pra quem deu as cartas */
+.vira-pick {
+  position: fixed; inset: 0;
+  z-index: 20;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1.25rem;
+  pointer-events: none;
+  animation: viraPickFade 0.35s ease-out var(--pick-delay, 0ms) both;
+}
+.vira-pick.hidden { display: none; }
+.vira-pick.mine {
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(0.125rem);
+  pointer-events: auto;
+}
+.vira-pick-title {
+  background: rgba(10,10,10,0.85);
+  color: var(--gold-bright);
+  font-weight: 800;
+  font-size: 1.05rem;
+  text-align: center;
+  max-width: 90vw;
+  padding: 0.5rem 1.1rem;
+  border-radius: 0.75rem;
+  text-shadow: 0 0.125rem 0.375rem rgba(0,0,0,0.8);
+}
+.vira-pick-cards { display: flex; gap: clamp(0.75rem, 3vw, 1.75rem); align-items: center; justify-content: center; }
+.vira-pick-card {
+  --w: clamp(5rem, 22vw, 8.5rem);
+  width: var(--w); height: calc(var(--w) * 1.414);
+  padding: 0;
+  border-radius: 0.75rem;
+  border: 0.1875rem solid #fff8f0;
+  cursor: pointer;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 0.1875rem, transparent 0.1875rem, transparent 0.75rem),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 0.1875rem, transparent 0.1875rem, transparent 0.75rem),
+    linear-gradient(135deg, var(--card-back), var(--card-back-dark));
+  box-shadow: 0 0.375rem 1rem rgba(0,0,0,0.5);
+  transform: rotate(calc((var(--i) - 1) * 6deg));
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.25s ease;
+  animation: viraPickDeal 0.5s cubic-bezier(.2,.8,.3,1) calc(var(--pick-delay, 0ms) + var(--i) * 110ms) both;
+}
+@media (hover: hover) {
+  .vira-pick:not(.sent) .vira-pick-card:hover { transform: translateY(-0.75rem) rotate(0deg) scale(1.05); box-shadow: 0 0.875rem 1.5rem rgba(0,0,0,0.55), 0 0 0 0.1875rem var(--gold-bright); }
+}
+.vira-pick-card:focus-visible { outline: 0.1875rem solid var(--gold-bright); outline-offset: 0.2rem; }
+.vira-pick.sent .vira-pick-card { pointer-events: none; opacity: 0.25; }
+.vira-pick.sent .vira-pick-card.chosen { opacity: 1; transform: translateY(-0.75rem) scale(1.06); }
+@keyframes viraPickFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes viraPickDeal { from { opacity: 0; transform: translateY(2rem) rotate(0deg) scale(0.85); } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .vira-pick, .vira-pick-card { animation: none; transition: none; }
+}
+
 /* Animação do vira (começo da rodada): o vira do monte espera o card que voa */
-.vira-display { transition: opacity 0.5s ease; }
-.vira-display.vira-out { opacity: 0; }
-.vira-display.vira-snap { transition: none; }
-@media (prefers-reduced-motion: reduce) { .vira-display { transition: none; } }
-.vira-label { transition: opacity 0.25s ease; }
+/* Fim da mão: SÓ o vira (carta + rótulo) some em fade out; o monte de costas fica */
+#vira-card, .vira-label { transition: opacity 0.5s ease; }
+.vira-display.vira-out #vira-card,
+.vira-display.vira-out .vira-label { opacity: 0; }
+.vira-display.vira-snap #vira-card,
+.vira-display.vira-snap .vira-label,
+.vira-display.vira-pending #vira-card { transition: none; }
+@media (prefers-reduced-motion: reduce) { #vira-card, .vira-label { transition: none; } }
 .vira-display.vira-pending #vira-card,
 .vira-display.vira-pending .vira-label { opacity: 0; }
 .vira-display.vira-pending .vira-label { transition: none; }

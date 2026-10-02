@@ -79,6 +79,7 @@ const rooms = new Map();
 const PEEK_MS = 10000;
 // Mão de 11: tempo da votação "às cegas" ou "normal" antes da mão começar (ms).
 const VOTE_MS = 10000;
+const VIRA_PICK_MS = 15000; // tempo pra quem deu as cartas escolher o vira (acabou: sorteia)
 
 function genRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -258,6 +259,12 @@ class Room {
     this._peekTimer = null;
     this.voteOn = false; // mão de ferro (11 x 11): votação aberta pra todos
     this.voteUntil = 0;
+    this.viraPickOn = false; // toda mão: quem deu as cartas escolhe o vira entre 3 cartas viradas
+    this.viraPickSeat = -1;
+    this.viraPickUntil = 0;
+    this._viraOpts = []; // as 3 cartas oferecidas (só o servidor sabe quais são)
+    this._viraPickTimer = null;
+    this._peekAfterPick = null; // mão de 11: dupla que faz o peek logo depois do vira escolhido
     this._votes = {}; // seat -> 'cegas' | 'normal'
     this._voteTimer = null;
     this.blind = false; // mão de ferro: todo mundo joga às cegas (ninguém vê as próprias cartas)
@@ -406,8 +413,8 @@ class Room {
     if (this.mode === '2v2' && n === 4) {
       const t11 = [0, 1].filter(t => this.score[t] === 11);
       if (t11.length === 2 && this.startVote()) return; // cartas vêm depois do voto
+      if (t11.length === 1) this._peekAfterPick = t11[0]; // o peek começa depois que o vira for escolhido
       this.dealCards();
-      if (t11.length === 1) this.startPeek(t11[0]);
       return;
     }
     this.dealCards();
@@ -419,8 +426,46 @@ class Room {
     for (let i = 0; i < 3; i++) {
       for (const p of this.players) p.hand.push(this.deck.pop());
     }
-    this.vira = this.deck.pop();
+    // o vira NÃO sai direto do baralho: quem deu as cartas escolhe entre 3 viradas
+    this.vira = null;
+    this.manilhaRank = null;
+    this.beginViraPick();
+  }
+
+  // Separa 3 cartas viradas do baralho; quem deu as cartas (dealerSeat) escolhe uma
+  // delas pra ser o vira. Bot / jogador desconectado escolhe sozinho em instantes;
+  // humano tem VIRA_PICK_MS e, se o tempo acabar, a carta é sorteada.
+  beginViraPick() {
+    this._viraOpts = [this.deck.pop(), this.deck.pop(), this.deck.pop()];
+    this.viraPickOn = true;
+    this.viraPickSeat = this.dealerSeat;
+    const picker = this.playerBySeat(this.viraPickSeat);
+    const auto = !picker || picker.isBot || !picker.connected;
+    const ms = auto ? 1500 + Math.floor(Math.random() * 1200) : VIRA_PICK_MS;
+    this.viraPickUntil = Date.now() + ms;
+    const code = this.code;
+    if (this._viraPickTimer) clearTimeout(this._viraPickTimer);
+    this._viraPickTimer = setTimeout(() => {
+      this._viraPickTimer = null;
+      if (rooms.get(code) !== this) return;
+      this.resolveViraPick(-1, true);
+    }, ms);
+  }
+
+  // index 0..2 = carta escolhida; qualquer outro valor = sorteia.
+  resolveViraPick(index, doBroadcast) {
+    if (!this.viraPickOn) return false;
+    if (this._viraPickTimer) { clearTimeout(this._viraPickTimer); this._viraPickTimer = null; }
+    const opts = this._viraOpts;
+    const i = (Number.isInteger(index) && index >= 0 && index < opts.length)
+      ? index : Math.floor(Math.random() * opts.length);
+    this.vira = opts[i];
     this.manilhaRank = manilhaRankFromVira(this.vira.rank);
+    this.viraPickOn = false; this.viraPickSeat = -1; this.viraPickUntil = 0; this._viraOpts = [];
+    const peekTeam = this._peekAfterPick; this._peekAfterPick = null;
+    if (peekTeam !== null) this.startPeek(peekTeam);
+    if (doBroadcast !== false) this.broadcastState(io);
+    return true;
   }
 
   startVote() {
@@ -482,7 +527,7 @@ class Room {
 
   // qualquer fase da mão de 11 que trava as jogadas (votação ou peek)
   holdActive() {
-    return this.voteOn || this.peekActive();
+    return this.voteOn || this.viraPickOn || this.peekActive();
   }
 
   peekActive() {
@@ -495,6 +540,8 @@ class Room {
     this.peekUntil = 0;
     if (this._voteTimer) { clearTimeout(this._voteTimer); this._voteTimer = null; }
     this.voteOn = false; this.voteUntil = 0; this._votes = {};
+    if (this._viraPickTimer) { clearTimeout(this._viraPickTimer); this._viraPickTimer = null; }
+    this.viraPickOn = false; this.viraPickSeat = -1; this.viraPickUntil = 0; this._viraOpts = []; this._peekAfterPick = null;
     this.blind = false;
   }
 
@@ -703,6 +750,12 @@ class Room {
         msLeft: Math.max(0, this.voteUntil - Date.now()),
         myVote: this._votes[viewerSeat] || null,
         votes: this.voteTally()
+      } : undefined,
+      // escolha do vira: todos sabem quem está escolhendo; as 3 cartas ninguém vê (nem o escolhedor)
+      viraPick: this.viraPickOn ? {
+        seat: this.viraPickSeat,
+        msLeft: Math.max(0, this.viraPickUntil - Date.now()),
+        count: this._viraOpts.length
       } : undefined,
       blind: this.blind,
       code: this.code,
@@ -1551,6 +1604,17 @@ io.on('connection', (socket) => {
     const humans = r.players.filter(p => !p.isBot && p.connected);
     if (humans.every(p => r._votes[p.seat])) r.resolveVote(true);
     else r.broadcastState(io); // todos veem quem votou em quê; a votação continua
+  });
+
+  // Escolha do vira: só quem deu as cartas (viraPickSeat) pode escolher, uma vez.
+  socket.on('pick_vira', ({ index } = {}) => {
+    const r = room();
+    if (!r || !r.started || r.gameOver || !r.viraPickOn) return;
+    const me = r.playerBySocket(socket.id);
+    if (!me || me.isBot || me.seat !== r.viraPickSeat) return;
+    const i = parseInt(index, 10);
+    if (!(i >= 0 && i < r._viraOpts.length)) return;
+    r.resolveViraPick(i, true);
   });
 
   // Sinal pro parceiro enquanto há um truco pendente contra a dupla.

@@ -1982,7 +1982,7 @@ function beginMatch(state, dealDelay) {
   handWrapEl.dataset.mao = '';
   const myHandCount = (state.players.find(p => p.seat === mySeat).hand || []).length;
   startDealAnimation(myHandCount, dealDelay);
-  viraMaoSeen = null; viraForce = true; // partida nova: o vira sempre entra animado
+  viraKeySeen = null; viraPendingSeen = false; viraForce = true; // partida nova: o vira sempre entra animado
   renderState(state);
   setBanner('');
 }
@@ -2083,16 +2083,24 @@ function renderState(realState) {
 
   // vira
   renderMiniCard(document.getElementById('vira-card'), state.vira);
-  // rodada nova: o vira entra com a animação (fade in virado -> vira -> vai pro monte)
-  if (state.vira && (viraForce || state.maoNumber !== viraMaoSeen)) {
-    viraShowSnap();
-    const freshHand = viraForce || viraMaoSeen !== null; // reconectar no meio da mão não anima
-    viraMaoSeen = state.maoNumber;
-    viraForce = false;
-    if (freshHand) {
-      // na 1ª mão espera a intro da logo sumir (mesmo atraso da distribuição das cartas)
-      const wait = dealAnim ? Math.max(0, dealAnim.start - performance.now()) : 0;
-      playViraIntro(state.vira, wait);
+  // vira: some enquanto ainda estão escolhendo; quando a carta é escolhida entra com a
+  // animação (fade in virado -> vira -> vai pro monte)
+  if (!state.vira) {
+    viraFadeOut();
+    if (state.viraPick) viraPendingSeen = true;
+  } else {
+    const viraKey = state.maoNumber + ':' + state.vira.id;
+    if (viraForce || viraKey !== viraKeySeen) {
+      viraShowSnap();
+      const freshHand = viraForce || viraPendingSeen || viraKeySeen !== null; // reconectar no meio da mão não anima
+      viraKeySeen = viraKey;
+      viraForce = false;
+      viraPendingSeen = false;
+      if (freshHand) {
+        // na 1ª mão espera a intro da logo sumir (mesmo atraso da distribuição das cartas)
+        const wait = dealAnim ? Math.max(0, dealAnim.start - performance.now()) : 0;
+        playViraIntro(state.vira, wait);
+      }
     }
   }
 
@@ -2114,7 +2122,7 @@ function renderState(realState) {
     const nameEl = document.getElementById(`name-${pos}`);
     const handEl = document.getElementById(`hand-${pos}`);
     const avatarEl = document.getElementById(`avatar-${pos}`);
-    const isActive = state.turnSeat === p.seat;
+    const isActive = state.turnSeat === p.seat && !state.viraPick;
     if (seatEl) seatEl.classList.toggle('active-seat', isActive);
     if (avatarEl) {
       const src = p.character || 'assets/personagem.svg';
@@ -2223,7 +2231,7 @@ function renderState(realState) {
     if (keepIds.has(el.dataset.cardId)) existing.set(el.dataset.cardId, el);
     else el.remove();
   });
-  const myTurnNow = state.turnSeat === mySeat && !state.pendingCall && !state.peek && !state.vote; // na mão de 11 ninguém joga durante a votação nem durante o peek
+  const myTurnNow = state.turnSeat === mySeat && !state.pendingCall && !state.peek && !state.vote && !state.viraPick; // na mão de 11 ninguém joga durante a votação nem durante o peek
   myCards.forEach((card, i) => {
     let el = existing.get(String(card.id));
     if (!el) {
@@ -2242,12 +2250,75 @@ function renderState(realState) {
   // contagem dos 10s da mão de 11
   updatePeekTimer(state);
   updateVoteUI(state);
+  updateViraPickUI(state);
 
   // botões de ação
   updateActionButtons(state);
 
   // pedido pendente
   updateCallOverlay(state);
+}
+
+// ------------------------------------------------------------------
+// Escolha do vira (toda mão): quem deu as cartas vê 3 cartas viradas e clica
+// numa delas; os outros veem só o aviso "fulano está escolhendo o vira…".
+// state.viraPick = { seat, msLeft, count }. A carta escolhida só é revelada
+// pelo servidor depois do clique (aí roda a animação do vira).
+// ------------------------------------------------------------------
+let viraPickEndsAt = 0, viraPickInterval = null, viraPickSent = false;
+function updateViraPickUI(state) {
+  const box = document.getElementById('vira-pick');
+  if (!box) return;
+  const v = state.viraPick;
+  if (!v) {
+    clearInterval(viraPickInterval); viraPickInterval = null;
+    box.classList.add('hidden');
+    box.dataset.key = '';
+    viraPickSent = false;
+    return;
+  }
+  const mine = v.seat === mySeat;
+  const key = state.maoNumber + ':' + v.seat;
+  const cardsEl = document.getElementById('vira-pick-cards');
+  const titleEl = document.getElementById('vira-pick-title');
+  if (box.dataset.key !== key) { // escolha nova: monta (ou limpa) as cartas
+    box.dataset.key = key;
+    viraPickSent = false;
+    box.classList.remove('sent');
+    cardsEl.innerHTML = '';
+    if (mine) {
+      for (let i = 0; i < (v.count || 3); i++) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'vira-pick-card';
+        b.style.setProperty('--i', i);
+        b.setAttribute('aria-label', 'Carta ' + (i + 1) + ' de ' + (v.count || 3));
+        b.addEventListener('click', () => {
+          if (viraPickSent) return;
+          viraPickSent = true;
+          box.classList.add('sent');
+          b.classList.add('chosen');
+          if (window.GameAudio && GameAudio.cardPlay) { try { GameAudio.cardPlay(0); } catch (e) {} }
+          socket.emit('pick_vira', { index: i });
+        });
+        cardsEl.appendChild(b);
+      }
+    }
+    // 1ª mão: só aparece depois da intro da logo
+    const wait = dealAnim ? Math.max(0, dealAnim.start - performance.now()) : 0;
+    box.style.setProperty('--pick-delay', Math.round(wait) + 'ms');
+  }
+  box.classList.toggle('mine', mine);
+  viraPickEndsAt = Date.now() + Math.max(0, v.msLeft || 0);
+  const owner = state.players.find(p => p.seat === v.seat);
+  const paint = () => {
+    const secs = Math.max(0, Math.ceil((viraPickEndsAt - Date.now()) / 1000));
+    if (mine) titleEl.textContent = 'Escolha o vira! ' + secs + 's';
+    else titleEl.textContent = (owner ? owner.name : 'Alguém') + ' está escolhendo o vira…';
+  };
+  paint();
+  if (!viraPickInterval) viraPickInterval = setInterval(paint, 250);
+  box.classList.remove('hidden');
 }
 
 // ------------------------------------------------------------------
@@ -2378,7 +2449,8 @@ const VIRA_HOLD1_MS = 300;  // pausa com as costas à mostra
 const VIRA_FLIP_MS  = 650;  // giro revelando a carta
 const VIRA_HOLD2_MS = 650;  // pausa pra todo mundo ver qual é o vira
 const VIRA_FLY_MS   = 750;  // viagem até o monte
-let viraMaoSeen = null;     // última mão cujo vira já foi tratado
+let viraKeySeen = null;     // 'mão:id' do último vira já tratado
+let viraPendingSeen = false; // vimos a escolha do vira desta mão (então a animação vem depois)
 let viraForce = false;      // força a animação (início de partida)
 let viraIntro = null;       // animação em andamento
 
@@ -2388,9 +2460,7 @@ function viraIntroCleanup() {
   clearTimeout(viraIntro.safety);
   viraIntro.anims.forEach(a => { try { a.cancel(); } catch (e) {} });
   if (viraIntro.el && viraIntro.el.parentNode) viraIntro.el.parentNode.removeChild(viraIntro.el);
-  const disp = document.querySelector('.vira-display');
-  viraShowSnap();
-  if (disp) disp.classList.remove('vira-pending');
+  viraShowSnap(true);
   viraIntro = null;
 }
 
@@ -2399,12 +2469,16 @@ function viraFadeOut() {
   const disp = document.querySelector('.vira-display');
   if (disp) disp.classList.add('vira-out');
 }
-// Volta a mostrar o vira na hora (sem fade in)
-function viraShowSnap() {
+// Volta a mostrar o vira na hora (sem fade in). alsoPending: tira o "escondido
+// até o card chegar" também (fim da animação de entrada).
+function viraShowSnap(alsoPending) {
   const disp = document.querySelector('.vira-display');
-  if (!disp || !disp.classList.contains('vira-out')) return;
+  if (!disp) return;
+  const had = disp.classList.contains('vira-out') || (alsoPending && disp.classList.contains('vira-pending'));
+  if (!had) return;
   disp.classList.add('vira-snap');
   disp.classList.remove('vira-out');
+  if (alsoPending) disp.classList.remove('vira-pending');
   void disp.offsetWidth; // aplica sem transição
   disp.classList.remove('vira-snap');
 }
@@ -2593,7 +2667,7 @@ document.getElementById('btn-esconder').addEventListener('click', () => {
 // Botões de truco / fugir
 // ------------------------------------------------------------------
 function updateActionButtons(state) {
-  const isMyTurn = state.turnSeat === mySeat;
+  const isMyTurn = state.turnSeat === mySeat && !state.viraPick; // ninguém age enquanto escolhem o vira
   const maoDe11 = !!state.score && (state.score[0] === 11 || state.score[1] === 11); // mão de 11: truco bloqueado
   const canCall = isMyTurn && !state.pendingCall && !state.gameOver && !maoDe11;
   const nextLevelByStake = { 1: 'truco', 3: 'seis', 6: 'nove', 9: 'doze' };
