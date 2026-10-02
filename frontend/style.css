@@ -3993,12 +3993,6 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   border-radius: 1.4rem; overflow: hidden; background: #111;
   border: 1px solid rgba(255,248,240,0.25); box-shadow: 0 1.2rem 3rem rgba(0,0,0,0.6);
 }
-.social-backme {
-  grid-column: 1 / -1; display: block; width: 100%; padding: 0.6rem 1rem; border: 0; border-bottom: 1px solid rgba(255,248,240,0.15);
-  background: rgba(255,248,240,0.07); color: var(--cream); font: inherit; font-weight: 700; text-align: left; cursor: pointer;
-}
-.social-backme:hover { background: rgba(255,248,240,0.14); }
-.social-backme.hidden { display: none; }
 /* painel do boneco: fundo no mesmo tom de branco da tela principal (#fff8f0); o boneco
    preenche o painel inteiro (contain, colado embaixo) e treme "hand drawn" (#boil-sm) */
 .sp-top { position: relative; aspect-ratio: 9 / 10; overflow: hidden; isolation: isolate; background: #fff8f0; }
@@ -4009,7 +4003,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   transform: scale(1.08); transform-origin: center bottom;
   filter: url(#boil-sm);
 }
-.sp-body { padding: 2rem 2.25rem; text-align: left; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.sp-body { padding: 1.75rem 2.25rem 2rem; text-align: left; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; }
 .sp-name { margin: 0; font-size: 2.4rem; line-height: 1.1; word-break: break-word; color: var(--cream); }
 .sp-handle { margin-top: 0.2rem; font-size: 1rem; font-weight: 600; opacity: 0.65; word-break: break-all; color: var(--cream); }
 .sp-handle[hidden] { display: none; }
@@ -4020,22 +4014,37 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .sp-stat span { font-size: 0.8rem; opacity: 0.7; }
 .sp-collection[hidden] { display: none; }
 .sp-collection-title { font-size: 0.95rem; opacity: 0.7; margin-bottom: 0.5rem; }
-.sp-slots { display: flex; gap: 0.625rem; justify-content: flex-start; margin-bottom: 1rem; }
+.sp-slots { display: grid; grid-template-columns: repeat(3, minmax(0, 9.5rem)); gap: 0.75rem; justify-content: start; margin-bottom: 1.25rem; }
+/* cartaz retangular 2:3 (como os "filmes favoritos" do Letterboxd): o desenho preenche e corta as sobras */
 .sp-slot {
-  position: relative; width: 4.5rem; height: 4.5rem; padding: 0; overflow: hidden;
-  border-radius: 0.875rem; border: 0.125rem solid rgba(255,255,255,0.25); background: #fff8f0;
-  transition: transform .1s, border-color .15s, box-shadow .15s;
+  position: relative; display: block; width: 100%; aspect-ratio: 2 / 3; padding: 0; overflow: hidden;
+  border-radius: 0.3rem; border: 1px solid rgba(255,255,255,0.22); background: #fff8f0; cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
 }
-.sp-slot.empty { background: rgba(255,255,255,0.08); border-style: dashed; cursor: default; }
-.sp-slot img { filter: url(#boil-sm); position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-.sp-slot:not(:disabled):hover { transform: scale(1.06); }
-.sp-slot.active { border-color: var(--gold-bright); box-shadow: 0 0 0 0.1875rem rgba(255,255,255,0.3); }
-.sp-slot.viewing { border-color: #fff; }
+.sp-slot.empty { background: rgba(255,255,255,0.06); border-style: dashed; cursor: default; }
+.sp-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; pointer-events: none; }
+.sp-slot:not(:disabled):hover { border-color: rgba(255,255,255,0.85); box-shadow: 0 0.4rem 1rem rgba(0,0,0,0.5); }
+.sp-slot.active { border-color: var(--gold-bright); }
 .sp-slot:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-.sp-slot-num {
-  position: absolute; left: 0.25rem; bottom: 0.2rem; min-width: 1.1rem; padding: 0 0.25rem; border-radius: 0.5rem;
-  background: rgba(0,0,0,0.65); color: #fff; font: 700 0.7rem/1.1rem system-ui, sans-serif; text-align: center;
+
+/* boneco da coleção ampliado, no meio da tela */
+.sp-lightbox {
+  position: fixed; inset: 0; z-index: 400; display: flex; align-items: center; justify-content: center;
+  padding: 1rem; background: rgba(0,0,0,0.82); cursor: zoom-out;
 }
+.sp-lightbox.hidden { display: none; }
+.sp-lightbox-img {
+  display: block; height: min(88vh, 52rem); width: auto; max-width: 94vw; object-fit: contain;
+  background: #fff8f0; border-radius: 0.9rem; box-shadow: 0 1.5rem 4rem rgba(0,0,0,0.7);
+  animation: spBoxIn .2s ease-out;
+}
+.sp-lightbox-close {
+  position: absolute; top: 0.75rem; right: 1rem; width: 2.6rem; height: 2.6rem; border: 0; border-radius: 50%;
+  background: rgba(255,255,255,0.14); color: #fff; font-size: 1.9rem; line-height: 1; cursor: pointer;
+}
+.sp-lightbox-close:hover { background: rgba(255,255,255,0.28); }
+@keyframes spBoxIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sp-lightbox-img { animation: none; } }
 .sp-copy { align-self: flex-start; }
 .sp-copy.hidden { display: none; }
 
@@ -4064,7 +4073,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .social-card { grid-template-columns: 1fr; }
   .sp-top { aspect-ratio: auto; height: 22rem; }
   .sp-body { text-align: center; align-items: center; }
-  .sp-slots { justify-content: center; }
+  .sp-slots { grid-template-columns: repeat(3, minmax(0, 7.5rem)); justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) { .sp-checker { animation: none; } }
 

@@ -3,8 +3,11 @@
 // Layout estilo Letterboxd: barra no topo (logo = voltar, aba Amigos, lupa),
 // card grande à esquerda com o PERFIL (começa mostrando o seu: nome, boneco,
 // estatísticas e a sua coleção) e a seção Amigos à direita.
+// - Coleção: cartazes retangulares (estilo "filmes favoritos" do Letterboxd).
+//   Clicar num deles abre o boneco bem grande no meio da tela (clique fora,
+//   no X ou Esc fecham). Pra voltar ao seu perfil, é só abrir o Social de novo.
 // - Lupa: abre o campo de busca por @. Consulta GET {backend}/api/profile/<@>
-//   e troca o card pelo perfil encontrado (botão "← Meu perfil" volta).
+//   e troca o card pelo perfil encontrado.
 // Formato esperado da resposta:
 //   { ok: true, profile: { handle, wins, losses, createdAt,
 //                          character: "data:image/png;base64,...",   // em uso
@@ -22,7 +25,6 @@
   var input = document.getElementById('social-input');
   var lupa = document.getElementById('social-search-btn');
   var msg = document.getElementById('social-msg');
-  var backMe = document.getElementById('sp-backme');
   var avatarEl = document.getElementById('sp-avatar');
   var nameEl = document.getElementById('sp-name');
   var handleEl = document.getElementById('sp-handle');
@@ -60,7 +62,39 @@
   function num(v) { v = parseInt(v, 10); return isFinite(v) && v > 0 ? v : 0; }
   function normalize(raw) { return String(raw || '').trim().toLowerCase().replace(/^@+/, ''); }
 
-  // ---- coleção: clicar num boneco da coleção mostra ele grande ----
+  // ---- coleção: cartazes retangulares; clicar abre o boneco grande no meio da tela ----
+  var box = null, boxImg = null, boxFrom = null;
+  function buildBox() {
+    if (box) return;
+    box = document.createElement('div');
+    box.className = 'sp-lightbox hidden';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-label', 'Boneco ampliado');
+    box.innerHTML = '<button type="button" class="sp-lightbox-close" aria-label="Fechar">\u00d7</button>' +
+      '<img class="sp-lightbox-img" alt="" draggable="false" />';
+    document.body.appendChild(box);
+    boxImg = box.querySelector('img');
+    box.addEventListener('click', closeBox);          // clicar em qualquer lugar fecha
+  }
+  function openBox(src, from) {
+    buildBox();
+    boxImg.src = src;
+    boxFrom = from;
+    box.classList.remove('hidden');
+    box.querySelector('button').focus();
+  }
+  function closeBox() {
+    if (!box || box.classList.contains('hidden')) return;
+    box.classList.add('hidden');
+    boxImg.removeAttribute('src');
+    if (boxFrom && boxFrom.isConnected) { try { boxFrom.focus(); } catch (e) {} }
+    boxFrom = null;
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && box && !box.classList.contains('hidden')) { e.stopPropagation(); closeBox(); }
+  }, true);
+
   function renderCollection(collection, equipped) {
     slotsEl.innerHTML = '';
     if (!Array.isArray(collection)) { colWrap.hidden = true; return; }
@@ -79,19 +113,11 @@
         if (img === equipped) { b.classList.add('active'); b.title = 'Boneco ' + (i + 1) + ' (em uso)'; }
         else b.title = 'Ver o boneco ' + (i + 1);
         b.addEventListener('click', (function (src, btn) {
-          return function () {
-            avatarEl.src = src;
-            Array.prototype.forEach.call(slotsEl.children, function (c) { c.classList.remove('viewing'); });
-            btn.classList.add('viewing');
-          };
+          return function () { openBox(src, btn); };
         })(img, b));
       } else {
         b.disabled = true;
       }
-      var n = document.createElement('span');
-      n.className = 'sp-slot-num';
-      n.textContent = String(i + 1);
-      b.appendChild(n);
       slotsEl.appendChild(b);
     }
     colWrap.hidden = !any;
@@ -109,7 +135,6 @@
     lossesEl.textContent = losses;
     rateEl.textContent = total ? Math.round(wins / total * 100) + '%' : '—';
     renderCollection(d.collection, safeImg(d.avatar));
-    backMe.classList.toggle('hidden', !d.other);
     copyBtn.classList.toggle('hidden', !d.other);
     copyBtn.textContent = 'Copiar link do perfil';
   }
@@ -134,6 +159,7 @@
   }
   function showMe() {
     reqId++;                 // cancela busca em andamento
+    closeBox();
     shownHandle = '';
     say('');
     paint(myData());
@@ -188,7 +214,6 @@
     input.value = v.replace(/^@+/, '').replace(/[^A-Za-z0-9_]/g, '').slice(0, 16);
   });
 
-  backMe.addEventListener('click', showMe);
   copyBtn.addEventListener('click', function () {
     if (!shownHandle || !navigator.clipboard) return;
     navigator.clipboard.writeText(location.origin + '/@' + shownHandle).then(function () {
@@ -203,5 +228,5 @@
     input.value = '';
     showScreen('screen-social');
   });
-  logoBtn.addEventListener('click', function () { showScreen('screen-lobby'); });
+  logoBtn.addEventListener('click', function () { closeBox(); showScreen('screen-lobby'); });
 })();
