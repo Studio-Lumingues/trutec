@@ -3643,3 +3643,24 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .editor-tabs .editor-tab-btn.active { background: transparent; color: #040303; }
 #screen-character-editor .character-toolbar .editor-tab-btn.active { text-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .editor-tabs::before { transition: none; } }
+
+/* ---------------------------------------------------------------- */
+/* Roleta de cores personalizada: bordas limpas. Antes a roleta      */
+/* (conic-gradient) recomeçava por baixo da borda translúcida de 2px, */
+/* criando um anel "emendado" e meio serrilhado. Agora o degradê      */
+/* ocupa o círculo inteiro e o contorno é um anel interno por cima.   */
+/* ---------------------------------------------------------------- */
+#character-color-picker,
+#screen-character-editor #character-color-picker {
+  border: 0;
+  background-origin: border-box;
+  background-clip: border-box;
+  box-shadow: inset 0 0 0 0.125rem rgba(255,255,255,0.35);
+  overflow: hidden;
+}
+#character-color-picker.active,
+#screen-character-editor #character-color-picker.active {
+  background-origin: border-box;
+  background-clip: border-box;
+  box-shadow: inset 0 0 0 0.125rem var(--gold-bright), 0 0 0 0.1875rem rgba(255,255,255,0.3);
+}
