@@ -52,6 +52,20 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
         <feBlend in="r2" in2="g" mode="screen" result="rg"/>
         <feBlend in="rg" in2="b2" mode="screen"/>
       </filter>
+      <!-- fundo da tela Social: borra as listras, ondula (refração líquida) e separa os canais R/G/B
+           (aberração cromática). Aplicado direto no elemento (filter), então funciona em todo navegador. -->
+      <filter id="lg-bg" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="soft"/>
+        <feTurbulence type="fractalNoise" baseFrequency="0.0035 0.006" numOctaves="2" seed="11" result="n"/>
+        <feDisplacementMap in="soft" in2="n" scale="90" xChannelSelector="R" yChannelSelector="G" result="w"/>
+        <feColorMatrix in="w" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0 1" result="r"/>
+        <feColorMatrix in="w" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 0 1" result="g"/>
+        <feColorMatrix in="w" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 0 1" result="b"/>
+        <feOffset in="r" dx="-5" dy="-1" result="r2"/>
+        <feOffset in="b" dx="5" dy="1" result="b2"/>
+        <feBlend in="r2" in2="g" mode="screen" result="rg"/>
+        <feBlend in="rg" in2="b2" mode="screen"/>
+      </filter>
       <!-- pequeno: avatares na mesa, sala de espera, lista de prontos -->
       <filter id="boil-sm" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
         <feTurbulence data-boil type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="1" result="n"/>
@@ -593,17 +607,20 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
 
   <!-- ===================== TELA: SOCIAL ===================== -->
   <div id="screen-social" class="screen">
+    <div class="social-bg" aria-hidden="true"></div>
+    <div class="social-sheen" aria-hidden="true"></div>
     <!-- barra do topo (estilo Letterboxd): logo = voltar, aba Amigos e lupa de busca -->
     <header class="social-nav">
       <button type="button" id="btn-close-social" class="social-logo" aria-label="Voltar" title="Voltar"></button>
       <nav class="social-nav-right" aria-label="Social">
+        
+        <button type="button" class="social-tab active" id="social-tab-friends">Amigos</button>
         <form class="social-search" id="social-search" autocomplete="off" role="search">
           <label class="social-input" for="social-input">
             <span class="social-at" aria-hidden="true">@</span>
             <input id="social-input" maxlength="17" placeholder="Procurar jogador" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Procurar jogador pelo @" />
           </label>
         </form>
-        <button type="button" class="social-tab active" id="social-tab-friends">Amigos</button>
         <button type="button" id="social-search-btn" class="social-icon-btn" aria-label="Pesquisar jogador" title="Pesquisar">
           <svg class="ic ic-only" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 3.6 C14.6 3.4 17.7 6.6 17.6 10.5 C17.5 14.4 14.4 17.5 10.5 17.4 C6.6 17.3 3.5 14.3 3.6 10.4 C3.7 6.6 6.8 3.6 10.6 3.6 Z M15.6 15.6 L20.6 20.6"/></svg>
         </button>

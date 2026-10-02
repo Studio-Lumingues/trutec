@@ -3885,21 +3885,40 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 /* ---------------------------------------------------------------- */
 #screen-social.screen {
   position: relative;
+  isolation: isolate;
   overflow: hidden;
+  background-color: #0a0a0a;
+}
+/* camada das listras: borrada, ondulada e com separação RGB (filtro #lg-bg no index.html).
+   É maior que a tela (inset negativo) pra a ondulação não deixar buracos nas bordas.
+   Ajustes: scale/stdDeviation/dx do filtro #lg-bg; o alfa das listras (0.2) aqui. */
+.social-bg {
+  position: absolute; inset: -5rem; z-index: -2; pointer-events: none;
   background-color: #0a0a0a;
   background-image: repeating-linear-gradient(
     60deg,
-    rgba(255, 255, 255, 0.18) 0px,
-    rgba(255, 255, 255, 0.18) 0.2rem,
-    transparent 0.2rem,
+    rgba(255, 255, 255, 0.2) 0px,
+    rgba(255, 255, 255, 0.2) 0.3rem,
+    transparent 0.3rem,
     transparent 1.8rem
   );
   background-size: 300% 300%;
   background-position: 100% 0;
   animation: moveStripesRev 100s linear infinite;
+  filter: url(#lg-bg);
+}
+/* brilho de vidro por cima: reflexo diagonal + luz no canto + vinheta */
+.social-sheen {
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(60rem 30rem at 12% -8%, rgba(255,255,255,0.14), transparent 60%),
+    linear-gradient(115deg, rgba(255,255,255,0.07) 0%, transparent 28%, transparent 62%, rgba(255,255,255,0.05) 100%),
+    radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0,0,0,0.45) 100%);
+  -webkit-backdrop-filter: blur(0.15rem) saturate(1.4);
+  backdrop-filter: blur(0.15rem) saturate(1.4);
 }
 @media (prefers-reduced-motion: reduce) {
-  #screen-social.screen { animation: none; }
+  .social-bg { animation: none; }
 }
 
 
@@ -3939,12 +3958,24 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .social-icon-btn:hover, .social-icon-btn.open { color: #fff; background: rgba(255,255,255,0.1); }
 .social-icon-btn:focus-visible, .social-tab:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
-/* busca: fica escondida e abre ao clicar na lupa (a lupa vem DEPOIS no DOM, mas o campo aparece à esquerda dela) */
-.social-search { display: none; }
-.social-search.open { display: flex; }
+/* busca: o campo "cresce" pra esquerda a partir da lupa (largura + opacidade) e empurra a aba Amigos */
+.social-search {
+  display: flex; align-items: center; margin: 0; overflow: hidden;
+  width: 0; opacity: 0; visibility: hidden;
+  transition: width .38s cubic-bezier(.2,.8,.2,1), opacity .25s ease, visibility 0s linear .38s;
+}
+.social-search.open {
+  width: min(15rem, 46vw); opacity: 1; visibility: visible;
+  transition: width .38s cubic-bezier(.2,.8,.2,1), opacity .3s ease .05s, visibility 0s;
+}
+.social-icon-btn svg { transition: transform .38s cubic-bezier(.2,.8,.2,1); }
+.social-icon-btn.open svg { transform: rotate(-12deg) scale(1.08); }
 .social-input {
-  display: flex; align-items: center; margin: 0; width: min(15rem, 46vw);
+  display: flex; align-items: center; margin: 0; flex: none; width: min(15rem, 46vw);
   background: #2b3138; border-radius: 0.6rem; cursor: text; overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .social-search, .social-search.open, .social-icon-btn svg { transition: none; }
 }
 .social-input:focus-within { background: #fff; }
 .social-at { padding-left: 0.8rem; font-weight: 700; color: #9ab; }
