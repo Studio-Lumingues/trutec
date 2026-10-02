@@ -3112,3 +3112,40 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 /* seta de voltar colada no botão Iniciar partida */
 #screen-waiting #btn-leave-waiting { margin-top: 0.15rem; padding-top: 0.1rem; padding-bottom: 0; }
 #screen-waiting #btn-leave-waiting .ic { width: 3rem; height: 3rem; }
+
+
+/* ---------------------------------------------------------------- */
+/* Sala de espera: jogadores AINDA maiores                            */
+/* Piso e teto mais altos; se não couber na janela, a tela rola       */
+/* (#screen-waiting tem overflow-y:auto), então nada é cortado.       */
+/* ---------------------------------------------------------------- */
+:root {
+  --slot-h: clamp(6.5rem, calc((100dvh - 30rem) / 2), 10rem);   /* 2 vs 2 */
+  --slot-av: calc(var(--slot-h) - 1.25rem);
+  --row-h: clamp(7.5rem, calc((100dvh - 28rem) / 2), 11rem);    /* 1 vs 1 */
+}
+
+#screen-waiting .lobby-card { width: min(52rem, 96vw); }
+
+/* 1 vs 1 */
+.waiting-players .wp-row { font-size: 1.9rem; gap: 1.5rem; }
+.waiting-players .wp-avatar {
+  width: calc(var(--row-h) - 1.25rem);
+  height: calc(var(--row-h) - 1.25rem);
+}
+.waiting-players .wp-team { font-size: 1.15rem; }
+
+/* 2 vs 2 */
+.team-card { gap: 1rem; }
+.team-card .wp-name { font-size: 1.5rem; }
+.team-column-title { font-size: 1.2rem; }
+.team-slot-empty { font-size: 1.2rem; }
+
+@media (max-width: 700px) {
+  :root {
+    --slot-h: clamp(5rem, calc((100dvh - 40rem) / 4), 7.5rem);  /* 4 cards empilhados */
+    --row-h: clamp(6rem, calc((100dvh - 30rem) / 2), 8.5rem);
+  }
+  .waiting-players .wp-row { font-size: 1.4rem; }
+  .team-card .wp-name { font-size: 1.25rem; }
+}
