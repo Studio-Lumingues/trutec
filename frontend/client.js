@@ -2795,17 +2795,21 @@ function ensurePartnerIcon() {
   holder.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
   holder.setAttribute('aria-hidden', 'true');
   holder.innerHTML =
-    '<svg xmlns="http://www.w3.org/2000/svg"><defs>' +
-    '<radialGradient id="pt-g" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#d9ffbf"/><stop offset=".55" stop-color="#5fc23a"/><stop offset="1" stop-color="#2f8a1e"/></radialGradient>' +
-    '<radialGradient id="pt-b" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#e3f6ff"/><stop offset=".55" stop-color="#4aa8e6"/><stop offset="1" stop-color="#1f66b0"/></radialGradient>' +
-    '<linearGradient id="pt-o" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffb52e" stop-opacity=".1"/><stop offset=".5" stop-color="#ffc84a"/><stop offset="1" stop-color="#ff9a1f" stop-opacity=".2"/></linearGradient>' +
-    '</defs><symbol id="i-partner" viewBox="0 0 64 48">' +
-    '<circle cx="21" cy="12" r="9.5" fill="url(#pt-g)"/>' +
-    '<path d="M6 44 L6 29 Q6 21 15 21 L27 21 Q36 21 36 29 L36 44 Z" fill="url(#pt-g)"/>' +
-    '<circle cx="42" cy="9" r="10.5" fill="url(#pt-b)"/>' +
-    '<path d="M24 47 L24 27 Q24 18.5 34 18.5 L50 18.5 Q60 18.5 60 27 L60 47 Z" fill="url(#pt-b)"/>' +
-    '<path d="M2 28 C12 18 26 22 38 31 C47 37 56 40 63 38" fill="none" stroke="url(#pt-o)" stroke-width="3.2" stroke-linecap="round"/>' +
-    '</symbol></svg>';
+    '<svg xmlns="http://www.w3.org/2000/svg"><symbol id="i-partner" viewBox="0 0 64 48">' +
+    '<g stroke="#0a0a0a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">' +
+    // boneco rosa (atrás, à esquerda)
+    '<rect x="6" y="31" width="22" height="14" rx="4" fill="#ff2e63"/>' +
+    '<rect x="3" y="11" width="26" height="21" rx="6" fill="#ff2e63"/>' +
+    '<circle cx="11" cy="21" r="3.6" fill="#fff8f0" stroke-width="2"/><circle cx="21" cy="21" r="3.6" fill="#fff8f0" stroke-width="2"/>' +
+    '<circle cx="11.6" cy="21.6" r="1.3" fill="#0a0a0a" stroke="none"/><circle cx="21.6" cy="21.6" r="1.3" fill="#0a0a0a" stroke="none"/>' +
+    // boneco azul (na frente, à direita)
+    '<rect x="36" y="31" width="22" height="14" rx="4" fill="#8fd3ff"/>' +
+    '<rect x="33" y="11" width="26" height="21" rx="6" fill="#8fd3ff"/>' +
+    '<circle cx="41" cy="21" r="3.6" fill="#fff8f0" stroke-width="2"/><circle cx="51" cy="21" r="3.6" fill="#fff8f0" stroke-width="2"/>' +
+    '<circle cx="41.6" cy="21.6" r="1.3" fill="#0a0a0a" stroke="none"/><circle cx="51.6" cy="21.6" r="1.3" fill="#0a0a0a" stroke="none"/>' +
+    // coraçãozinho entre os dois
+    '<path d="M32 12 C25 8 26 1.5 30.2 2 C31.4 2.2 32 3.2 32 3.8 C32 3.2 32.6 2.2 33.8 2 C38 1.5 39 8 32 12 Z" fill="#ffd23f" stroke-width="2.6"/>' +
+    '</g></symbol></svg>';
   document.body.appendChild(holder);
 }
 function setNameEl(el, name, suffix, fx, isBot, isPartner) {
