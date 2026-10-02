@@ -593,27 +593,33 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
 
   <!-- ===================== TELA: SOCIAL ===================== -->
   <div id="screen-social" class="screen">
-    <button type="button" id="btn-close-social" class="btn btn-ghost btn-back-arrow social-back" aria-label="Voltar" title="Voltar"><svg class="ic ic-only" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
+    <!-- barra do topo (estilo Letterboxd): logo = voltar, aba Amigos e lupa de busca -->
+    <header class="social-nav">
+      <button type="button" id="btn-close-social" class="social-logo" aria-label="Voltar" title="Voltar"></button>
+      <nav class="social-nav-right" aria-label="Social">
+        <form class="social-search" id="social-search" autocomplete="off" role="search">
+          <label class="social-input" for="social-input">
+            <span class="social-at" aria-hidden="true">@</span>
+            <input id="social-input" maxlength="17" placeholder="Procurar jogador" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Procurar jogador pelo @" />
+          </label>
+        </form>
+        <button type="button" class="social-tab active" id="social-tab-friends">Amigos</button>
+        <button type="button" id="social-search-btn" class="social-icon-btn" aria-label="Pesquisar jogador" title="Pesquisar">
+          <svg class="ic ic-only" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.6 3.6 C14.6 3.4 17.7 6.6 17.6 10.5 C17.5 14.4 14.4 17.5 10.5 17.4 C6.6 17.3 3.5 14.3 3.6 10.4 C3.7 6.6 6.8 3.6 10.6 3.6 Z M15.6 15.6 L20.6 20.6"/></svg>
+        </button>
+      </nav>
+    </header>
 
-    <div class="social-panel">
-      <h2 class="social-title">Social</h2>
-      <form class="social-search" id="social-search" autocomplete="off">
-        <label class="social-input" for="social-input">
-          <span class="social-at" aria-hidden="true">@</span>
-          <input id="social-input" maxlength="17" placeholder="Procurar jogador" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Procurar jogador pelo @" />
-        </label>
-        <button type="submit" id="social-go" class="btn btn-primary social-go">Buscar</button>
-      </form>
-      <p class="social-msg" id="social-msg" role="status" aria-live="polite">Digite o @ de alguém pra ver o perfil.</p>
-
-      <!-- preenchido pelo social.js quando a busca acha alguém -->
-      <div class="social-profile hidden" id="social-profile">
+    <main class="social-main">
+      <!-- card grandão: o seu perfil (ou o de quem foi pesquisado) -->
+      <aside class="social-card" id="social-profile" aria-label="Perfil">
+        <button type="button" class="social-backme hidden" id="sp-backme">← Meu perfil</button>
         <div class="sp-top">
           <div class="sp-checker" aria-hidden="true"></div>
-          <img id="sp-avatar" class="sp-avatar" alt="" draggable="false" />
+          <img id="sp-avatar" class="sp-avatar" src="assets/personagem.svg" alt="" draggable="false" />
         </div>
         <div class="sp-body">
-          <h3 class="sp-handle" id="sp-handle"></h3>
+          <h2 class="sp-handle" id="sp-handle"></h2>
           <div class="sp-since" id="sp-since"></div>
           <div class="sp-stats">
             <div class="sp-stat"><b id="sp-wins">0</b><span>Vitórias</span></div>
@@ -624,10 +630,21 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
             <div class="sp-collection-title">Coleção</div>
             <div class="sp-slots" id="sp-slots" role="group" aria-label="Coleção de bonecos"></div>
           </div>
-          <button type="button" id="sp-copy" class="btn btn-secondary sp-copy">Copiar link do perfil</button>
+          <button type="button" id="sp-copy" class="btn btn-secondary sp-copy hidden">Copiar link do perfil</button>
         </div>
-      </div>
-    </div>
+      </aside>
+
+      <section class="social-content" aria-label="Amigos">
+        <p class="social-msg" id="social-msg" role="status" aria-live="polite" hidden></p>
+        <h3 class="social-section-title">Amigos</h3>
+        <div class="social-friends" id="social-friends">
+          <div class="social-empty">
+            <p>Você ainda não tem amigos por aqui.</p>
+            <p class="social-empty-sub">Clique na lupa e procure o @ de alguém pra ver o perfil.</p>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
   <!-- ===================== TELA: SALA DE ESPERA ===================== -->

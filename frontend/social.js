@@ -1,25 +1,28 @@
 // ============================================================================
 // SOCIAL (botão "Social" na tela inicial)
-// - Abre/fecha a tela Social (depende do showScreen() do client.js).
-// - Busca por @: consulta GET {backend}/api/profile/<handle> e mostra o perfil
-//   (boneco em uso, vitórias/derrotas/aproveitamento e a coleção de bonecos).
+// Layout estilo Letterboxd: barra no topo (logo = voltar, aba Amigos, lupa),
+// card grande à esquerda com o PERFIL (começa mostrando o seu: nome, boneco,
+// estatísticas e a sua coleção) e a seção Amigos à direita.
+// - Lupa: abre o campo de busca por @. Consulta GET {backend}/api/profile/<@>
+//   e troca o card pelo perfil encontrado (botão "← Meu perfil" volta).
 // Formato esperado da resposta:
 //   { ok: true, profile: { handle, wins, losses, createdAt,
 //                          character: "data:image/png;base64,...",   // em uso
 //                          collection: [png|null, png|null, png|null] // opcional
 //                        } }
-// Se o servidor ainda não manda "collection", a seção Coleção fica escondida.
+// Se o servidor não manda "collection", a seção Coleção fica escondida.
+// Depende do showScreen() do client.js (por isso carrega depois dele).
 // ============================================================================
 (function () {
   var openBtn = document.getElementById('btn-open-social');
-  var closeBtn = document.getElementById('btn-close-social');
-  if (!openBtn || !closeBtn || typeof showScreen !== 'function') return;
+  var logoBtn = document.getElementById('btn-close-social');
+  if (!openBtn || !logoBtn || typeof showScreen !== 'function') return;
 
-  var input = document.getElementById('social-input');
   var form = document.getElementById('social-search');
-  var goBtn = document.getElementById('social-go');
+  var input = document.getElementById('social-input');
+  var lupa = document.getElementById('social-search-btn');
   var msg = document.getElementById('social-msg');
-  var box = document.getElementById('social-profile');
+  var backMe = document.getElementById('sp-backme');
   var avatarEl = document.getElementById('sp-avatar');
   var handleEl = document.getElementById('sp-handle');
   var sinceEl = document.getElementById('sp-since');
@@ -35,6 +38,18 @@
   var reqId = 0;           // ignora respostas de buscas antigas
   var shownHandle = '';
 
+  // ---- logo (a mesma do lobby, recortada justo) como botão de voltar ----
+  (function () {
+    var src = document.querySelector('.site-logo-top');
+    if (!src) { logoBtn.textContent = 'TruTEC'; return; }
+    var logo = src.cloneNode(true);
+    logo.removeAttribute('class');
+    logo.removeAttribute('role');
+    logo.setAttribute('aria-hidden', 'true');
+    logo.setAttribute('viewBox', '143 120 1134 297');   // tira a margem em volta do texto
+    logoBtn.appendChild(logo);
+  })();
+
   function say(text, isError) {
     msg.textContent = text;
     msg.classList.toggle('error', !!isError);
@@ -42,10 +57,7 @@
   }
   function safeImg(v) { return typeof v === 'string' && v.indexOf(PNG) === 0 ? v : null; }
   function num(v) { v = parseInt(v, 10); return isFinite(v) && v > 0 ? v : 0; }
-
-  function normalize(raw) {
-    return String(raw || '').trim().toLowerCase().replace(/^@+/, '');
-  }
+  function normalize(raw) { return String(raw || '').trim().toLowerCase().replace(/^@+/, ''); }
 
   // ---- coleção: clicar num boneco da coleção mostra ele grande ----
   function renderCollection(collection, equipped) {
@@ -84,65 +96,96 @@
     colWrap.hidden = !any;
   }
 
-  function render(p) {
-    var wins = num(p.wins), losses = num(p.losses), total = wins + losses;
-    var equipped = safeImg(p.character);
-    shownHandle = String(p.handle || '');
-    avatarEl.src = equipped || DEFAULT_AVATAR;
-    handleEl.textContent = '@' + shownHandle;
-    var since = '';
-    if (p.createdAt) {
-      var d = new Date(p.createdAt);
-      if (!isNaN(d)) since = 'Jogando desde ' + d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    }
-    sinceEl.textContent = since;
+  // d = { title, since, wins, losses, avatar, collection, other }
+  function paint(d) {
+    var wins = num(d.wins), losses = num(d.losses), total = wins + losses;
+    avatarEl.src = safeImg(d.avatar) || DEFAULT_AVATAR;
+    handleEl.textContent = d.title;
+    sinceEl.textContent = d.since || '';
     winsEl.textContent = wins;
     lossesEl.textContent = losses;
     rateEl.textContent = total ? Math.round(wins / total * 100) + '%' : '—';
-    renderCollection(p.collection, equipped);
+    renderCollection(d.collection, safeImg(d.avatar));
+    backMe.classList.toggle('hidden', !d.other);
+    copyBtn.classList.toggle('hidden', !d.other);
     copyBtn.textContent = 'Copiar link do perfil';
-    box.classList.remove('hidden');
   }
 
+  // ---- o seu perfil (dados locais do aparelho) ----
+  function myData() {
+    var name = '';
+    try { name = localStorage.getItem('trutec-name') || ''; } catch (e) {}
+    var inp = document.getElementById('input-name');
+    if (inp && inp.value.trim()) name = inp.value.trim();
+    var st = window.TruStats ? TruStats.get() : { wins: 0, losses: 0 };
+    var avatar = null, slots = null;
+    try { avatar = localStorage.getItem('trutec_meu_personagem'); } catch (e) {}
+    try {
+      var arr = JSON.parse(localStorage.getItem('trutec_avatar_slots'));
+      if (Array.isArray(arr)) slots = [0, 1, 2].map(function (i) { return arr[i] && arr[i].img ? arr[i].img : null; });
+    } catch (e) {}
+    return {
+      title: name || 'Jogador', since: '', wins: st.wins, losses: st.losses,
+      avatar: avatar, collection: slots, other: false
+    };
+  }
+  function showMe() {
+    reqId++;                 // cancela busca em andamento
+    shownHandle = '';
+    say('');
+    paint(myData());
+  }
+
+  // ---- busca ----
   function search(raw) {
     var handle = normalize(raw);
-    if (!handle) { box.classList.add('hidden'); return say('Digite o @ de alguém pra ver o perfil.'); }
-    if (!/^[a-z0-9_]{3,16}$/.test(handle)) {
-      box.classList.add('hidden');
-      return say('O @ tem de 3 a 16 letras, números ou _.', true);
-    }
+    if (!handle) return say('Digite o @ de alguém pra ver o perfil.');
+    if (!/^[a-z0-9_]{3,16}$/.test(handle)) return say('O @ tem de 3 a 16 letras, números ou _.', true);
     var id = ++reqId;
-    goBtn.disabled = true;
     say('Procurando @' + handle + '…');
     fetch(RESOLVED_BACKEND_URL + '/api/profile/' + encodeURIComponent(handle))
       .then(function (r) { return r.json(); })
       .then(function (r) {
         if (id !== reqId) return;
-        goBtn.disabled = false;
-        if (!r || !r.ok || !r.profile) {
-          box.classList.add('hidden');
-          return say((r && r.error) || 'Ninguém com esse @ foi encontrado.', true);
+        if (!r || !r.ok || !r.profile) return say((r && r.error) || 'Ninguém com esse @ foi encontrado.', true);
+        var p = r.profile, since = '';
+        if (p.createdAt) {
+          var d = new Date(p.createdAt);
+          if (!isNaN(d)) since = 'Jogando desde ' + d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
         }
         say('');
-        render(r.profile);
+        shownHandle = String(p.handle || handle);
+        paint({
+          title: '@' + shownHandle, since: since, wins: p.wins, losses: p.losses,
+          avatar: p.character, collection: p.collection, other: true
+        });
       })
       .catch(function () {
         if (id !== reqId) return;
-        goBtn.disabled = false;
-        box.classList.add('hidden');
         say('Servidor indisponível. Tente de novo em instantes.', true);
       });
   }
 
+  // ---- lupa: abre/fecha o campo de busca na barra ----
+  function openSearch() {
+    form.classList.add('open'); lupa.classList.add('open');
+    setTimeout(function () { try { input.focus(); } catch (e) {} }, 30);
+  }
+  function closeSearch() { form.classList.remove('open'); lupa.classList.remove('open'); }
+  lupa.addEventListener('click', function () {
+    if (!form.classList.contains('open')) return openSearch();
+    if (input.value.trim()) search(input.value); else closeSearch();
+  });
   form.addEventListener('submit', function (e) { e.preventDefault(); search(input.value); });
+  input.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeSearch(); lupa.focus(); } });
   // aceita colar "@fulano" ou o link do perfil
   input.addEventListener('input', function () {
-    var v = input.value;
-    var m = v.match(/\/@([A-Za-z0-9_]+)/);
+    var v = input.value, m = v.match(/\/@([A-Za-z0-9_]+)/);
     if (m) v = m[1];
     input.value = v.replace(/^@+/, '').replace(/[^A-Za-z0-9_]/g, '').slice(0, 16);
   });
 
+  backMe.addEventListener('click', showMe);
   copyBtn.addEventListener('click', function () {
     if (!shownHandle || !navigator.clipboard) return;
     navigator.clipboard.writeText(location.origin + '/@' + shownHandle).then(function () {
@@ -152,8 +195,10 @@
   });
 
   openBtn.addEventListener('click', function () {
+    showMe();
+    closeSearch();
+    input.value = '';
     showScreen('screen-social');
-    setTimeout(function () { try { input.focus(); } catch (e) {} }, 50);
   });
-  closeBtn.addEventListener('click', function () { showScreen('screen-lobby'); });
+  logoBtn.addEventListener('click', function () { showScreen('screen-lobby'); });
 })();
