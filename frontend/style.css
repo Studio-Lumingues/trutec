@@ -2980,7 +2980,7 @@ html[data-theme="casa"] .table-disc::before {
    ========================================================================== */
 .lobby-actions .btn {
   --py: 0.8125rem;
-  --grow: 0.85rem;
+  --grow: 0.55rem;
   padding-top: var(--py);
   padding-bottom: var(--py);
   line-height: 1.35rem;
@@ -2993,10 +2993,10 @@ html[data-theme="casa"] .table-disc::before {
   .lobby-actions .btn:hover {
     padding-top: calc(var(--py) + var(--grow));
     padding-bottom: calc(var(--py) + var(--grow));
-    font-size: 1.55rem;
-    line-height: 1.8rem;
+    font-size: 1.4rem;
+    line-height: 1.6rem;
   }
-  .lobby-actions .btn-icon-only:hover .ic { transform: scale(1.35); }
+  .lobby-actions .btn-icon-only:hover .ic { transform: scale(1.2); }
 }
 @media (prefers-reduced-motion: reduce) {
   .lobby-actions .btn, .btn-icon-only .ic { transition: none; }
@@ -3008,7 +3008,7 @@ html[data-theme="casa"] .table-disc::before {
    (transform: scale). Assim o centro fica parado no mesmo lugar e eles não
    escorregam pro lado quando o botão cresce.
    --bh: altura do botão em repouso (2 x 1.0625rem + 1.35rem + borda).
-   --s: zoom no hover (altura do botão em hover / --bh; hoje ~ 5.75 / 3.6). */
+   --s: zoom no hover (altura do botão em hover / --bh; hoje ~ 4.95 / 3.6). */
 .lobby-actions .btn-glass { --bh: 3.6rem; --s: 1; }
 .lobby-actions .btn-glass .glass-avatar,
 .lobby-actions .btn-glass .glass-duo {
@@ -3018,7 +3018,7 @@ html[data-theme="casa"] .table-disc::before {
 .lobby-actions .btn-glass .glass-avatar { transform: translateY(-46%) scale(var(--s)); }
 .lobby-actions .btn-glass .glass-duo    { transform: translate(8.333%, -46%) scale(var(--s)); }
 @media (hover: hover) and (pointer: fine) {
-  .lobby-actions .btn-glass:hover { --s: 1.6; }
+  .lobby-actions .btn-glass:hover { --s: 1.38; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lobby-actions .btn-glass .glass-avatar,
