@@ -4069,3 +4069,38 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .sp-slots { justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) { .sp-checker { animation: none; } }
+
+
+/* ---------------------------------------------------------------- */
+/* Barras de rolagem: finas, escuras e arredondadas, no creme do     */
+/* site (#fff8f0). Valem pra tela toda e pra qualquer área que role  */
+/* (chat, editor, Social...). Ajustes: --sb-size, --sb-thumb.        */
+/* ---------------------------------------------------------------- */
+:root {
+  --sb-size: 0.75rem;
+  --sb-track: rgba(255, 248, 240, 0.05);
+  --sb-thumb: rgba(255, 248, 240, 0.32);
+  --sb-thumb-hover: rgba(255, 248, 240, 0.55);
+  --sb-thumb-active: rgba(255, 248, 240, 0.8);
+}
+/* Chrome / Edge / Safari */
+*::-webkit-scrollbar { width: var(--sb-size); height: var(--sb-size); background: transparent; }
+*::-webkit-scrollbar-track {
+  background: var(--sb-track);
+  border-radius: 999px;
+  margin: 0.25rem;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb);
+  border-radius: 999px;
+  border: 0.2rem solid transparent;      /* deixa a barra "flutuando" dentro da trilha */
+  background-clip: padding-box;
+  transition: background-color .15s;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--sb-thumb-hover); background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:active { background: var(--sb-thumb-active); background-clip: padding-box; }
+*::-webkit-scrollbar-corner { background: transparent; }
+/* Firefox (e navegadores sem ::-webkit-scrollbar) */
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: rgba(255, 248, 240, 0.4) rgba(255, 248, 240, 0.05); }
+}
