@@ -3960,7 +3960,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   padding: 2rem max(1.5rem, calc((100% - 62rem) / 2)); box-sizing: border-box; overflow-y: auto;
 }
 .social-card {
-  flex: none; width: 100%; box-sizing: border-box; display: grid; grid-template-columns: 17rem 1fr;
+  flex: none; width: 100%; box-sizing: border-box; display: grid; grid-template-columns: 22rem 1fr;
   border-radius: 1.4rem; overflow: hidden; background: #111;
   border: 1px solid rgba(255,248,240,0.25); box-shadow: 0 1.2rem 3rem rgba(0,0,0,0.6);
 }
@@ -3970,14 +3970,14 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 .social-backme:hover { background: rgba(255,248,240,0.14); }
 .social-backme.hidden { display: none; }
-.sp-top { position: relative; height: auto; min-height: 15rem; overflow: hidden; isolation: isolate; display: flex; align-items: flex-end; justify-content: center; }
+.sp-top { position: relative; height: auto; min-height: 28rem; overflow: hidden; isolation: isolate; display: flex; align-items: flex-end; justify-content: center; }
 .sp-checker {
   position: absolute; z-index: -1; left: 50%; top: 50%; width: 60rem; height: 60rem; margin: -30rem 0 0 -30rem;
   background: repeating-conic-gradient(rgba(90,90,90,0.55) 0% 25%, rgba(10,10,10,0.5) 0% 50%) 0 0 / 3rem 3rem;
   animation: checkerSpin 60s linear infinite;
 }
-.sp-avatar { height: 14rem; width: auto; max-width: 100%; object-fit: contain; display: block; }
-.sp-body { padding: 1.25rem 1.75rem; text-align: left; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.sp-avatar { height: 25rem; width: auto; max-width: 100%; object-fit: contain; display: block; }
+.sp-body { padding: 2rem 2.25rem; text-align: left; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .sp-name { margin: 0; font-size: 2.4rem; line-height: 1.1; word-break: break-word; color: var(--cream); }
 .sp-handle { margin-top: 0.2rem; font-size: 1rem; font-weight: 600; opacity: 0.65; word-break: break-all; color: var(--cream); }
 .sp-handle[hidden] { display: none; }
@@ -4007,7 +4007,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .sp-copy { align-self: flex-start; }
 .sp-copy.hidden { display: none; }
 
-.social-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+.social-content { flex: none; min-width: 0; display: flex; flex-direction: column; gap: 0.75rem; }
 .social-section-title {
   margin: 0; padding-bottom: 0.5rem; font-size: 1rem; letter-spacing: 0.1em; text-transform: uppercase;
   color: #9ab; border-bottom: 1px solid rgba(255,255,255,0.18);
@@ -4030,7 +4030,8 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .social-logo { --logo-w: 8rem; }
   .social-main { flex-direction: column; padding: 1rem 0.75rem; }
   .social-card { grid-template-columns: 1fr; }
-  .sp-top { min-height: 14rem; }
+  .sp-top { min-height: 20rem; }
+  .sp-avatar { height: 18rem; }
   .sp-body { text-align: center; align-items: center; }
   .sp-slots { justify-content: center; }
 }
