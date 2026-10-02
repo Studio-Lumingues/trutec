@@ -8,7 +8,7 @@
 // ============================================================================
 (function () {
   var SRC = 'assets/personagem.svg';
-  var FPS = 8;                        // igual ao boil.js
+  var FPS = 4;                        // mais leve que o boil.js (trocar o ícone da aba custa caro)
   var SEEDS = [1, 4, 7, 2, 9, 5];     // igual ao boil.js
   var SIZE = 64;                      // px do canvas (o navegador reduz pra 16/32)
   var AMPLITUDE = 1.5;                 // força do tremido, em px do canvas
@@ -104,7 +104,7 @@
     setIcon(frames[0]);
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var n = 0;
-    setInterval(function () { setIcon(frames[n++ % frames.length]); }, 1000 / FPS);
+    setInterval(function () { if (document.hidden) return; setIcon(frames[n++ % frames.length]); }, 1000 / FPS);
   };
   img.src = SRC;
 })();

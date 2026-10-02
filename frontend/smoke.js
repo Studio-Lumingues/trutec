@@ -9,7 +9,7 @@
 // ============================================================================
 (function () {
   var DURATION  = 950;   // ms de vida da nuvem
-  var PARTICLES = 16;    // bolinhas de fumaça por explosão
+  var PARTICLES = 10;    // bolinhas de fumaça por explosão
   var SPREAD    = 0.9;   // alcance relativo ao tamanho do avatar
 
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;

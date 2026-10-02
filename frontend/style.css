@@ -849,7 +849,6 @@ button { font-family: inherit; cursor: pointer; }
 .vira-pick.mine,
 .vira-pick.watch {
   background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(0.125rem);
 }
 .vira-pick.mine { pointer-events: auto; }
 .vira-pick.watch .vira-pick-card { cursor: default; }
@@ -1462,7 +1461,6 @@ button { font-family: inherit; cursor: pointer; }
   display: flex; align-items: center; justify-content: center;
   padding: 1rem;
   background: rgba(4, 3, 3, 0.65);
-  backdrop-filter: blur(0.25rem);
   animation: exitFade .18s ease-out;
 }
 .exit-modal.hidden { display: none; }
@@ -1489,7 +1487,6 @@ button { font-family: inherit; cursor: pointer; }
 .call-overlay {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(0.125rem);
   display: flex; align-items: center; justify-content: center;
   z-index: 20;
 }
@@ -2043,7 +2040,6 @@ html.noise-js body::after { display: none; }
   display: flex; align-items: center; justify-content: center;
   padding: 1rem;
   background: rgba(4, 3, 3, 0.65);
-  backdrop-filter: blur(0.25rem);
   animation: exitFade .18s ease-out;
 }
 .settings-modal.hidden { display: none; }
@@ -2554,9 +2550,7 @@ html[data-theme="casa"] {
 /* moldura ao redor da mesa: vidro escuro + desfoque de tudo que está atrás */
 html[data-theme="carro"] .game-layout .felt-wrap,
 html[data-theme="casa"] .game-layout .felt-wrap {
-  background: rgba(4, 9, 5, var(--glass-dark));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(0.85);
-  backdrop-filter: blur(var(--glass-blur)) saturate(0.85);
+  background: rgba(4, 9, 5, calc(var(--glass-dark) + 0.2));   /* sem backdrop-filter: era recalculado a cada quadro */
 }
 /* o feltro em si: só um véu escuro por cima (o desfoque já vem da moldura) */
 html[data-theme="carro"] .felt,
@@ -3253,7 +3247,7 @@ html[data-theme="casa"] .table-disc::before {
   padding: 0.7rem 0.8rem 0.7rem 1.1rem; border-radius: 1rem;
   background: rgba(10,10,10,0.92); color: var(--cream);
   border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 0.6rem 1.8rem rgba(0,0,0,0.5);
-  backdrop-filter: blur(6px); animation: roIn .25s ease-out;
+  animation: roIn .25s ease-out;
 }
 @keyframes roIn { from { opacity: 0; transform: translate(-50%, 0.6rem); } }
 .reconnect-offer .ro-text { display: flex; flex-direction: column; gap: 0.1rem; font-size: 0.85rem; line-height: 1.25; }
@@ -3708,7 +3702,6 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
     linear-gradient(145deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.09) 100%);
   -webkit-backdrop-filter: blur(0.8rem) saturate(1.8) brightness(1.08);
   backdrop-filter: blur(0.8rem) saturate(1.8) brightness(1.08);   /* base: todo navegador */
-  backdrop-filter: url(#lg-warp) blur(0.45rem) saturate(1.8) brightness(1.1);   /* Chrome/Edge: com refração */
   box-shadow: 0 1.5rem 3rem rgba(0,0,0,0.5);
 }
 /* contorno branco finíssimo (1px) */
@@ -3858,9 +3851,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.28);
   background: rgba(10,10,10,0.55);
-  -webkit-backdrop-filter: blur(0.5rem);
-  backdrop-filter: blur(0.5rem);
-  color: var(--cream);
+  -webkit-  color: var(--cream);
   font: inherit;
   font-weight: 700;
   font-size: 1.05rem;

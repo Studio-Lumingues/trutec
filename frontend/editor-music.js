@@ -76,6 +76,7 @@
   function paint() {
     raf = 0;
     if (!analyser || !active) return;
+    if (document.hidden) { raf = requestAnimationFrame(paint); return; }
     analyser.getByteFrequencyData(data);
     for (var b = 0; b < bars.length && b < 4; b++) {
       var lo = bins[b], hi = Math.max(lo + 1, bins[b + 1]), sum = 0;

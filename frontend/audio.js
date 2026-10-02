@@ -312,7 +312,7 @@
     var st = document.createElement('style');
     st.textContent =
       '#beat-light{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:0;transition:opacity .4s;' +
-      'mix-blend-mode:multiply;--kick:0;--snare:0;--str:' + BEAT_STRENGTH + ';' +
+      '--kick:0;--snare:0;--str:' + BEAT_STRENGTH + ';' +
       'background:' +
       'radial-gradient(ellipse 65% 75% at 0% 100%,rgba(' + BEAT_KICK_COLOR + ',calc(var(--kick)*var(--str))),transparent 70%),' +
       'radial-gradient(ellipse 65% 75% at 100% 100%,rgba(' + BEAT_KICK_COLOR + ',calc(var(--kick)*var(--str))),transparent 70%),' +
@@ -335,6 +335,9 @@
   function lightFrame() {
     lightRaf = requestAnimationFrame(lightFrame);
     if (document.hidden || !analyser) return;
+    var nowT = performance.now();
+    if (nowT - (lightFrame.t || 0) < 33) return;   // ~30 quadros/s bastam
+    lightFrame.t = nowT;
     analyser.getByteFrequencyData(lightData);
     // bins de ~94 Hz: 0-2 = grave (bumbo), 10-60 = ~1 a 5,6 kHz (caixa/chimbal)
     var low = avgBins(0, 2), high = avgBins(10, 60);
@@ -344,8 +347,9 @@
     var sn = Math.pow(Math.min(1, high / peakHigh), 3);
     curKick = Math.max(k, curKick * 0.84);   // sobe na hora, apaga rápido
     curSnare = Math.max(sn, curSnare * 0.84);
-    lightEl.style.setProperty('--kick', curKick.toFixed(3));
-    lightEl.style.setProperty('--snare', curSnare.toFixed(3));
+    var ks = curKick.toFixed(2), ss = curSnare.toFixed(2);
+    if (ks !== lightFrame.k) { lightFrame.k = ks; lightEl.style.setProperty('--kick', ks); }
+    if (ss !== lightFrame.s) { lightFrame.s = ss; lightEl.style.setProperty('--snare', ss); }
   }
 
   function lightStart() {

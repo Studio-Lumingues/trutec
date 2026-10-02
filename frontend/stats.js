@@ -126,11 +126,18 @@
         if (fig && fig !== activeFig) { show(fig); place(e.clientX, e.clientY); }
         else if (!fig && activeFig) hide();
       });
+      var mx = 0, my = 0, mraf = 0;
       document.addEventListener('mousemove', function (e) {
         if (!activeFig) return;
-        fill(activeFig); // se o número mudar no meio do zoom, atualiza
-        place(e.clientX, e.clientY);
-      });
+        mx = e.clientX; my = e.clientY;
+        if (mraf) return;                       // no máximo 1 atualização por quadro
+        mraf = requestAnimationFrame(function () {
+          mraf = 0;
+          if (!activeFig) return;
+          fill(activeFig); // se o número mudar no meio do zoom, atualiza
+          place(mx, my);
+        });
+      }, { passive: true });
       document.addEventListener('mouseleave', hide);
       window.addEventListener('blur', hide);
     } else {
