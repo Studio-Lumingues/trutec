@@ -228,6 +228,7 @@ class Room {
     this.music = null; // { url, startedAt, by } — música do SoundCloud tocando na sala (`auth musica`)
     this.characterPhaseTimer = null; // setTimeout ativo durante os 45s de "desenhar o personagem"
     this.characterPhaseEndsAt = 0;
+    this.bannedIds = new Set(); // clientIds expulsos pelo host: não podem entrar de novo nessa sala
 
     // Estado de jogo (preenchido em startGame)
     this.deck = [];
@@ -1092,6 +1093,7 @@ function doRespondTruco(r, player, action, tell) {
 }
 
 io.on('connection', (socket) => {
+  const clientId = String((socket.handshake.auth && socket.handshake.auth.clientId) || '').slice(0, 64);
   let currentRoomCode = null;
   const tell = (ev, msg) => socket.emit(ev, msg);
 
@@ -1120,6 +1122,7 @@ io.on('connection', (socket) => {
     if (!r) return cb && cb({ ok: false, error: 'Sala não encontrada.' });
     if (r.players.length >= r.maxPlayers) return cb && cb({ ok: false, error: 'Sala cheia.' });
     if (r.started) return cb && cb({ ok: false, error: 'Partida já começou.' });
+    if (clientId && r.bannedIds.has(clientId)) return cb && cb({ ok: false, error: 'Você foi expulso dessa sala e não pode entrar nela de novo.' });
 
     const player = joinRoomInternal(r, socket, name || 'Jogador', character, { theme, stats });
     currentRoomCode = code;
@@ -1193,7 +1196,7 @@ io.on('connection', (socket) => {
   socket.on('quick_join', ({ name, mode, character, theme, stats }, cb) => {
     mode = mode === '2v2' ? '2v2' : '1v1';
     let r = Array.from(rooms.values()).find(
-      x => x.isPublic && !x.started && x.mode === mode && x.players.length < x.maxPlayers
+      x => x.isPublic && !x.started && x.mode === mode && x.players.length < x.maxPlayers && !(clientId && x.bannedIds.has(clientId))
     );
     if (!r) {
       const code = genRoomCode();
@@ -1311,6 +1314,8 @@ io.on('connection', (socket) => {
     if (!target || target.isBot) return reply({ ok: false, error: 'Jogador não encontrado.' });
     if (target === host) return reply({ ok: false, error: 'Você não pode se expulsar.' });
     const sock = io.sockets.sockets.get(target.id);
+    const targetCid = sock && sock.handshake && sock.handshake.auth ? String(sock.handshake.auth.clientId || '').slice(0, 64) : (target.clientId || '');
+    if (targetCid) r.bannedIds.add(targetCid);
     r.players = r.players.filter(p => p !== target);
     if (sock) { sock.emit('kicked'); sock.leave(r.code); }
     io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${target.name} foi expulso da sala.`, ts: Date.now() });

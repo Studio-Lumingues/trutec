@@ -65,8 +65,21 @@ document.addEventListener('selectstart', (e) => {
 // Impede arrastar imagens (evita "salvar imagem como" via drag)
 document.addEventListener('dragstart', (e) => e.preventDefault());
 
+// identificador do navegador (fica salvo): é o que impede um jogador expulso de voltar pra mesma sala
+const CLIENT_ID = (function () {
+  try {
+    let id = localStorage.getItem('trutec-cid');
+    if (!id || id.length < 12) {
+      id = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('trutec-cid', id);
+    }
+    return id;
+  } catch (e) { return ''; }
+})();
+
 const socket = io(RESOLVED_BACKEND_URL, {
-  transports: ['websocket', 'polling']
+  transports: ['websocket', 'polling'],
+  auth: { clientId: CLIENT_ID }
 });
 
 socket.on('connect_error', (err) => {
@@ -1043,11 +1056,35 @@ function handleLobbyUpdate(lobby) {
   updateStartButton(lobby);
 }
 socket.on('lobby_update', handleLobbyUpdate);
-// o host me expulsou da sala
+// ---- expulsar: confirmação do host ----
+const kickModal = document.getElementById('kick-modal');
+let kickSeat = null, kickDone = null;
+function askKick(seat, name, done) {
+  kickSeat = seat; kickDone = done;
+  document.getElementById('kick-name').textContent = name || 'Este jogador';
+  kickModal.classList.remove('hidden');
+  document.getElementById('kick-cancel').focus();
+}
+function closeKick() { kickModal.classList.add('hidden'); kickSeat = null; kickDone = null; }
+document.getElementById('kick-cancel').addEventListener('click', closeKick);
+kickModal.addEventListener('click', (e) => { if (e.target === kickModal) closeKick(); });
+document.getElementById('kick-ok').addEventListener('click', () => {
+  if (kickSeat === null) return closeKick();
+  const seat = kickSeat, done = kickDone;
+  closeKick();
+  socket.emit('kick_player', { seat }, done);
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !kickModal.classList.contains('hidden')) closeKick(); });
+
+// ---- expulso: aviso com OK (a pessoa sai da sala e não pode voltar) ----
 socket.on('kicked', () => {
   clearSession();
-  try { alert('Você foi expulso da sala pelo host.'); } catch (e) {}
-  location.reload();
+  closeKick();
+  const m = document.getElementById('kicked-modal');
+  m.classList.remove('hidden');
+  const ok = document.getElementById('kicked-ok');
+  ok.focus();
+  ok.onclick = () => location.reload();
 });
 
 // Adicionar / remover bot na sala de espera (só o host vê os botões).
@@ -1063,8 +1100,7 @@ document.getElementById('waiting-players').addEventListener('click', (e) => {
     const seatNum = card && card.dataset.seat !== undefined ? parseInt(card.dataset.seat, 10) : NaN;
     const nm = card ? ((card.querySelector('.wp-name') || {}).textContent || '').trim() : '';
     if (!isFinite(seatNum)) return;
-    if (!window.confirm('Expulsar ' + (nm || 'este jogador') + ' da sala?')) return;
-    socket.emit('kick_player', { seat: seatNum }, done);
+    askKick(seatNum, nm, done);
     return;
   }
   if (addBtn) {

@@ -8,7 +8,7 @@
 <!-- ícone estático (reserva); o favicon.js troca por quadros animados -->
 <link rel="icon" type="image/png" href="assets/personagem.png" />
 <link rel="apple-touch-icon" href="assets/personagem.png" />
-<link rel="stylesheet" href="style.css?v=11" />
+<link rel="stylesheet" href="style.css?v=12" />
 <script>
 try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentElement.classList.add('colorblind'); } catch (e) {}
 try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documentElement.classList.add('leaving-intro'); } catch (e) {}
@@ -393,6 +393,29 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
     </div>
   </div>
 
+  <!-- ===================== EXPULSAR JOGADOR: confirmação (host) ===================== -->
+  <div id="kick-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="kick-title">
+    <div class="settings-card kick-card">
+      <h2 id="kick-title">Expulsar jogador?</h2>
+      <p class="kick-text"><b id="kick-name">Jogador</b> será avisado de que foi expulso e <b>não poderá entrar de novo</b> nessa sala.</p>
+      <div class="modal-actions">
+        <button id="kick-cancel" type="button" class="btn btn-secondary">Cancelar</button>
+        <button id="kick-ok" type="button" class="btn btn-primary btn-danger-solid">Expulsar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== AVISO PRA QUEM FOI EXPULSO ===================== -->
+  <div id="kicked-modal" class="settings-modal hidden" role="alertdialog" aria-modal="true" aria-labelledby="kicked-title">
+    <div class="settings-card kick-card">
+      <h2 id="kicked-title">Você foi expulso</h2>
+      <p class="kick-text">O host te tirou da sala. Você não pode entrar nela de novo.</p>
+      <div class="modal-actions">
+        <button id="kicked-ok" type="button" class="btn btn-primary">OK</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== EXPORTAR AVATAR (código) ===================== -->
   <div id="export-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="export-title">
     <div class="settings-card code-card">
@@ -726,6 +749,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="favicon.js"></script>
   <script src="tutorial.js"></script>
   <script src="terminal.js?v=3"></script>
-  <script src="client.js?v=15"></script>
+  <script src="client.js?v=16"></script>
 </body>
 </html>

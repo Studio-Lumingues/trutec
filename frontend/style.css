@@ -2976,3 +2976,10 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 .seat-away .game-intro-spinner { width: 58%; height: 58%; }
 @keyframes awayIn { from { opacity: 0; } }
+
+/* Expulsar jogador: confirmação (host) e aviso (expulso) */
+.kick-card { width: min(24rem, 100%); text-align: center; }
+.kick-text { margin: 0 0 1rem; font-size: 1.05rem; line-height: 1.4; opacity: 0.9; }
+.kick-text b { color: var(--cream); }
+.btn-danger-solid { background: #c0392b; color: #fff8f0; }
+.btn-danger-solid:hover { background: #d84a3a; }
