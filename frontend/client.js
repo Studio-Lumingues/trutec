@@ -1134,7 +1134,7 @@ function smoothCardResize(change) {
 }
 
 function handleLobbyUpdate(lobby) {
-  if (teamSwapBusy > 0) { deferredLobby = lobby; return; }
+  if (teamSwapBusy > 0 || teamDrag) { deferredLobby = lobby; return; }   // troca/arraste em andamento: espera acabar
   smoothCardResize(() => renderLobby(lobby));
 }
 function renderLobby(lobby) {
@@ -1381,9 +1381,32 @@ let teamDrag = null;
 
 const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
+// aplica o lobby_update que ficou esperando (só quando não há arraste nem troca em andamento)
+function flushDeferredLobby() {
+  if (teamDrag || teamSwapBusy > 0 || !deferredLobby) return;
+  const l = deferredLobby; deferredLobby = null;
+  handleLobbyUpdate(l);
+}
+// desiste de um arraste em andamento (ponteiro cancelado / começou outro arraste por cima)
+function cancelTeamDrag() {
+  document.removeEventListener('pointermove', onTeamDragMove);
+  document.removeEventListener('pointerup', onTeamDragEnd);
+  document.removeEventListener('pointercancel', onTeamDragCancel);
+  if (!teamDrag) return;
+  cancelAnimationFrame(teamDrag.raf);
+  teamDrag.sourceEl.classList.remove('team-card-source-dragging');
+  teamDrag.ghost.remove();
+  teamDrag = null;
+  document.querySelectorAll('.team-column-hover').forEach(c => c.classList.remove('team-column-hover'));
+  document.querySelectorAll('.team-slot-hover').forEach(n => n.classList.remove('team-slot-hover'));
+  flushDeferredLobby();
+}
+function onTeamDragCancel() { cancelTeamDrag(); }
+
 function startTeamCardDrag(e, cardEl) {
   if (e.button !== undefined && e.button !== 0) return;
   e.preventDefault();
+  if (teamDrag) cancelTeamDrag();   // nunca deixa dois "fantasmas" ao mesmo tempo
 
   const seat = parseInt(cardEl.dataset.seat, 10);
   const rect = cardEl.getBoundingClientRect();
@@ -1423,6 +1446,7 @@ function startTeamCardDrag(e, cardEl) {
 
   document.addEventListener('pointermove', onTeamDragMove);
   document.addEventListener('pointerup', onTeamDragEnd, { once: true });
+  document.addEventListener('pointercancel', onTeamDragCancel, { once: true });
 }
 
 // Balanço elástico do card arrastado: duas molas sub-amortecidas.
@@ -1469,6 +1493,11 @@ function onTeamDragMove(e) {
 }
 
 function onTeamDragEnd(e) {
+  document.removeEventListener('pointercancel', onTeamDragCancel);
+  try { finishTeamDrag(e); }
+  finally { flushDeferredLobby(); }   // se nenhuma troca começou, mostra o que o servidor mandou enquanto arrastava
+}
+function finishTeamDrag(e) {
   document.removeEventListener('pointermove', onTeamDragMove);
   if (!teamDrag) return;
   cancelAnimationFrame(teamDrag.raf);
@@ -1511,6 +1540,7 @@ function onTeamDragEnd(e) {
     }
   }
   if (!slotEl || slotEl === sourceEl) return;
+  if (!sourceEl.isConnected || !slotEl.isConnected) return;   // a mesa foi redesenhada: card velho, ignora
   movePlayerToSlot(sourceEl, slotEl, seat, parseInt(targetCol.dataset.team, 10), parseInt(slotEl.dataset.slot, 10), dropFrom);
 }
 
@@ -1547,6 +1577,7 @@ function animateSlotMove(cardEl, targetEl, from, rSrc0, rTgt0) {
   return anims;
 }
 function movePlayerToSlot(cardEl, targetEl, seat, team, slot, from) {
+  if (!cardEl.isConnected || !targetEl.isConnected) return;   // nunca troca nós soltos (isso duplicava o card)
   const errEl = document.getElementById('waiting-error');
   if (errEl) errEl.textContent = '';
   const rSrc0 = cardEl.getBoundingClientRect();
@@ -1560,7 +1591,7 @@ function movePlayerToSlot(cardEl, targetEl, seat, team, slot, from) {
   const done = () => {
     if (--pending > 0) return;
     teamSwapBusy = Math.max(0, teamSwapBusy - 1);
-    if (teamSwapBusy === 0 && deferredLobby) { const l = deferredLobby; deferredLobby = null; handleLobbyUpdate(l); }
+    flushDeferredLobby();
   };
   anims.forEach(an => an.finished.then(done, done));
   socket.emit('place_player', { seat, team, slot }, (res) => {
