@@ -3965,23 +3965,23 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   transition: width .38s cubic-bezier(.2,.8,.2,1), opacity .25s ease, visibility 0s linear .38s;
 }
 .social-search.open {
-  width: min(15rem, 46vw); opacity: 1; visibility: visible;
+  width: min(10rem, 40vw); opacity: 1; visibility: visible;
   transition: width .38s cubic-bezier(.2,.8,.2,1), opacity .3s ease .05s, visibility 0s;
 }
 .social-icon-btn svg { transition: transform .38s cubic-bezier(.2,.8,.2,1); }
 .social-icon-btn.open svg { transform: rotate(-12deg) scale(1.08); }
 .social-input {
-  display: flex; align-items: center; margin: 0; flex: none; width: min(15rem, 46vw);
+  display: flex; align-items: center; margin: 0; flex: none; width: min(10rem, 40vw);
   background: #2b3138; border-radius: 0.6rem; cursor: text; overflow: hidden;
 }
 @media (prefers-reduced-motion: reduce) {
   .social-search, .social-search.open, .social-icon-btn svg { transition: none; }
 }
 .social-input:focus-within { background: #fff; }
-.social-at { padding-left: 0.8rem; font-weight: 700; color: #9ab; }
+.social-at { padding-left: 0.6rem; font-size: 0.9rem; font-weight: 700; color: #9ab; }
 .social-input input {
   flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff;
-  padding: 0.55rem 0.8rem 0.55rem 0.2rem; font: inherit; font-size: 1rem; font-weight: 600;
+  padding: 0.4rem 0.6rem 0.4rem 0.15rem; font: inherit; font-size: 0.9rem; font-weight: 600;
 }
 .social-input input::placeholder { color: rgba(153,170,187,0.8); }
 .social-input:focus-within input, .social-input:focus-within .social-at { color: #0a0a0a; }
