@@ -345,6 +345,11 @@ function getSavedCharacter() {
     const bar = document.querySelector('#screen-character-editor .character-toolbar');
     const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!bar || reduced || !bar.offsetParent) return change();
+    // a TELA (painel) não muda de tamanho: trava a altura do conjunto enquanto só o card anima
+    const layout = document.querySelector('#screen-character-editor .character-editor-layout');
+    if (layout && window.matchMedia('(min-width: 901px)').matches && !layout.style.minHeight) {
+      layout.style.minHeight = layout.offsetHeight + 'px';
+    }
     const from = bar.offsetHeight;
     clearTimeout(toolbarResizeTimer);
     bar.style.transition = 'none';
@@ -361,6 +366,12 @@ function getSavedCharacter() {
       bar.style.transition = ''; bar.style.height = ''; bar.style.overflow = '';
     }, 650);
   }
+
+  // se a janela mudar de tamanho, destrava (a próxima troca de aba trava de novo)
+  window.addEventListener('resize', () => {
+    const l = document.querySelector('#screen-character-editor .character-editor-layout');
+    if (l) l.style.minHeight = '';
+  });
 
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
