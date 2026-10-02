@@ -3042,3 +3042,39 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .room-code.reveal { animation: wrGlow 1s ease-out var(--glow-delay, 0s) 1; }
   .wr-pop { animation: wrPop .45s cubic-bezier(.3, 1.3, .5, 1) backwards; }
 }
+
+/* ---------------------------------------------------------------- */
+/* Sala de espera: jogadores maiores                                  */
+/* (fica no fim do arquivo pra ganhar das regras antigas)             */
+/* ---------------------------------------------------------------- */
+:root { --slot-h: 5.25rem; --slot-av: 4.25rem; }
+
+#screen-waiting .lobby-card { width: min(40rem, 94vw); }
+
+/* 1 vs 1 */
+.waiting-players { gap: 0.75rem; }
+.waiting-players .wp-row {
+  padding: 0.75rem 1.1rem;
+  gap: 1rem;
+  border-radius: 1rem;
+  font-size: 1.15rem;
+}
+.waiting-players .wp-avatar { width: 5.5rem; height: 5.5rem; border-radius: 0.9rem; }
+.waiting-players .wp-team { font-size: 0.9rem; }
+
+/* 2 vs 2 */
+.teams-board { gap: 0.75rem; }
+.team-column { padding: 0.65rem; border-radius: 0.9rem; }
+.team-column-title { font-size: 0.9rem; padding-bottom: 0.5rem; margin-bottom: 0.5rem; }
+.team-column-body { gap: 0.5rem; }
+.team-card { gap: 0.7rem; padding: 0 0.6rem; border-radius: 0.8rem; }
+.team-card .wp-name { font-size: 1.02rem; }
+.team-slot-empty { font-size: 0.9rem; border-radius: 0.8rem; }
+
+@media (max-width: 600px) {
+  :root { --slot-h: 4.5rem; --slot-av: 3.5rem; }
+  .waiting-players .wp-avatar { width: 4.5rem; height: 4.5rem; }
+  .waiting-players .wp-row { font-size: 1.05rem; padding: 0.6rem 0.85rem; gap: 0.8rem; }
+  .team-card .wp-name { font-size: 0.9rem; }
+  .team-card { gap: 0.5rem; padding: 0 0.45rem; }
+}
