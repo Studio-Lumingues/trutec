@@ -765,6 +765,14 @@ const brain = createBot({ Room, cardStrength, buildDeck, STAKE_SEQUENCE });
 // Conversa dos bots no chat (ver bot-chat.js): cada persona escreve do seu jeito.
 const botChat = createBotChat({ io, alive: (r) => rooms.get(r.code) === r });
 const PERSONA_NAMES = { jailson: 'Jailson', joao: 'João', thiago: 'Thiago' };
+const BOT_DESCS = {
+  jailson: 'Na moral. Pede pouco truco, mas às vezes dá um facão.',
+  joao: 'Doidão. Truca bastante, com carta ou sem carta.',
+  thiago: 'Racional. Só pede truco com motivo e faz as contas.'
+};
+const BOT_CATALOG = Object.keys(PERSONA_NAMES).map(k => ({
+  persona: k, name: PERSONA_NAMES[k], desc: BOT_DESCS[k], avatar: BOT_AVATARS[k]
+}));
 // Escolhe a personalidade do bot: a pedida (se válida), senão uma que ainda não está na sala.
 function pickPersona(r, wanted) {
   if (wanted && PERSONA_NAMES[wanted]) return wanted;
@@ -1287,6 +1295,12 @@ io.on('connection', (socket) => {
       io.to(r.code).emit('lobby_update', r.lobbyState());
     }
     reply({ ok: true });
+  });
+
+  // Lista de bots que o host pode escolher (nome, descrição e avatar de cada personalidade).
+  socket.on('get_bot_catalog', (cb) => {
+    if (typeof cb !== 'function') return;
+    cb({ ok: true, bots: BOT_CATALOG });
   });
 
   // Host adiciona um bot na sala de espera (1v1 ou 2v2). No 2v2 pode escolher a dupla.

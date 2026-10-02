@@ -1264,10 +1264,14 @@ let botTarget = null;      // { team, slot, done } do slot em que o host clicou
 
 function loadBotCatalog(cb) {
   if (botCatalog) return cb(botCatalog);
-  socket.emit('get_bot_catalog', (res) => {
+  let answered = false;
+  const finish = (res) => {
+    if (answered) return; answered = true;
     if (res && res.ok && Array.isArray(res.bots)) botCatalog = res.bots;
     cb(botCatalog);
-  });
+  };
+  socket.emit('get_bot_catalog', finish);
+  setTimeout(() => finish(null), 3000);   // servidor sem esse evento: não fica "Carregando…" pra sempre
 }
 function closeBotModal() { botModal.classList.add('hidden'); botTarget = null; }
 function openBotModal(target) {
