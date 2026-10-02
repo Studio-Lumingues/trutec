@@ -2296,11 +2296,11 @@ function sendViraCursor(e, k) {
   sendViraCursor(e);
 }, { passive: true }));
 
-// ---- quem ASSISTE: mouse "cartoon" que segue o do jogador, suavizado ----
+// ---- quem ASSISTE: ponteiro estilo macOS que segue o do jogador, suavizado ----
 const VIRA_CURSOR_SVG =
-  '<svg viewBox="0 0 34 42" aria-hidden="true"><path d="M4.5 3.5 L4.5 32 L12 25.2 L17 37.5 L22.6 35.2 L17.6 23 L27.5 23 Z" ' +
-  'fill="#fff" stroke="#15101f" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>' +
-  '<path d="M8 10 L8 24.5 L12.2 20.7" fill="none" stroke="#ffd34d" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></svg>';
+  '<span class="vc-ring"></span>' +
+  '<svg viewBox="0 0 24 30" aria-hidden="true"><path d="M5 3.2 V21.6 L9.3 17.7 L12.1 24.4 L15.2 23.1 L12.4 16.5 L18.2 16.5 Z" ' +
+  'fill="#000" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 let viraCur = null; // { el, tx, ty, cx, cy, rot, seen, raf, last, squish }
 function viraCursorEnsure(box) {
   if (viraCur && viraCur.el.parentNode === box) return viraCur;
@@ -2310,7 +2310,7 @@ function viraCursorEnsure(box) {
   el.setAttribute('aria-hidden', 'true');
   el.innerHTML = VIRA_CURSOR_SVG;
   box.appendChild(el);
-  viraCur = { el, x: 0.5, y: 0.5, cx: 0, cy: 0, rot: 0, seen: false, raf: 0, last: 0, squish: 0 };
+  viraCur = { el, x: 0.5, y: 0.5, cx: 0, cy: 0, sc: 1, seen: false, raf: 0, last: 0, squish: 0 };
   return viraCur;
 }
 function viraCursorTick(now) {
@@ -2327,10 +2327,9 @@ function viraCursorTick(now) {
   const k = 1 - Math.exp(-dt * 11);                 // seguir macio (quanto maior, mais colado)
   const px = c.cx;
   c.cx += (tx - c.cx) * k; c.cy += (ty - c.cy) * k;
-  const vx = (c.cx - px) / dt;                        // inclina um pouco pro lado em que anda
-  c.rot += (Math.max(-16, Math.min(16, vx / 70)) - c.rot) * (1 - Math.exp(-dt * 8));
-  const sc = c.squish > now ? 0.82 : 1;
-  c.el.style.transform = 'translate3d(' + c.cx.toFixed(1) + 'px,' + c.cy.toFixed(1) + 'px,0) rotate(' + (c.rot - 8).toFixed(1) + 'deg) scale(' + sc + ')';
+  const target = c.squish > now ? 0.86 : 1;           // clique: afunda de leve e volta suave
+  c.sc += (target - c.sc) * (1 - Math.exp(-dt * 22));
+  c.el.style.transform = 'translate3d(' + c.cx.toFixed(1) + 'px,' + c.cy.toFixed(1) + 'px,0) scale(' + c.sc.toFixed(3) + ')';
   c.raf = requestAnimationFrame(viraCursorTick);
 }
 function handleViraCursor(m) {
@@ -2357,7 +2356,8 @@ function handleViraCursor(m) {
     const r = cd.getBoundingClientRect();
     viraPickOrigin = { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: r.width, h: r.height, t: performance.now() };
     cd.style.transition = '';
-    c.squish = performance.now() + 220;
+    c.squish = performance.now() + 140;
+    c.el.classList.remove('click'); void c.el.offsetWidth; c.el.classList.add('click');   // anel de clique
   }
   if (!c.raf) { c.last = 0; c.raf = requestAnimationFrame(viraCursorTick); }
 }

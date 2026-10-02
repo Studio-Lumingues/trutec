@@ -889,19 +889,35 @@ button { font-family: inherit; cursor: pointer; }
   transform: translateY(-0.3rem) rotate(calc((var(--i) - 1) * 3deg)) scale(1.03);
   box-shadow: 0 0.6rem 1.2rem rgba(0,0,0,0.55), 0 0 0 0.1875rem var(--gold-bright);
 }
-/* mouse "cartoon" de quem está escolhendo (aparece só pra quem assiste) */
+/* ponteiro de quem está escolhendo (aparece só pra quem assiste) — estilo macOS:
+   seta preta com contorno branco fino, sombra suave em camadas, anel discreto no clique */
 .vira-cursor {
+  --w: clamp(1.5rem, 3.6vw, 1.9rem);
   position: absolute; left: 0; top: 0;
-  width: clamp(2.2rem, 6vw, 3.4rem);
-  margin: -0.35rem 0 0 -0.45rem;   /* a ponta da seta fica no ponto exato */
+  width: var(--w);
+  margin: calc(var(--w) * -0.13) 0 0 calc(var(--w) * -0.2);   /* a ponta da seta fica no ponto exato */
   pointer-events: none;
-  opacity: 0; transition: opacity 0.25s ease;
-  filter: drop-shadow(0 0.25rem 0.3rem rgba(0,0,0,0.55));
+  opacity: 0; transition: opacity 0.3s cubic-bezier(.25,.1,.25,1);
+  filter: drop-shadow(0 0.0625rem 0.0625rem rgba(0,0,0,0.35)) drop-shadow(0 0.35rem 0.6rem rgba(0,0,0,0.3));
   will-change: transform;
   z-index: 3;
 }
 .vira-cursor.show { opacity: 1; }
 .vira-cursor svg { display: block; width: 100%; height: auto; overflow: visible; }
+.vira-cursor .vc-ring {
+  position: absolute; left: 20%; top: 13%;
+  width: 1.9rem; height: 1.9rem; margin: -0.95rem 0 0 -0.95rem;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.16);
+  border: 0.0625rem solid rgba(255,255,255,0.55);
+  backdrop-filter: blur(0.25rem);
+  opacity: 0; transform: scale(0.4);
+}
+.vira-cursor.click .vc-ring { animation: viraCursorRing 0.5s cubic-bezier(.22,1,.36,1); }
+@keyframes viraCursorRing {
+  0%   { opacity: 0.9; transform: scale(0.4); }
+  100% { opacity: 0;   transform: scale(1.5); }
+}
 @keyframes viraPickFloat { from { translate: 0 0; } to { translate: 0 -0.35rem; } }
 @keyframes viraPickDeal { from { opacity: 0; transform: translateY(2rem) rotate(0deg) scale(0.85); } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
