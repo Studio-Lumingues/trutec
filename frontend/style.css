@@ -3399,17 +3399,14 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 
 /* ---------------------------------------------------------------- */
-/* Editor de avatar: xadrez preto e branco girando bem devagar, com  */
-/* ondulação e uma separação RGB discreta (filtro #ck-a24 no         */
-/* index.html). O xadrez fica num ::before gigante que gira atrás    */
-/* do conteúdo; o painel corta o excesso.                            */
-/* Ajustes: --ck-size (quadradinho), 120s (volta), e no filtro:      */
-/* scale = ondulação, dx = força do RGB.                             */
+/* Editor de avatar: xadrez preto e cinza girando bem devagar. O     */
+/* xadrez fica num ::before gigante que gira atrás do conteúdo; o    */
+/* painel corta o excesso. Ajustes: cores, --ck-size e o 120s.       */
 /* ---------------------------------------------------------------- */
 #screen-character-editor .character-panel-wide {
-  --ck-a: #f4f4f4;
+  --ck-a: #3b3b3b;
   --ck-b: #0a0a0a;
-  --ck-size: 4.5rem;
+  --ck-size: 5rem;
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -3418,14 +3415,13 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 #screen-character-editor .character-panel-wide::before {
   content: "";
   position: absolute;
-  left: -100%;
-  top: -100%;
-  width: 300%;
-  height: 300%;
+  left: -150%;
+  top: -150%;
+  width: 400%;
+  height: 400%;
   z-index: -1;
   pointer-events: none;
   background: repeating-conic-gradient(var(--ck-a) 0% 25%, var(--ck-b) 0% 50%) 0 0 / var(--ck-size) var(--ck-size);
-  filter: url(#ck-a24);
   animation: checkerSpin 120s linear infinite;
 }
 @keyframes checkerSpin { to { transform: rotate(360deg); } }
@@ -3433,15 +3429,37 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   #screen-character-editor .character-panel-wide::before { animation: none; }
 }
 
-/* título com respiro embaixo + contorno preto pros textos soltos no xadrez */
+/* título com respiro embaixo */
 #screen-character-editor .character-panel-wide .character-title {
   margin: 0.25rem 0 1.5rem;
   font-size: 1.3rem;
   letter-spacing: 0.04em;
 }
-#screen-character-editor .character-panel-wide .character-title,
-#screen-character-editor .brush-row label,
-#screen-character-editor .skin-hint {
-  -webkit-text-stroke: 0.3rem #000;
-  paint-order: stroke fill;
+
+/* ---------------------------------------------------------------- */
+/* Card discreto com os créditos da música (só no editor de avatar)  */
+/* ---------------------------------------------------------------- */
+.editor-music-card {
+  position: fixed;
+  left: 50%;
+  bottom: 0.6rem;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.8rem 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  font: 500 0.68rem/1.2 system-ui, sans-serif;
+  opacity: 0;
+  transform: translate(-50%, 0.6rem);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  pointer-events: none;
 }
+.editor-music-card.show { opacity: 0.85; transform: translate(-50%, 0); }
+.editor-music-card .emc-note { font-size: 0.95rem; opacity: 0.7; }
+.editor-music-card .emc-title { font-weight: 700; letter-spacing: 0.02em; }
+.editor-music-card .emc-credit { opacity: 0.65; font-size: 0.62rem; letter-spacing: 0.03em; }
