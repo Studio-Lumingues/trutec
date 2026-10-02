@@ -1276,7 +1276,7 @@ function pruneBadgeAngles(lobby) {
 function lobbyBadgeHtml(p) {
   const name = (p.name === undefined || p.name === null || String(p.name).trim() === '') ? 'Jogador' : p.name;
   const n = String(name).length;
-  const fs = n <= 7 ? 2.2 : n <= 10 ? 1.8 : n <= 13 ? 1.5 : 1.25;   // nome comprido = letra menor
+  const fs = n <= 7 ? 1.5 : n <= 10 ? 1.3 : n <= 13 ? 1.1 : 0.95;   // nome comprido = letra menor
   return `<div class="lobby-badge" style="--rot:${badgeAngle(p)}deg;--lb-fs:${fs}rem">
     <div class="lb-head"><span class="lb-hello">Olá,</span><span class="lb-iam">eu sou...</span>${p.seat === 0 ? '<span class="lb-crown">' + ICON('crown', true) + '</span>' : ''}</div>
     <div class="lb-field"><span class="wp-name lb-name">${nameFxHtml(name, p.nameFx)}${p.connected ? '' : ' (saiu)'}</span></div>
