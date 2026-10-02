@@ -3890,10 +3890,18 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   background-color: #0a0a0a;
 }
 /* camada das listras: borrada, ondulada e com separação RGB (filtro #lg-bg no index.html).
-   É maior que a tela (inset negativo) pra a ondulação não deixar buracos nas bordas.
-   Ajustes: scale/stdDeviation/dx do filtro #lg-bg; o alfa das listras (0.2) aqui. */
+   PERFORMANCE: o filtro é pesado, então ele fica numa camada PARADA (::before, desenhada
+   uma vez só) e quem se mexe é o wrapper, só com transform (feito pela GPU, sem refazer o
+   filtro a cada quadro). É maior que a tela (inset negativo) pra a ondulação e o
+   deslocamento não deixarem buracos nas bordas.
+   Ajustes: scale/stdDeviation/dx do filtro #lg-bg; alfa das listras (0.2) aqui. */
 .social-bg {
   position: absolute; inset: -5rem; z-index: -2; pointer-events: none;
+  will-change: transform;
+  animation: socialDrift 60s ease-in-out infinite alternate;
+}
+.social-bg::before {
+  content: ""; position: absolute; inset: 0;
   background-color: #0a0a0a;
   background-image: repeating-linear-gradient(
     60deg,
@@ -3902,20 +3910,19 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
     transparent 0.3rem,
     transparent 1.8rem
   );
-  background-size: 300% 300%;
-  background-position: 100% 0;
-  animation: moveStripesRev 100s linear infinite;
   filter: url(#lg-bg);
 }
-/* brilho de vidro por cima: reflexo diagonal + luz no canto + vinheta */
+@keyframes socialDrift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-4rem, -2rem, 0); }
+}
+/* brilho de vidro por cima: reflexo diagonal + luz no canto + vinheta (sem backdrop-filter: seria recalculado a cada quadro) */
 .social-sheen {
   position: absolute; inset: 0; z-index: -1; pointer-events: none;
   background:
     radial-gradient(60rem 30rem at 12% -8%, rgba(255,255,255,0.14), transparent 60%),
     linear-gradient(115deg, rgba(255,255,255,0.07) 0%, transparent 28%, transparent 62%, rgba(255,255,255,0.05) 100%),
     radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0,0,0,0.45) 100%);
-  -webkit-backdrop-filter: blur(0.15rem) saturate(1.4);
-  backdrop-filter: blur(0.15rem) saturate(1.4);
 }
 @media (prefers-reduced-motion: reduce) {
   .social-bg { animation: none; }

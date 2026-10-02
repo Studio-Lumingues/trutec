@@ -56,7 +56,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
            (aberração cromática). Aplicado direto no elemento (filter), então funciona em todo navegador. -->
       <filter id="lg-bg" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
         <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="soft"/>
-        <feTurbulence type="fractalNoise" baseFrequency="0.0035 0.006" numOctaves="2" seed="11" result="n"/>
+        <feTurbulence type="fractalNoise" baseFrequency="0.0035 0.006" numOctaves="1" seed="11" result="n"/>
         <feDisplacementMap in="soft" in2="n" scale="90" xChannelSelector="R" yChannelSelector="G" result="w"/>
         <feColorMatrix in="w" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0 1" result="r"/>
         <feColorMatrix in="w" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 0 1" result="g"/>
