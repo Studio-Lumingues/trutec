@@ -3898,7 +3898,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .social-bg {
   position: absolute; inset: -5rem; z-index: -2; pointer-events: none;
   will-change: transform;
-  animation: socialDrift 60s ease-in-out infinite alternate;
+  animation: socialDrift 30s ease-in-out infinite alternate;
 }
 .social-bg::before {
   content: ""; position: absolute; inset: 0;
