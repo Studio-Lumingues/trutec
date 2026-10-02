@@ -1412,6 +1412,9 @@ function startTeamCardDrag(e, cardEl) {
   const rect = cardEl.getBoundingClientRect();
   const ghost = cardEl.cloneNode(true);
   ghost.className = 'team-card team-card-ghost';
+  // o card pode estar no meio da animação de "soltar" (que deixa position:relative / z-index
+  // inline). Se o clone herdar isso, ele deixa de ser position:fixed e não acompanha o mouse.
+  ghost.removeAttribute('style');
   ghost.style.width = rect.width + 'px';
   ghost.style.left = rect.left + 'px';
   ghost.style.top = rect.top + 'px';
