@@ -3149,3 +3149,10 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .waiting-players .wp-row { font-size: 1.4rem; }
   .team-card .wp-name { font-size: 1.25rem; }
 }
+
+
+/* Sala de espera: botão "Iniciar partida" / "Aguardando jogadores…" com fonte maior */
+#screen-waiting #btn-start-game { font-size: 1.35rem; padding-top: 0.9rem; padding-bottom: 0.9rem; }
+@media (max-width: 700px) {
+  #screen-waiting #btn-start-game { font-size: 1.15rem; }
+}
