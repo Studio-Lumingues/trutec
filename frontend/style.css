@@ -3030,6 +3030,38 @@ html[data-theme="casa"] .table-disc::before {
 }
 
 
+/* Botão Social: mesma textura do fundo principal da tela inicial (listras
+   diagonais que andam devagar, ver html/body e @keyframes moveStripes), só que
+   INVERTIDA: fundo preto, listras brancas, ângulo espelhado (120deg -> 60deg)
+   e andando pro outro lado. Mesmas medidas do fundo (0.4375rem de listra a
+   cada 4rem, volta de 100s). Substitui o xadrez girando desse botão.
+   Ajustes: o alfa das listras (0.18) deixa mais/menos visível. */
+#btn-open-social .glass-checker {
+  inset: 0;
+  left: 0; top: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background-color: #0a0a0a;
+  background-image: repeating-linear-gradient(
+    60deg,
+    rgba(255, 255, 255, 0.18) 0px,
+    rgba(255, 255, 255, 0.18) 0.4375rem,
+    transparent 0.4375rem,
+    transparent 4rem
+  );
+  background-size: 300% 300%;
+  animation: moveStripesRev 100s linear infinite;
+}
+@keyframes moveStripesRev {
+  0%   { background-position: 100% 0%; }
+  100% { background-position: 0% 0%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #btn-open-social .glass-checker { animation: none; }
+}
+
+
 /* ==========================================================================
    Seletor de cor personalizada (círculo arco-íris em vez do quadrado)
    ========================================================================== */
