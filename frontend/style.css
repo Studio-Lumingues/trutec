@@ -3463,3 +3463,67 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .editor-music-card .emc-note { font-size: 0.95rem; opacity: 0.7; }
 .editor-music-card .emc-title { font-weight: 700; letter-spacing: 0.02em; }
 .editor-music-card .emc-credit { opacity: 0.65; font-size: 0.62rem; letter-spacing: 0.03em; }
+
+/* ---------------------------------------------------------------- */
+/* Editor de avatar: ferramentas num card de "liquid glass" (vidro   */
+/* translúcido estilo Apple). O xadrez passa atrás, levemente        */
+/* borrado e refratado (filtro #lg-warp no index.html); a borda tem  */
+/* brilho branco e um toque de rosa/ciano nos cantos.                */
+/* Ajustes: opacidade do vidro (os rgba(255,255,255,.xx) do          */
+/* background), blur(.45rem), saturate e as cores do ::before.       */
+/* ---------------------------------------------------------------- */
+#screen-character-editor .character-toolbar {
+  position: relative;
+  isolation: isolate;
+  padding: 1rem 1rem 0.75rem;
+  border-radius: 1.6rem;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.09) 100%);
+  -webkit-backdrop-filter: blur(0.8rem) saturate(1.8) brightness(1.08);
+  backdrop-filter: blur(0.8rem) saturate(1.8) brightness(1.08);   /* base: todo navegador */
+  backdrop-filter: url(#lg-warp) blur(0.45rem) saturate(1.8) brightness(1.1);   /* Chrome/Edge: com refração */
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,0.6),
+    inset 0 -1px 1px rgba(255,255,255,0.18),
+    inset 0.5rem 0.5rem 1.1rem -0.6rem rgba(255,110,190,0.45),
+    inset -0.5rem -0.5rem 1.1rem -0.6rem rgba(90,215,255,0.45),
+    inset 0 0 2rem rgba(255,255,255,0.05),
+    0 1.5rem 3rem rgba(0,0,0,0.5);
+}
+/* borda fininha de vidro: branca em dois cantos, rosa e ciano nos outros */
+#screen-character-editor .character-toolbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  padding: 1.5px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 62%, rgba(255,255,255,0.8) 100%),
+    linear-gradient(45deg, rgba(255,90,170,0.95) 0%, rgba(255,90,170,0) 32%, rgba(90,220,255,0) 68%, rgba(90,220,255,0.95) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+/* reflexo de luz no topo, como o vidro curvo */
+#screen-character-editor .character-toolbar::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  top: 0.35rem;
+  height: 22%;
+  z-index: -1;
+  border-radius: 1.2rem 1.2rem 60% 60% / 1.2rem 1.2rem 100% 100%;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0));
+}
+#screen-character-editor .character-toolbar .editor-tabs,
+#screen-character-editor .character-toolbar label,
+#screen-character-editor .character-toolbar .skin-hint { text-shadow: 0 1px 0.4rem rgba(0,0,0,0.5); }
+
+/* o card ocupa um pouco mais pra manter o tamanho dos botões */
+@media (min-width: 901px) {
+  #screen-character-editor .character-toolbar { flex: 0 0 21rem; width: 21rem; }
+}
