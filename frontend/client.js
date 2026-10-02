@@ -2297,76 +2297,15 @@ function sendViraCursor(e, k) {
 }, { passive: true }));
 
 // ---- quem ASSISTE: ponteiro estilo macOS que segue o do jogador, suavizado ----
-// Mãozinha apontando: formas simples (palma + 3 dedos dobrados + indicador + dedão) que se juntam numa silhueta só.
-// Primeiro desenha todas com traço grosso (vira o contorno), depois as mesmas formas preenchidas por cima:
-// assim não sobra nenhuma linha no meio do indicador. Só os vincos entre os dedos dobrados ficam riscados.
-const VIRA_HAND_SHAPES =
-  '<path d="M13 29 C13 24.5 17 22.5 22 22.5 L41 22.5 C47 22.5 50.5 26.5 50.5 32 L50.5 42 C50.5 52 44 58.5 35 58.5 L27 58.5 C19 58.5 14 53 13 47 Z"/>' +
-  '<rect x="43" y="24" width="8.5" height="14" rx="4.2"/><rect x="34.6" y="21" width="9" height="16" rx="4.5"/>' +
-  '<rect x="26" y="19" width="9" height="17" rx="4.5"/><rect x="15" y="3" width="9.6" height="34" rx="4.8"/>' +
-  '<rect x="7" y="31" width="22" height="10.5" rx="5.2" transform="rotate(26 18 36)"/>';
-const VIRA_CURSOR_ART =
-  // seta: gordinha e lisa, só a cor da pele com contorno
-  '<svg class="vc-arrow" viewBox="0 0 40 48" aria-hidden="true">' +
-  '<path d="M6 4.1 C4.9 3.7 4.2 4.8 4.5 6 L5.3 36.6 C5.4 38.2 6.9 38.7 8.1 37.6 L13.9 32 L19.5 43.3 C20.2 44.6 21.7 44.8 22.8 44.3 L26.6 42.5 C27.7 42 28 40.7 27.5 39.6 L21.9 28.6 L30.1 28.3 C31.8 28.2 32.5 26.4 31.2 25.1 L8.2 4.7 C7.5 4.2 6.8 4 6 4.1 Z" style="fill:var(--skin,#ff0042);stroke:var(--ink,#15101f)" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/></svg>' +
-  '<svg class="vc-hand" viewBox="0 0 56 64" aria-hidden="true">' +
-  '<g style="fill:var(--ink,#15101f);stroke:var(--ink,#15101f)" stroke-width="7" stroke-linejoin="round">' + VIRA_HAND_SHAPES + '</g>' +
-  '<g style="fill:var(--skin,#ff0042)">' + VIRA_HAND_SHAPES + '</g>' +
-  '<path d="M26.2 27 V34 M35 27 V35 M43.4 29 V36" fill="none" style="stroke:var(--ink,#15101f)" stroke-width="2.2" stroke-linecap="round"/></svg>';
 const VIRA_CURSOR_SVG =
   // faíscas do clique (riscos soltos em volta da ponta)
   '<svg class="vc-ring" viewBox="-50 -50 100 100" aria-hidden="true"><g fill="none" stroke="#fff8f0" stroke-width="5" stroke-linecap="round">' +
   '<path d="M-1 -27 L-3 -41"/><path d="M22 -17 L33 -27"/><path d="M28 3 L42 5"/><path d="M-24 -14 L-35 -22"/><path d="M-27 9 L-40 14"/><path d="M14 24 L22 35"/></g></svg>' +
-  '<div class="vc-mb"><div class="vc-tr"><div class="vc-up">' + VIRA_CURSOR_ART + '</div></div><div class="vc-sh"><div class="vc-up">' + VIRA_CURSOR_ART + '</div></div></div>';
-
-// ---- cor de pele do cursor = cor do boneco de quem está escolhendo ----
-// O servidor manda só o PNG do avatar (já com o tom aplicado), então lemos a cor que mais aparece nele
-// (ignorando contorno escuro e branco puro). O resultado fica em cache por avatar.
-const viraSkinCache = {};
-function viraSkinFromImage(src, cb) {
-  if (viraSkinCache[src]) return cb(viraSkinCache[src]);
-  const img = new Image();
-  img.onload = () => {
-    let res = { skin: '#ff0042', ink: '#15101f' };
-    try {
-      const S = 64, cv = document.createElement('canvas');
-      cv.width = cv.height = S;
-      const cx = cv.getContext('2d', { willReadFrequently: true });
-      cx.drawImage(img, 0, 0, S, S);
-      const d = cx.getImageData(0, 0, S, S).data, buckets = {};
-      let best = null, bestN = 0;
-      for (let i = 0; i < d.length; i += 4) {
-        const r = d[i], g = d[i + 1], b = d[i + 2];
-        if (d[i + 3] < 200) continue;
-        const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-        if (mx < 38) continue;                    // contorno / traço preto
-        if (mn > 240) continue;                   // branco puro (olhos, brilho)
-        const key = (r >> 4) << 8 | (g >> 4) << 4 | (b >> 4);
-        const o = buckets[key] || (buckets[key] = { n: 0, r: 0, g: 0, b: 0 });
-        o.n++; o.r += r; o.g += g; o.b += b;
-        if (o.n > bestN) { bestN = o.n; best = o; }
-      }
-      if (best) {
-        const r = Math.round(best.r / best.n), g = Math.round(best.g / best.n), b = Math.round(best.b / best.n);
-        const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-        res = { skin: 'rgb(' + r + ',' + g + ',' + b + ')', ink: lum < 0.3 ? '#fff8f0' : '#15101f' };   // pele escura: contorno claro, senão some no fundo
-      }
-    } catch (e) {}
-    viraSkinCache[src] = res; cb(res);
-  };
-  img.onerror = () => cb({ skin: '#ff0042', ink: '#15101f' });
-  img.src = src;
-}
-function viraApplySkin(c, seat) {
-  const st = latestState, p = st && st.players ? st.players.find((q) => q.seat === seat) : null;
-  const src = (p && p.character) || 'assets/personagem.svg';
-  if (c.skinSrc === src) return;
-  c.skinSrc = src;
-  viraSkinFromImage(src, (r) => {
-    if (c.skinSrc !== src) return;
-    c.el.style.setProperty('--skin', r.skin); c.el.style.setProperty('--ink', r.ink);
-  });
-}
+  '<div class="vc-mb"><div class="vc-up">' +
+  // seta branca, gordinha e desenhada à mão, com contorno de tinta
+  '<svg class="vc-arrow" viewBox="0 0 40 48" aria-hidden="true">' +
+  '<path d="M6 4.1 C4.9 3.7 4.2 4.8 4.5 6 L5.3 36.6 C5.4 38.2 6.9 38.7 8.1 37.6 L13.9 32 L19.5 43.3 C20.2 44.6 21.7 44.8 22.8 44.3 L26.6 42.5 C27.7 42 28 40.7 27.5 39.6 L21.9 28.6 L30.1 28.3 C31.8 28.2 32.5 26.4 31.2 25.1 L8.2 4.7 C7.5 4.2 6.8 4 6 4.1 Z" fill="#fff" stroke="#15101f" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/></svg>' +
+  '</div></div>';
 
 // filtro de "motion blur": borra SÓ na direção em que o mouse anda (o stdDeviation é atualizado a cada quadro)
 let viraBlurNode = null;
@@ -2392,8 +2331,8 @@ function viraCursorEnsure(box) {
   el.innerHTML = VIRA_CURSOR_SVG;
   box.appendChild(el);
   viraBlurFilter();
-  viraCur = { el, x: 0.5, y: 0.5, cx: 0, cy: 0, vx: 0, vy: 0, sc: 1, scv: 0, st: 0, ang: 0, bl: 0, hand: false, seen: false, raf: 0, last: 0, squish: 0 };
-  viraCur.mb = el.querySelector('.vc-mb'); viraCur.tr = el.querySelector('.vc-tr'); viraCur.ups = el.querySelectorAll('.vc-up');
+  viraCur = { el, x: 0.5, y: 0.5, cx: 0, cy: 0, vx: 0, vy: 0, sc: 1, scv: 0, st: 0, ang: 0, bl: 0, seen: false, raf: 0, last: 0, squish: 0 };
+  viraCur.mb = el.querySelector('.vc-mb'); viraCur.up = el.querySelector('.vc-up');
   return viraCur;
 }
 function viraCursorTick(now) {
@@ -2419,20 +2358,16 @@ function viraCursorTick(now) {
   // estica na direção em que anda (e achata um pouco de lado), voltando ao normal quando para
   const speed = Math.hypot(c.vx, c.vy);
   if (speed > 40) c.ang = Math.atan2(c.vy, c.vx) * 180 / Math.PI;
-  c.st += (Math.min(0.14, speed / 5000) - c.st) * (1 - Math.exp(-dt * 14));
+  c.st += (Math.min(0.26, speed / 3200) - c.st) * (1 - Math.exp(-dt * 14));
   c.el.style.transform = 'translate3d(' + c.cx.toFixed(1) + 'px,' + c.cy.toFixed(1) + 'px,0) scale(' + c.sc.toFixed(3) + ')';
   // o miolo gira pra direção do movimento: estica e borra naquele eixo, e o desenho gira de volta pra ficar em pé
   c.mb.style.transform = 'rotate(' + c.ang.toFixed(1) + 'deg) scale(' + (1 + c.st).toFixed(3) + ',' + (1 - c.st * 0.45).toFixed(3) + ')';
-  const un = 'rotate(' + (-c.ang).toFixed(1) + 'deg)';
-  c.ups[0].style.transform = un; c.ups[1].style.transform = un;
-  // motion blur: o desenho nítido fica na frente; atrás dele vai um rastro borrado só na direção do movimento
-  c.bl += (Math.min(7, Math.max(0, speed - 120) / 200) - c.bl) * (1 - Math.exp(-dt * 16));
-  if (c.bl > 0.3) {
-    viraBlurFilter().setAttribute('stdDeviation', (c.bl * 1.3).toFixed(2) + ' 0');
-    c.tr.style.filter = 'url(#vira-mb)';
-    c.tr.style.opacity = Math.min(0.6, c.bl / 5).toFixed(2);
-    c.tr.style.transform = 'translateX(' + (-c.bl * 1.6).toFixed(1) + 'px)';
-  } else { c.tr.style.filter = 'none'; c.tr.style.opacity = 0; c.tr.style.transform = 'none'; }
+  c.up.style.transform = 'rotate(' + (-c.ang).toFixed(1) + 'deg)';
+  c.bl += (Math.min(9, Math.max(0, speed - 90) / 150) - c.bl) * (1 - Math.exp(-dt * 16));   // motion blur em px
+  if (c.bl > 0.35) {
+    viraBlurFilter().setAttribute('stdDeviation', c.bl.toFixed(2) + ' 0');
+    c.mb.style.filter = 'url(#vira-mb)';
+  } else c.mb.style.filter = 'none';
   c.raf = requestAnimationFrame(viraCursorTick);
 }
 function handleViraCursor(m) {
@@ -2442,16 +2377,12 @@ function handleViraCursor(m) {
   if (m.seat !== st.viraPick.seat || m.seat === mySeat) return;      // só o cursor de quem está escolhendo
   const cardsEl = document.getElementById('vira-pick-cards');
   const c = viraCursorEnsure(box);
-  viraApplySkin(c, m.seat);
   c.x = +m.x; c.y = +m.y;
   if (!c.seen) {                                                      // 1º sinal: aparece já no lugar (sem voar do canto)
     const r = cardsEl.getBoundingClientRect();
     c.cx = r.left + c.x * r.width; c.cy = r.top + c.y * r.height; c.vx = c.vy = 0;
     c.seen = true; c.el.classList.add('show');
   }
-  // sobre uma carta (e antes do clique): a seta vira a mãozinha de clicar
-  c.hand = m.h >= 0 || (m.k >= 0 && m.k !== undefined && m.k !== null);
-  c.el.classList.toggle('hand', c.hand);
   // mesma "mão sobre a carta" que o jogador vê
   Array.prototype.forEach.call(cardsEl.children, (cd, i) => cd.classList.toggle('sim-hover', i === m.h && !box.classList.contains('sent')));
   if (m.k >= 0 && cardsEl.children[m.k] && !box.classList.contains('sent')) {   // clicou: a carta escolhida fica em destaque e a animação do vira sai dela

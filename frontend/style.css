@@ -905,24 +905,9 @@ button { font-family: inherit; cursor: pointer; }
   z-index: 3;
 }
 .vira-cursor.show { opacity: 1; }
-.vira-cursor .vc-mb, .vira-cursor .vc-up, .vira-cursor .vc-tr, .vira-cursor .vc-sh { position: absolute; inset: 0; transform-origin: 13% 8%; }
-.vira-cursor .vc-tr { opacity: 0; }
+.vira-cursor .vc-mb, .vira-cursor .vc-up { position: absolute; inset: 0; transform-origin: 13% 8%; }
 .vira-cursor svg { position: absolute; display: block; overflow: visible; }
-.vira-cursor .vc-arrow, .vira-cursor .vc-hand { filter: url(#boil-sm); }
-.vira-cursor .vc-arrow {
-  left: 0; top: 0; width: 100%; height: auto;
-  transform-origin: 13% 8.3%;
-  transition: transform 0.34s cubic-bezier(.34,1.7,.5,1), opacity 0.14s ease;
-}
-.vira-cursor .vc-hand {
-  /* a ponta do dedo cai no mesmo ponto da ponta da seta */
-  left: calc(var(--w) * -0.427); top: calc(var(--w) * 0.0143); width: 160%; height: auto;
-  transform-origin: 34.8% 4.7%;
-  opacity: 0; transform: scale(0.4) rotate(-16deg);
-  transition: transform 0.38s cubic-bezier(.34,1.7,.5,1), opacity 0.14s ease;
-}
-.vira-cursor.hand .vc-arrow { opacity: 0; transform: scale(0.45) rotate(12deg); }
-.vira-cursor.hand .vc-hand  { opacity: 1; transform: none; }
+.vira-cursor .vc-arrow { left: 0; top: 0; width: 100%; height: auto; filter: url(#boil-sm); }
 .vira-cursor .vc-ring {
   left: 13%; top: 8%;
   width: calc(var(--w) * 1.5); height: calc(var(--w) * 1.5);
