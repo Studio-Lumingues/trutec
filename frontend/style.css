@@ -3572,3 +3572,27 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .editor-tab-panel.active { animation: tabPanelIn 0.4s ease both; }
 @keyframes tabPanelIn { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .editor-tab-panel.active { animation: none; } }
+
+/* ---------------------------------------------------------------- */
+/* Editor de avatar sem rolagem: a tela inteira (título + card +    */
+/* quadrado do desenho) tem que caber na janela, sem o usuário      */
+/* precisar descer a página. O quadrado se limita pela altura da    */
+/* janela e o conteúdo do card é compactado pra caber nele.         */
+/* ---------------------------------------------------------------- */
+@media (min-width: 901px) {
+  #screen-character-editor .character-canvas-wrap { max-width: min(46rem, calc(100dvh - 9rem)); }
+  #screen-character-editor .character-panel-wide .character-title { margin: 0.1rem 0 0.9rem; }
+  #screen-character-editor .character-toolbar { padding: 0.8rem 0.9rem 0.6rem; gap: 0.4rem; }
+  #screen-character-editor .character-save-msg { min-height: 0; margin: 0; }
+  #screen-character-editor .character-back-btn { margin-top: 0; }
+  #screen-character-editor .btn-back-arrow .ic { width: 2.4rem; height: 2.4rem; }
+  #screen-character-editor .editor-music-card { padding: 0.4rem 0.8rem 0.4rem 0.7rem; margin: 0; }
+}
+/* janelas bem baixas e largas: compacta mais ainda */
+@media (min-width: 901px) and (min-aspect-ratio: 21/10) {
+  #screen-character-editor .character-toolbar { gap: 0.25rem; padding: 0.6rem 0.8rem 0.45rem; }
+  #screen-character-editor .avatar-slot { height: 3.1rem; min-height: 3.1rem; }
+  #screen-character-editor .color-swatch { width: 1.75rem; height: 1.75rem; }
+  #screen-character-editor #character-color-picker { width: 1.75rem; height: 1.75rem; }
+  #screen-character-editor .tool-btn { padding: 0.4rem 0.5rem; }
+}
