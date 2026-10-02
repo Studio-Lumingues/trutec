@@ -614,6 +614,9 @@ function getSavedCharacter() {
   const exportModal = document.getElementById('export-modal');
   const exportImg = document.getElementById('export-img');
   const exportCode = document.getElementById('export-code');
+  const exportView = document.getElementById('export-code-view');
+  // mostra só o começo e o fim do código (o completo fica no textarea invisível, usado pra copiar)
+  const shortCode = (c) => c.length > 26 ? c.slice(0, 14) + '…' + c.slice(-6) : c;
   const exportMsg = document.getElementById('export-msg');
   const importModal = document.getElementById('import-modal');
   const importCode = document.getElementById('import-code');
@@ -719,20 +722,23 @@ function getSavedCharacter() {
   // ---- exportar ----
   function openExport() {
     exportMsg.textContent = '';
-    exportCode.value = 'Gerando o código…';
+    exportCode.value = '';
+    exportView.textContent = 'Gerando o código…';
     exportImg.src = buildMerged().toDataURL('image/png');
     exportModal.classList.remove('hidden');
     document.getElementById('export-copy').focus();
     encodeAvatar().then((code) => {
       exportCode.value = code;
+      exportView.textContent = shortCode(code);
       exportMsg.textContent = 'Código com ' + code.length.toLocaleString('pt-BR') + ' caracteres.';
-    }, () => { exportCode.value = ''; exportMsg.textContent = 'Não consegui gerar o código.'; });
+    }, () => { exportCode.value = ''; exportView.textContent = '—'; exportMsg.textContent = 'Não consegui gerar o código.'; });
   }
   function closeExport() { exportModal.classList.add('hidden'); document.getElementById('btn-avatar-share').focus(); }
   document.getElementById('btn-avatar-share').addEventListener('click', openExport);
   document.getElementById('export-close').addEventListener('click', closeExport);
   exportModal.addEventListener('click', (e) => { if (e.target === exportModal) closeExport(); });
-  exportCode.addEventListener('focus', () => exportCode.select());
+  exportView.addEventListener('click', () => document.getElementById('export-copy').click());
+  exportView.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); exportView.click(); } });
   document.getElementById('export-copy').addEventListener('click', async () => {
     const code = exportCode.value;
     if (!code || code.indexOf(CODE_PREFIX) !== 0) return;

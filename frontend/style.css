@@ -271,7 +271,7 @@ button { font-family: inherit; cursor: pointer; }
 .tool-btn:hover { background: rgba(255,255,255,0.14); }
 .tool-btn.active { background: var(--gold); color: #040303; border-color: var(--gold); }
 
-.character-save-btn { width: 100%; margin-top: 0.125rem; font-size: 1.05rem; padding: 1rem 1.125rem; }
+.character-save-btn { width: 100%; margin-top: 0.5rem; font-size: 1.05rem; padding: 1rem 1.125rem; }
 .character-save-msg { min-height: 0.875rem; margin: 0.25rem 0 0; font-size: 0.8rem; color: #7ee787; }
 
 /* Abas do editor: Desenho / Pele */
@@ -2868,3 +2868,18 @@ html[data-theme="casa"] .table-disc::before {
 .code-msg { min-height: 1.2rem; margin: 0.5rem 0 0.25rem; text-align: center; font-size: 0.9rem; color: #7ee787; }
 #import-msg { color: #ff8a8a; }
 #import-modal .modal-actions .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Código exportado: texto limpo e centralizado (sem cara de caixa de texto).
+   O código completo fica num <textarea> invisível só pra copiar. */
+.code-display {
+  margin: 0.25rem auto 0; padding: 0.5rem 1rem;
+  text-align: center; cursor: pointer; user-select: none;
+  color: var(--cream);
+  font: 600 1.05rem/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.06em;
+  border-radius: 0.5rem;
+  transition: background .15s;
+}
+.code-display:hover { background: rgba(255,255,255,0.08); }
+.code-display:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
+.code-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; resize: none; }
