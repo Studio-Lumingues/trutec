@@ -1282,9 +1282,10 @@ button { font-family: inherit; cursor: pointer; }
   border-radius: inherit;
 }
 
-/* melou: só a maior carta fica clara; as outras escurecem */
-.my-hand .card.melou-dim { filter: grayscale(0.75) brightness(0.36); }
-.my-hand .card.melou-dim::after { background: rgba(0,0,0,0.5); }
+/* melou: só a maior carta fica clara; as outras escurecem do mesmo jeito
+   suave das cartas de "não é sua vez" (.card.disabled), só um escurinho */
+.my-hand .card.melou-dim { cursor: not-allowed; filter: grayscale(0.35) brightness(0.82); }
+.my-hand .card.melou-dim::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: rgba(10,10,10,0.28); }
 .my-hand .card.melou-top.disabled { filter: none; }
 .my-hand .card.melou-top.disabled::after { background: transparent; }
 
