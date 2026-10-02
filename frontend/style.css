@@ -2861,7 +2861,7 @@ html[data-theme="casa"] .table-disc::before {
 .btn-glass .glass-checker {
   --gck-a: rgba(90,90,90,0.55);
   --gck-b: rgba(10,10,10,0.35);
-  --gck-size: 1.6rem;
+  --gck-size: 3rem;
   position: absolute;
   z-index: -1;
   left: 50%;
