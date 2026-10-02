@@ -621,6 +621,7 @@ class Room {
   // --- Truco / aumento de aposta ---
   requestCall(seat, level) {
     const team = this.seatTeam(seat);
+    if (this.score[0] === 11 || this.score[1] === 11) return { error: 'Na mão de 11 não pode pedir truco.' };
     if (this.pendingCall) return { error: 'Já existe um pedido pendente.' };
     if (this.lastRaiserTeam === team) return { error: 'Aguarde a resposta do adversário.' };
 
@@ -1294,6 +1295,25 @@ io.on('connection', (socket) => {
       id: 'bot:' + token, token, name: pickBotName(r), seat, team,
       connected: true, hand: [], character: BOT_AVATAR, isBot: true
     });
+    io.to(r.code).emit('lobby_update', r.lobbyState());
+    reply({ ok: true });
+  });
+
+  // Host expulsa um jogador (humano) da sala de espera.
+  socket.on('kick_player', ({ seat } = {}, cb) => {
+    const reply = (o) => { if (typeof cb === 'function') cb(o); };
+    const r = room();
+    if (!r) return reply({ ok: false, error: 'Sala não encontrada.' });
+    const host = r.playerBySocket(socket.id);
+    if (!host || host.seat !== 0) return reply({ ok: false, error: 'Só o host pode expulsar jogadores.' });
+    if (r.started || r.characterPhaseTimer) return reply({ ok: false, error: 'A partida já começou.' });
+    const target = r.playerBySeat(seat);
+    if (!target || target.isBot) return reply({ ok: false, error: 'Jogador não encontrado.' });
+    if (target === host) return reply({ ok: false, error: 'Você não pode se expulsar.' });
+    const sock = io.sockets.sockets.get(target.id);
+    r.players = r.players.filter(p => p !== target);
+    if (sock) { sock.emit('kicked'); sock.leave(r.code); }
+    io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${target.name} foi expulso da sala.`, ts: Date.now() });
     io.to(r.code).emit('lobby_update', r.lobbyState());
     reply({ ok: true });
   });

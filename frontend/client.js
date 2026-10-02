@@ -1043,6 +1043,12 @@ function handleLobbyUpdate(lobby) {
   updateStartButton(lobby);
 }
 socket.on('lobby_update', handleLobbyUpdate);
+// o host me expulsou da sala
+socket.on('kicked', () => {
+  clearSession();
+  try { alert('Você foi expulso da sala pelo host.'); } catch (e) {}
+  location.reload();
+});
 
 // Adicionar / remover bot na sala de espera (só o host vê os botões).
 // O botão lê a dupla na hora do clique, então continua certo depois de arrastar cards.
@@ -1052,6 +1058,15 @@ document.getElementById('waiting-players').addEventListener('click', (e) => {
   if (!addBtn && !rmBtn) return;
   const errEl = document.getElementById('waiting-error');
   const done = (res) => { if (errEl) errEl.textContent = res && !res.ok ? (res.error || 'Não foi possível.') : ''; };
+  if (rmBtn && rmBtn.classList.contains('kick-btn')) {
+    const card = rmBtn.closest('[data-seat]') || rmBtn.closest('.wp-row');
+    const seatNum = card && card.dataset.seat !== undefined ? parseInt(card.dataset.seat, 10) : NaN;
+    const nm = card ? ((card.querySelector('.wp-name') || {}).textContent || '').trim() : '';
+    if (!isFinite(seatNum)) return;
+    if (!window.confirm('Expulsar ' + (nm || 'este jogador') + ' da sala?')) return;
+    socket.emit('kick_player', { seat: seatNum }, done);
+    return;
+  }
   if (addBtn) {
     const col = addBtn.closest('.team-column');
     const payload = col ? { team: parseInt(col.dataset.team, 10) } : {};
@@ -1093,6 +1108,7 @@ function playerCardHtml(p, draggable) {
       <div class="wp-avatar"><img src="${avatarSrc}" alt="" draggable="false" /></div>
       <span class="wp-name">${nameFxHtml(p.name, p.nameFx)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
       ${p.isBot && draggable ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}
+      ${!p.isBot && p.seat !== 0 && draggable ? '<button type="button" class="bot-remove-btn kick-btn" title="Expulsar da sala" aria-label="Expulsar da sala">×</button>' : ''}
     </div>
   `;
 }
@@ -1143,6 +1159,7 @@ function renderClassicList(lobby, canEdit) {
     const p = lobby.players.find(pl => pl.seat === i);
     const row = document.createElement('div');
     row.className = 'wp-row';
+    if (p) row.dataset.seat = String(p.seat);
     if (p) {
       const avatarSrc = p.character || 'assets/personagem.svg';
       row.innerHTML = `
@@ -1152,6 +1169,7 @@ function renderClassicList(lobby, canEdit) {
           <span class="wp-team">Time ${p.team + 1}</span>
         </div>
         ${p.isBot && canEdit ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}
+        ${!p.isBot && p.seat !== 0 && canEdit ? '<button type="button" class="bot-remove-btn kick-btn" title="Expulsar da sala" aria-label="Expulsar da sala">×</button>' : ''}
       `;
     } else {
       row.className += ' wp-row-empty' + (canEdit ? ' has-bot-btn' : '');
@@ -1327,8 +1345,7 @@ function onTeamDragEnd(e) {
 }
 
 // Substitui: A (arrastado) vai pra dupla de B e B vai pra dupla de A.
-// A tela do host troca na hora; o servidor recebe dois pedidos em sequência
-// (A -> dupla de B, depois B -> dupla de A). Enquanto isso o auto-balanceamento
+// A tela do host troca na hora; o servidor troca os dois de uma vez (swap_player_teams). Enquanto isso o auto-balanceamento
 // e os lobby_update ficam em espera pra não brigar com a troca.
 function swapPlayers(cardA, cardB, seatA, seatB, teamA, teamB) {
   const errEl = document.getElementById('waiting-error');
@@ -1352,16 +1369,10 @@ function swapPlayers(cardA, cardB, seatA, seatB, teamA, teamB) {
 
   teamSwapBusy++;
   swapDom(); // instantâneo
-  socket.emit('set_player_team', { seat: seatA, team: teamB }, (r1) => {
-    if (r1 && !r1.ok) return fail(r1);
-    socket.emit('set_player_team', { seat: seatB, team: teamA }, (r2) => {
-      if (r2 && !r2.ok) {
-        // segunda parte falhou: devolve o A pra dupla dele também
-        socket.emit('set_player_team', { seat: seatA, team: teamA }, () => {});
-        return fail(r2);
-      }
-      finish();
-    });
+  // troca ATÔMICA no servidor: com as duas duplas cheias, mover um por vez sempre dava "dupla cheia"
+  socket.emit('swap_player_teams', { seatA, seatB }, (res) => {
+    if (res && !res.ok) return fail(res);
+    finish();
   });
 }
 
