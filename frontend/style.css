@@ -2890,32 +2890,29 @@ html[data-theme="casa"] .table-disc::before {
   user-select: none;
   opacity: 0.95;
 }
-/* botão Social: os 3 bonecos enfileirados pro lado, cada um sobreposto ao
-   anterior (o último fica por cima), vistos através do vidro e cortados pela
-   borda do botão. Ajustes: height (tamanho) e margin-left (quanto sobrepõe). */
-.btn-glass .glass-avatars {
+/* botão Social: 2 bonecos brancos, um em cima do outro, do MESMO tamanho do
+   boneco do botão Avatar (height 230%, colado à direita). O de cima fica na
+   frente e cobre o começo da cabeça do de baixo; a sombra dele já vem
+   desenhada (hachuras) no personagem-branco-sombra.svg.
+   Ajustes: .gs-top top (sobe/desce o de cima) e .gs-low top (o de baixo);
+   a diferença entre eles é de 184% (230% de altura - 46% de sobreposição). */
+.btn-glass .glass-stack {
   position: absolute;
   z-index: 0;
-  right: 0.5rem;
-  top: 0.2rem;
-  bottom: 0;
-  display: flex;
-  align-items: flex-start;
+  inset: 0;
   pointer-events: none;
   user-select: none;
 }
-.btn-glass .glass-avatars img {
-  position: relative;
-  height: 175%;
+.btn-glass .glass-stack img {
+  position: absolute;
+  right: 0.6rem;
+  height: 230%;
   width: auto;
-  flex: none;
   opacity: 0.95;
+  filter: url(#boil-sm);
 }
-.btn-glass .glass-avatars img + img { margin-left: -2.5rem; }
-@media (max-width: 400px) {
-  .btn-glass .glass-avatars img { height: 150%; }
-  .btn-glass .glass-avatars img + img { margin-left: -2rem; }
-}
+.btn-glass .glass-stack .gs-top { top: -180%; z-index: 2; }
+.btn-glass .glass-stack .gs-low { top: 4%;    z-index: 1; }
 /* reflexo especular por cima do boneco = efeito "vidro" */
 .btn-glass::before {
   content: '';
