@@ -3598,3 +3598,48 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   #screen-character-editor #character-color-picker { width: 1.75rem; height: 1.75rem; }
   #screen-character-editor .tool-btn { padding: 0.4rem 0.5rem; }
 }
+
+
+/* ---------------------------------------------------------------- */
+/* Abas Desenho / Pele: controle segmentado de vidro com um "pílula" */
+/* que desliza (e dá uma leve molinha) entre as duas opções.         */
+/* ---------------------------------------------------------------- */
+.editor-tabs {
+  position: relative;
+  gap: 0;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: inset 0 1px 0.5rem rgba(0,0,0,0.25);
+}
+.editor-tabs::before {
+  content: "";
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  left: 0.25rem;
+  width: calc(50% - 0.25rem);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #f1e9e0 100%);
+  box-shadow: 0 0.2rem 0.6rem rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.9) inset;
+  transition: transform 0.5s cubic-bezier(.34, 1.35, .64, 1);
+}
+.editor-tabs:has(.editor-tab-btn[data-tab="pele"].active)::before { transform: translateX(100%); }
+.editor-tabs .editor-tab-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: #fff;
+  transition: color 0.3s ease, background 0.2s ease;
+}
+.editor-tabs .editor-tab-btn:hover:not(.active) { background: rgba(255,255,255,0.1); }
+.editor-tabs .editor-tab-btn.active { background: transparent; color: #040303; }
+#screen-character-editor .character-toolbar .editor-tab-btn.active { text-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .editor-tabs::before { transition: none; } }
