@@ -2297,18 +2297,22 @@ function sendViraCursor(e, k) {
 }, { passive: true }));
 
 // ---- quem ASSISTE: ponteiro estilo macOS que segue o do jogador, suavizado ----
+// Mãozinha apontando: formas simples (palma + 3 dedos dobrados + indicador + dedão) que se juntam numa silhueta só.
+// Primeiro desenha todas com traço grosso (vira o contorno), depois as mesmas formas preenchidas por cima:
+// assim não sobra nenhuma linha no meio do indicador. Só os vincos entre os dedos dobrados ficam riscados.
+const VIRA_HAND_SHAPES =
+  '<path d="M13 29 C13 24.5 17 22.5 22 22.5 L41 22.5 C47 22.5 50.5 26.5 50.5 32 L50.5 42 C50.5 52 44 58.5 35 58.5 L27 58.5 C19 58.5 14 53 13 47 Z"/>' +
+  '<rect x="43" y="24" width="8.5" height="14" rx="4.2"/><rect x="34.6" y="21" width="9" height="16" rx="4.5"/>' +
+  '<rect x="26" y="19" width="9" height="17" rx="4.5"/><rect x="15" y="3" width="9.6" height="34" rx="4.8"/>' +
+  '<rect x="7" y="31" width="22" height="10.5" rx="5.2" transform="rotate(26 18 36)"/>';
 const VIRA_CURSOR_ART =
-  // seta rabiscada: gordinha, cheia de curva, creme com contorno de tinta e um riscão de brilho
+  // seta: gordinha e lisa, só a cor da pele com contorno
   '<svg class="vc-arrow" viewBox="0 0 40 48" aria-hidden="true">' +
-  '<path d="M6 4.1 C4.9 3.7 4.2 4.8 4.5 6 L5.3 36.6 C5.4 38.2 6.9 38.7 8.1 37.6 L13.9 32 L19.5 43.3 C20.2 44.6 21.7 44.8 22.8 44.3 L26.6 42.5 C27.7 42 28 40.7 27.5 39.6 L21.9 28.6 L30.1 28.3 C31.8 28.2 32.5 26.4 31.2 25.2 L8.2 4.7 C7.5 4.2 6.8 4 6 4.1 Z" style="fill:var(--skin,#ff0042);stroke:var(--ink,#15101f)" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/>' +
-  '<path d="M9.6 13.5 C9.9 18 9.8 22.5 10.1 27.2" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="2.6" stroke-linecap="round"/>' +
-  '<path d="M16.6 37.6 L19.4 36.4 M18.3 40.8 L20.7 39.7" fill="none" style="stroke:var(--ink,#15101f)" stroke-width="1.6" stroke-linecap="round" opacity=".55"/></svg>' +
-  // mãozinha de luva (a de "dá pra clicar"): dedão gordo apontando, nós dos dedos riscados
-  '<svg class="vc-hand" viewBox="0 0 52 60" aria-hidden="true">' +
-  '<path d="M11.4 7.2 C11.2 2 20.7 1.8 20.6 7 L20.4 19.4 C22.1 17.6 26.6 17.9 27.1 21 C29.1 19.5 33.2 20.2 33.3 23.4 C35.5 22.3 39.2 23.6 39.1 27.1 L39 36 C39 44.2 33.9 50.2 26 50.1 L21.2 50.1 C16.6 50.2 13.6 47.7 11.5 44.2 L5.5 34.6 C4.3 32.5 7 30.2 9.1 31.8 L11.5 34.3 Z" style="fill:var(--skin,#ff0042);stroke:var(--ink,#15101f)" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/>' +
-  '<path d="M27.1 23.5 L27 31 M33.3 25.6 L33.1 31.5" fill="none" style="stroke:var(--ink,#15101f)" stroke-width="2.2" stroke-linecap="round"/>' +
-  '<path d="M12 36.5 C14.2 38.3 15.2 40.3 15.6 43" fill="none" style="stroke:var(--ink,#15101f)" stroke-width="1.8" stroke-linecap="round" opacity=".55"/></svg>' +
-  '';
+  '<path d="M6 4.1 C4.9 3.7 4.2 4.8 4.5 6 L5.3 36.6 C5.4 38.2 6.9 38.7 8.1 37.6 L13.9 32 L19.5 43.3 C20.2 44.6 21.7 44.8 22.8 44.3 L26.6 42.5 C27.7 42 28 40.7 27.5 39.6 L21.9 28.6 L30.1 28.3 C31.8 28.2 32.5 26.4 31.2 25.1 L8.2 4.7 C7.5 4.2 6.8 4 6 4.1 Z" style="fill:var(--skin,#ff0042);stroke:var(--ink,#15101f)" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/></svg>' +
+  '<svg class="vc-hand" viewBox="0 0 56 64" aria-hidden="true">' +
+  '<g style="fill:var(--ink,#15101f);stroke:var(--ink,#15101f)" stroke-width="7" stroke-linejoin="round">' + VIRA_HAND_SHAPES + '</g>' +
+  '<g style="fill:var(--skin,#ff0042)">' + VIRA_HAND_SHAPES + '</g>' +
+  '<path d="M26.2 27 V34 M35 27 V35 M43.4 29 V36" fill="none" style="stroke:var(--ink,#15101f)" stroke-width="2.2" stroke-linecap="round"/></svg>';
 const VIRA_CURSOR_SVG =
   // faíscas do clique (riscos soltos em volta da ponta)
   '<svg class="vc-ring" viewBox="-50 -50 100 100" aria-hidden="true"><g fill="none" stroke="#fff8f0" stroke-width="5" stroke-linecap="round">' +
