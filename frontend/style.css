@@ -3878,34 +3878,28 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 
 
 /* ---------------------------------------------------------------- */
-/* Tela SOCIAL: o fundo do site inteiro vira o xadrez escuro com     */
-/* quadrados cinza girando (o mesmo do editor de avatar). Só há a    */
+/* Tela SOCIAL: mesmo fundo do botão "Social" da tela inicial —      */
+/* preto com listras diagonais cinza (brancas com alfa baixo) que    */
+/* andam devagar (ver #btn-open-social .glass-checker). Só há a      */
 /* seta de voltar no canto superior esquerdo.                        */
 /* ---------------------------------------------------------------- */
 #screen-social.screen {
-  --ck-a: #3b3b3b;
-  --ck-b: #0a0a0a;
-  --ck-size: 5rem;
   position: relative;
   overflow: hidden;
-  isolation: isolate;
-  background: var(--ck-b);
-}
-#screen-social.screen::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 250vmax;
-  height: 250vmax;
-  margin: -125vmax 0 0 -125vmax;
-  z-index: -1;
-  pointer-events: none;
-  background: repeating-conic-gradient(var(--ck-a) 0% 25%, var(--ck-b) 0% 50%) 0 0 / var(--ck-size) var(--ck-size);
-  animation: checkerSpin 120s linear infinite;
+  background-color: #0a0a0a;
+  background-image: repeating-linear-gradient(
+    60deg,
+    rgba(255, 255, 255, 0.18) 0px,
+    rgba(255, 255, 255, 0.18) 0.2rem,
+    transparent 0.2rem,
+    transparent 1.8rem
+  );
+  background-size: 300% 300%;
+  background-position: 100% 0;
+  animation: moveStripesRev 100s linear infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  #screen-social.screen::before { animation: none; }
+  #screen-social.screen { animation: none; }
 }
 #screen-social .social-back {
   position: absolute;
