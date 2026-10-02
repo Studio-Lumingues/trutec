@@ -2336,7 +2336,11 @@ function updateViraPickUI(state) {
     if (head.textContent !== headTxt) head.textContent = headTxt;
     head.classList.toggle('watch', !mine);
     if (num.textContent !== String(secs)) num.textContent = secs;
-    titleEl.classList.toggle('low', secs <= 5);
+    // do 8s pra 0 o número vai ficando vermelho aos poucos (branco -> vermelho)
+    const left = Math.max(0, (viraPickEndsAt - Date.now()) / 1000);
+    const t = Math.min(1, Math.max(0, (8 - left) / 8));
+    const mix = (a, b) => Math.round(a + (b - a) * t);
+    num.parentNode.style.color = 'rgb(' + mix(255, 255) + ',' + mix(255, 70) + ',' + mix(255, 55) + ')';
   };
   paint();
   if (!viraPickInterval) viraPickInterval = setInterval(paint, 250);

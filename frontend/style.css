@@ -847,10 +847,9 @@ button { font-family: inherit; cursor: pointer; }
 }
 .vira-pick-title .vp-head { font-weight: 900; font-size: clamp(1.5rem, 5.5vw, 2.6rem); line-height: 1.1; letter-spacing: 0.02em; }
 .vira-pick-title .vp-head.watch { font-size: clamp(1.1rem, 3.6vw, 1.7rem); }
-.vira-pick-title .vp-secs { color: #fff; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+.vira-pick-title .vp-secs { color: #fff; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; transition: color 0.4s linear; }
 .vira-pick-title .vp-secs b { font-size: clamp(3.2rem, 12vw, 6rem); font-weight: 900; }
 .vira-pick-title .vp-secs span { font-size: clamp(1.3rem, 4vw, 2rem); margin-left: 0.15rem; opacity: 0.7; }
-.vira-pick-title.low .vp-secs { color: #ff6b5e; }
 .vira-pick-cards { display: flex; gap: clamp(0.75rem, 3vw, 1.75rem); align-items: center; justify-content: center; }
 .vira-pick-card {
   --w: clamp(5rem, 22vw, 8.5rem);
@@ -865,19 +864,18 @@ button { font-family: inherit; cursor: pointer; }
     linear-gradient(135deg, var(--card-back), var(--card-back-dark));
   box-shadow: 0 0.375rem 1rem rgba(0,0,0,0.5);
   transform: rotate(calc((var(--i) - 1) * 6deg));
-  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.25s ease;
+  transition: transform 0.55s cubic-bezier(.22,1,.36,1), box-shadow 0.55s ease, opacity 0.25s ease;
   /* 1ª animação: entra distribuída; 2ª: flutua de leve (usa a propriedade `translate`,
      separada do `transform`, então não briga com a inclinação nem com o hover) */
   animation:
     viraPickDeal 0.5s cubic-bezier(.2,.8,.3,1) calc(var(--pick-delay, 0ms) + var(--i) * 110ms) both,
-    viraPickFloat 2.8s ease-in-out calc(var(--pick-delay, 0ms) + 0.9s + var(--i) * 0.35s) infinite alternate;
+    viraPickFloat 1.7s ease-in-out calc(var(--pick-delay, 0ms) + 0.9s + var(--i) * 0.25s) infinite alternate;
 }
 @media (hover: hover) {
-  /* hover: sobe bem de leve (e para de flutuar enquanto o mouse está em cima) */
+  /* hover: sobe bem de leve e devagarinho (a flutuação continua, então não "trava" no meio) */
   .vira-pick:not(.sent) .vira-pick-card:hover {
     transform: translateY(-0.3rem) rotate(calc((var(--i) - 1) * 3deg)) scale(1.03);
     box-shadow: 0 0.6rem 1.2rem rgba(0,0,0,0.55), 0 0 0 0.1875rem var(--gold-bright);
-    animation-play-state: running, paused;
   }
 }
 .vira-pick-card:focus-visible { outline: 0.1875rem solid var(--gold-bright); outline-offset: 0.2rem; }
