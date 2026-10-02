@@ -3033,8 +3033,7 @@ html[data-theme="casa"] .table-disc::before {
 /* Botão Social: mesma textura do fundo principal da tela inicial (listras
    diagonais que andam devagar, ver html/body e @keyframes moveStripes), só que
    INVERTIDA: fundo preto, listras brancas, ângulo espelhado (120deg -> 60deg)
-   e andando pro outro lado. Mesmas medidas do fundo (0.4375rem de listra a
-   cada 4rem, volta de 100s). Substitui o xadrez girando desse botão.
+   e andando pro outro lado. Mesma volta de 100s do fundo, com listras mais finas (0.2rem a cada 1.8rem). Substitui o xadrez girando desse botão.
    Ajustes: o alfa das listras (0.18) deixa mais/menos visível. */
 #btn-open-social .glass-checker {
   inset: 0;
@@ -3046,11 +3045,14 @@ html[data-theme="casa"] .table-disc::before {
   background-image: repeating-linear-gradient(
     60deg,
     rgba(255, 255, 255, 0.18) 0px,
-    rgba(255, 255, 255, 0.18) 0.4375rem,
-    transparent 0.4375rem,
-    transparent 4rem
+    rgba(255, 255, 255, 0.18) 0.2rem,
+    transparent 0.2rem,
+    transparent 1.8rem
   );
-  background-size: 300% 300%;
+  /* tamanho FIXO em rem (antes era 300% do botão): se o botão crescer no hover,
+     o padrão não muda de escala nem de posição */
+  background-size: 90rem 90rem;
+  background-position: 100% 0;
   animation: moveStripesRev 100s linear infinite;
 }
 @keyframes moveStripesRev {
