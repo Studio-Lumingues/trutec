@@ -2969,39 +2969,34 @@ html[data-theme="casa"] .table-disc::before {
 
 
 /* ==========================================================================
-   Tela inicial: ao passar o mouse, a opção "cresce" - fica mais alta e o
-   conteúdo (texto, ícone e os bonecos dos botões de vidro) aumenta junto.
-   - A altura extra sai das margens negativas, então os botões vizinhos NÃO
-     se mexem (nada de a lista pular nem de o hover ficar piscando); a opção
-     só avança sobre o espaçamento entre eles e fica por cima (z-index).
+   Tela inicial: ao passar o mouse, a opção cresce na vertical de verdade -
+   as opções de baixo são empurradas - e o conteúdo (texto, ícone e os bonecos
+   dos botões de vidro) aumenta junto.
    - Os bonecos de Avatar e Social têm altura em % do botão, então crescem
      sozinhos junto com ele.
-   - Ajustes: --grow (quanto cresce, max. ~0.4rem pra caber no gap entre os
-     botões) e o font-size do hover.
+   - Ajustes: --grow (quanto cada lado ganha de altura; a opção fica 2x --grow
+     mais alta) e o font-size / line-height do hover.
    Só em aparelhos com mouse (no toque o :hover "gruda" depois do clique).
    ========================================================================== */
 .lobby-actions .btn {
   --py: 0.8125rem;
-  --grow: 0.3rem;
-  position: relative;
+  --grow: 0.85rem;
   padding-top: var(--py);
   padding-bottom: var(--py);
-  line-height: 1.35rem;            /* fixo: crescer a fonte não muda a altura */
-  transition: padding .18s ease, margin .18s ease, font-size .18s ease,
+  line-height: 1.35rem;
+  transition: padding .22s ease, font-size .22s ease, line-height .22s ease,
               transform .1s, filter .15s, box-shadow .15s, background .2s;
 }
 .lobby-actions .btn:not(.btn-icon-only) { --py: 1.0625rem; }
-.btn-icon-only .ic { transition: transform .18s ease; }
+.btn-icon-only .ic { transition: transform .22s ease; }
 @media (hover: hover) and (pointer: fine) {
   .lobby-actions .btn:hover {
-    z-index: 2;
     padding-top: calc(var(--py) + var(--grow));
     padding-bottom: calc(var(--py) + var(--grow));
-    margin-top: calc(var(--grow) * -1);
-    margin-bottom: calc(var(--grow) * -1);
-    font-size: 1.3rem;
+    font-size: 1.55rem;
+    line-height: 1.8rem;
   }
-  .lobby-actions .btn-icon-only:hover .ic { transform: scale(1.2); }
+  .lobby-actions .btn-icon-only:hover .ic { transform: scale(1.35); }
 }
 @media (prefers-reduced-motion: reduce) {
   .lobby-actions .btn, .btn-icon-only .ic { transition: none; }
