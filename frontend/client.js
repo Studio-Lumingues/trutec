@@ -1982,6 +1982,7 @@ function beginMatch(state, dealDelay) {
   handWrapEl.dataset.mao = '';
   const myHandCount = (state.players.find(p => p.seat === mySeat).hand || []).length;
   startDealAnimation(myHandCount, dealDelay);
+  viraMaoSeen = null; viraForce = true; // partida nova: o vira sempre entra animado
   renderState(state);
   setBanner('');
 }
@@ -2082,6 +2083,17 @@ function renderState(realState) {
 
   // vira
   renderMiniCard(document.getElementById('vira-card'), state.vira);
+  // rodada nova: o vira entra com a animação (fade in virado -> vira -> vai pro monte)
+  if (state.vira && (viraForce || state.maoNumber !== viraMaoSeen)) {
+    const freshHand = viraForce || viraMaoSeen !== null; // reconectar no meio da mão não anima
+    viraMaoSeen = state.maoNumber;
+    viraForce = false;
+    if (freshHand) {
+      // na 1ª mão espera a intro da logo sumir (mesmo atraso da distribuição das cartas)
+      const wait = dealAnim ? Math.max(0, dealAnim.start - performance.now()) : 0;
+      playViraIntro(state.vira, wait);
+    }
+  }
 
   // nomes e cadeiras
   // limpa só as cadeiras sem jogador (zerar todas apagava o nome, porque o
@@ -2349,6 +2361,104 @@ function animatePlayedCard(holder, play, pos, finalTransform) {
     : 'transform .32s cubic-bezier(.22,.75,.32,1), opacity .28s ease';
   holder.style.transform = finalTransform;
   holder.style.opacity = '1';
+}
+
+// ------------------------------------------------------------------
+// Animação do vira (começo de cada rodada)
+// 1) um card GRANDE aparece no meio da tela, virado (costas), em fade in;
+// 2) ele vira pra revelar qual é a carta;
+// 3) encolhe e voa até o monte no canto, onde o vira fica de verdade.
+// Enquanto isso o vira do monte fica escondido (.vira-pending). O card que
+// voa é um clone criado no tamanho grande e ENCOLHIDO (fica nítido), e some
+// quando chega. Ajustes: os tempos logo abaixo (em ms).
+// ------------------------------------------------------------------
+const VIRA_FADE_MS  = 450;  // fade in no meio da tela
+const VIRA_HOLD1_MS = 300;  // pausa com as costas à mostra
+const VIRA_FLIP_MS  = 650;  // giro revelando a carta
+const VIRA_HOLD2_MS = 650;  // pausa pra todo mundo ver qual é o vira
+const VIRA_FLY_MS   = 750;  // viagem até o monte
+let viraMaoSeen = null;     // última mão cujo vira já foi tratado
+let viraForce = false;      // força a animação (início de partida)
+let viraIntro = null;       // animação em andamento
+
+function viraIntroCleanup() {
+  if (!viraIntro) return;
+  clearTimeout(viraIntro.timer);
+  clearTimeout(viraIntro.safety);
+  viraIntro.anims.forEach(a => { try { a.cancel(); } catch (e) {} });
+  if (viraIntro.el && viraIntro.el.parentNode) viraIntro.el.parentNode.removeChild(viraIntro.el);
+  const disp = document.querySelector('.vira-display');
+  if (disp) disp.classList.remove('vira-pending');
+  viraIntro = null;
+}
+
+function playViraIntro(card, delayMs) {
+  viraIntroCleanup();
+  const disp = document.querySelector('.vira-display');
+  const target = document.getElementById('vira-card');
+  if (!disp || !target || !card || !target.animate) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  disp.classList.add('vira-pending'); // esconde o vira do monte até o clone chegar
+  const state = { timer: 0, safety: 0, anims: [], el: null };
+  viraIntro = state;
+
+  state.timer = setTimeout(() => {
+    if (viraIntro !== state) return;
+    const baseW = target.offsetWidth, baseH = target.offsetHeight;
+    if (!baseW || !baseH) return viraIntroCleanup();
+
+    // tamanho grande: até ~50% da altura da tela (e 60% da largura)
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const S = Math.max(1.5, Math.min(window.innerHeight * 0.5 / baseH, window.innerWidth * 0.6 / baseW, 20 * rem / baseH));
+    const W = baseW * S, H = baseH * S;
+
+    const el = document.createElement('div');
+    el.className = 'vira-fly';
+    el.setAttribute('aria-hidden', 'true');
+    el.style.cssText = '--s:' + S + ';width:' + W + 'px;height:' + H + 'px;margin:' + (-H / 2) + 'px 0 0 ' + (-W / 2) + 'px;opacity:0';
+    const inner = document.createElement('div');
+    inner.className = 'vira-fly-inner';
+    const back = document.createElement('div');
+    back.className = 'vira-fly-face vira-fly-back';
+    const front = document.createElement('div');
+    renderMiniCard(front, card);                        // mesma carta/cores do vira de verdade
+    front.classList.add('vira-fly-face', 'vira-fly-front');
+    front.style.fontSize = ((parseFloat(getComputedStyle(target).fontSize) || 19) * S) + 'px';
+    inner.appendChild(back); inner.appendChild(front);
+    el.appendChild(inner);
+    document.body.appendChild(el);
+    state.el = el;
+
+    // destino: centro do vira no monte
+    const tr = target.getBoundingClientRect();
+    const dx = (tr.left + tr.width / 2) - window.innerWidth / 2;
+    const dy = (tr.top + tr.height / 2) - window.innerHeight / 2;
+
+    const tFlip = VIRA_FADE_MS + VIRA_HOLD1_MS;
+    const tFly = tFlip + VIRA_FLIP_MS + VIRA_HOLD2_MS;
+    const total = tFly + VIRA_FLY_MS;
+
+    state.anims.push(el.animate(
+      [{ opacity: 0, transform: 'scale(0.88)' }, { opacity: 1, transform: 'scale(1)' }],
+      { duration: VIRA_FADE_MS, easing: 'ease-out', fill: 'forwards' }));
+    state.anims.push(inner.animate(
+      [{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }],
+      { delay: tFlip, duration: VIRA_FLIP_MS, easing: 'cubic-bezier(.45,0,.25,1)', fill: 'forwards' }));
+    const fly = el.animate(
+      [{ transform: 'translate(0px,0px) scale(1) rotate(0deg)' },
+       { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + (1 / S) + ') rotate(-2deg)' }],
+      { delay: tFly, duration: VIRA_FLY_MS, easing: 'cubic-bezier(.6,0,.2,1)', fill: 'forwards' });
+    state.anims.push(fly);
+    fly.onfinish = () => { if (viraIntro === state) viraIntroCleanup(); };
+    state.safety = setTimeout(() => { if (viraIntro === state) viraIntroCleanup(); }, total + 400);
+
+    // sons: carta virando e carta pousando no monte
+    if (window.GameAudio) {
+      try { GameAudio.cardDeal((tFlip + VIRA_FLIP_MS * 0.35) / 1000, 0); } catch (e) {}
+      try { GameAudio.cardPlay((total - 60) / 1000); } catch (e) {}
+    }
+  }, delayMs || 0);
 }
 
 function renderMiniCard(el, card) {

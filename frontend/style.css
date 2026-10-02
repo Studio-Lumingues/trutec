@@ -812,6 +812,44 @@ button { font-family: inherit; cursor: pointer; }
   border-radius: 0.5rem;
   box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.4);
 }
+/* Animação do vira (começo da rodada): o vira do monte espera o card que voa */
+.vira-label { transition: opacity 0.25s ease; }
+.vira-display.vira-pending #vira-card,
+.vira-display.vira-pending .vira-label { opacity: 0; }
+.vira-display.vira-pending .vira-label { transition: none; }
+
+.vira-fly {
+  position: fixed;
+  left: 50%; top: 50%;
+  z-index: 8500;
+  pointer-events: none;
+  perspective: 1400px;
+}
+.vira-fly-inner {
+  position: absolute; inset: 0;
+  transform-style: preserve-3d;
+}
+.vira-fly .vira-fly-face {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  box-sizing: border-box;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: calc(var(--s) * 0.5rem);
+}
+.vira-fly .vira-fly-back {
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) calc(var(--s) * 0.125rem), transparent calc(var(--s) * 0.125rem), transparent calc(var(--s) * 0.5rem)),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) calc(var(--s) * 0.125rem), transparent calc(var(--s) * 0.125rem), transparent calc(var(--s) * 0.5rem)),
+    linear-gradient(135deg, var(--card-back), var(--card-back-dark));
+  border: calc(var(--s) * 0.125rem) solid #fff8f0;
+  box-shadow: 0 calc(var(--s) * 0.1875rem) calc(var(--s) * 0.5rem) rgba(0,0,0,0.4);
+}
+.vira-fly .vira-fly-front {
+  transform: rotateY(180deg);
+  box-shadow: 0 0 0 calc(var(--s) * 0.125rem) var(--gold-bright), 0 calc(var(--s) * 0.375rem) calc(var(--s) * 0.875rem) rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.7) inset;
+}
+
 .mini-card {
   position: relative;
   width: 3.625rem; height: 5.125rem;
