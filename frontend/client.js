@@ -1063,8 +1063,7 @@ document.querySelectorAll('.create-modes .btn').forEach((btn) => {
 });
 
 document.getElementById('btn-leave-waiting').addEventListener('click', () => {
-  clearSession();
-  location.reload();
+  leaveToLobby(); // limpa a sessão e mostra a tela de carregamento antes de voltar ao lobby
 });
 
 // ------------------------------------------------------------------
