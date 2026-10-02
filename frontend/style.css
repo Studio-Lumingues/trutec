@@ -2890,6 +2890,32 @@ html[data-theme="casa"] .table-disc::before {
   user-select: none;
   opacity: 0.95;
 }
+/* botão Social: os 3 bonecos lado a lado (um pouco sobrepostos), vistos
+   através do vidro e cortados pela borda do botão. O texto fica à esquerda. */
+.btn-glass .glass-avatars {
+  position: absolute;
+  z-index: 0;
+  right: 0.5rem;
+  top: 0.15rem;
+  bottom: 0;
+  display: flex;
+  align-items: flex-start;
+  pointer-events: none;
+  user-select: none;
+}
+.btn-glass .glass-avatars img {
+  height: 150%;
+  width: auto;
+  flex: none;
+  opacity: 0.95;
+}
+.btn-glass .glass-avatars img + img { margin-left: -0.8rem; }
+#btn-open-social .glass-label { text-align: left; padding-left: 1.25rem; }
+@media (max-width: 400px) {
+  .btn-glass .glass-avatars img { height: 125%; }
+  .btn-glass .glass-avatars img + img { margin-left: -0.6rem; }
+  #btn-open-social .glass-label { padding-left: 0.9rem; }
+}
 /* reflexo especular por cima do boneco = efeito "vidro" */
 .btn-glass::before {
   content: '';
@@ -3886,8 +3912,6 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   user-select: none;
   filter: url(#boil-lg);
 }
-/* os JPG vêm com fundo branco: multiply deixa o branco virar o creme da moldura */
-.social-bot-photo img[src$=".jpg"] { mix-blend-mode: multiply; }
 .social-bot-name {
   display: flex;
   align-items: center;
