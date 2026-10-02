@@ -2795,21 +2795,14 @@ function ensurePartnerIcon() {
   holder.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
   holder.setAttribute('aria-hidden', 'true');
   holder.innerHTML =
-    '<svg xmlns="http://www.w3.org/2000/svg"><symbol id="i-partner" viewBox="0 0 64 48">' +
-    '<g stroke="#0a0a0a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">' +
-    // boneco rosa (atrás, à esquerda)
-    '<rect x="6" y="31" width="22" height="14" rx="4" fill="#ff2e63"/>' +
-    '<rect x="3" y="11" width="26" height="21" rx="6" fill="#ff2e63"/>' +
-    '<circle cx="11" cy="21" r="3.6" fill="#fff8f0" stroke-width="2"/><circle cx="21" cy="21" r="3.6" fill="#fff8f0" stroke-width="2"/>' +
-    '<circle cx="11.6" cy="21.6" r="1.3" fill="#0a0a0a" stroke="none"/><circle cx="21.6" cy="21.6" r="1.3" fill="#0a0a0a" stroke="none"/>' +
-    // boneco azul (na frente, à direita)
-    '<rect x="36" y="31" width="22" height="14" rx="4" fill="#8fd3ff"/>' +
-    '<rect x="33" y="11" width="26" height="21" rx="6" fill="#8fd3ff"/>' +
-    '<circle cx="41" cy="21" r="3.6" fill="#fff8f0" stroke-width="2"/><circle cx="51" cy="21" r="3.6" fill="#fff8f0" stroke-width="2"/>' +
-    '<circle cx="41.6" cy="21.6" r="1.3" fill="#0a0a0a" stroke="none"/><circle cx="51.6" cy="21.6" r="1.3" fill="#0a0a0a" stroke="none"/>' +
-    // coraçãozinho entre os dois
-    '<path d="M32 12 C25 8 26 1.5 30.2 2 C31.4 2.2 32 3.2 32 3.8 C32 3.2 32.6 2.2 33.8 2 C38 1.5 39 8 32 12 Z" fill="#ffd23f" stroke-width="2.6"/>' +
-    '</g></symbol></svg>';
+    '<svg xmlns="http://www.w3.org/2000/svg"><symbol id="i-partner" viewBox="0 0 64 40">' +
+    // pílula amarela (destaca de longe) com duas silhuetas pretas: leitura imediata de "dupla"
+    '<rect x="2" y="2" width="60" height="36" rx="18" fill="#ffd23f" stroke="#0a0a0a" stroke-width="3.4"/>' +
+    '<circle cx="23" cy="14.5" r="5.6" fill="#0a0a0a"/>' +
+    '<path d="M12 33 Q12 22.5 23 22.5 Q34 22.5 34 33 Z" fill="#0a0a0a"/>' +
+    '<circle cx="41" cy="13.5" r="6.4" fill="#0a0a0a" stroke="#ffd23f" stroke-width="2.4"/>' +
+    '<path d="M27.5 34 Q27.5 22 41 22 Q54.5 22 54.5 34 Z" fill="#0a0a0a" stroke="#ffd23f" stroke-width="2.4" stroke-linejoin="round"/>' +
+    '</symbol></svg>';
   document.body.appendChild(holder);
 }
 function setNameEl(el, name, suffix, fx, isBot, isPartner) {
@@ -2821,5 +2814,5 @@ function setNameEl(el, name, suffix, fx, isBot, isPartner) {
   el.dataset.sig = sig;
   if (isPartner) ensurePartnerIcon();
   el.innerHTML = nameFxHtml(name, fx) + (isBot ? '<span class="bot-tag">BOT</span>' : '') + escapeHtml(suffix || '') +
-    (isPartner ? '<svg class="partner-icon" role="img" aria-label="Seu parceiro" viewBox="0 0 64 48"><title>Seu parceiro</title><use href="#i-partner"/></svg>' : '');
+    (isPartner ? '<svg class="partner-icon" role="img" aria-label="Seu parceiro" viewBox="0 0 64 40"><title>Seu parceiro</title><use href="#i-partner"/></svg>' : '');
 }
