@@ -2271,6 +2271,7 @@ function renderState(realState) {
 // pelo servidor depois do clique (aí roda a animação do vira).
 // ------------------------------------------------------------------
 let viraPickEndsAt = 0, viraPickInterval = null, viraPickSent = false;
+let viraPickOrigin = null; // { cx, cy, w, h, t }: onde a carta clicada está na tela (a animação do vira sai dali)
 function updateViraPickUI(state) {
   const box = document.getElementById('vira-pick');
   if (!box) return;
@@ -2289,6 +2290,7 @@ function updateViraPickUI(state) {
   if (box.dataset.key !== key) { // escolha nova: monta (ou limpa) as cartas
     box.dataset.key = key;
     viraPickSent = false;
+    viraPickOrigin = null;
     box.classList.remove('sent');
     cardsEl.innerHTML = '';
     if (mine) {
@@ -2303,6 +2305,12 @@ function updateViraPickUI(state) {
           viraPickSent = true;
           box.classList.add('sent');
           b.classList.add('chosen');
+          // mede a carta já na posição final (sem a transição de 0,18s) pra animação do vira sair exatamente dela
+          b.style.transition = 'none';
+          void b.offsetWidth;
+          const r = b.getBoundingClientRect();
+          viraPickOrigin = { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: r.width, h: r.height, t: performance.now() };
+          b.style.transition = '';
           if (window.GameAudio && GameAudio.cardPlay) { try { GameAudio.cardPlay(0); } catch (e) {} }
           socket.emit('pick_vira', { index: i });
         });
@@ -2495,24 +2503,32 @@ function playViraIntro(card, delayMs) {
   if (!disp || !target || !card || !target.animate) return;
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
+  // Quem clicou na carta: ela mesma vira e vai pro canto (sem fade no meio da tela)
+  const origin = (viraPickOrigin && performance.now() - viraPickOrigin.t < 10000) ? viraPickOrigin : null;
+  viraPickOrigin = null;
+
   disp.classList.add('vira-pending'); // esconde o vira do monte até o clone chegar
   const state = { timer: 0, safety: 0, anims: [], el: null };
   viraIntro = state;
 
-  state.timer = setTimeout(() => {
+  const go = () => {
     if (viraIntro !== state) return;
     const baseW = target.offsetWidth, baseH = target.offsetHeight;
     if (!baseW || !baseH) return viraIntroCleanup();
 
-    // tamanho grande: até ~50% da altura da tela (e 60% da largura)
+    // escala do clone: igual à carta clicada; pra quem só assiste, grande no meio da tela (~50% da altura)
     const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    const S = Math.max(1.5, Math.min(window.innerHeight * 0.5 / baseH, window.innerWidth * 0.6 / baseW, 20 * rem / baseH));
+    const S = origin
+      ? Math.max(0.5, origin.w / baseW)
+      : Math.max(1.5, Math.min(window.innerHeight * 0.5 / baseH, window.innerWidth * 0.6 / baseW, 20 * rem / baseH));
     const W = baseW * S, H = baseH * S;
+    const ox = origin ? origin.cx : window.innerWidth / 2;
+    const oy = origin ? origin.cy : window.innerHeight / 2;
 
     const el = document.createElement('div');
     el.className = 'vira-fly';
     el.setAttribute('aria-hidden', 'true');
-    el.style.cssText = '--s:' + S + ';width:' + W + 'px;height:' + H + 'px;margin:' + (-H / 2) + 'px 0 0 ' + (-W / 2) + 'px;opacity:0';
+    el.style.cssText = '--s:' + S + ';left:' + ox + 'px;top:' + oy + 'px;width:' + W + 'px;height:' + H + 'px;margin:' + (-H / 2) + 'px 0 0 ' + (-W / 2) + 'px';
     const inner = document.createElement('div');
     inner.className = 'vira-fly-inner';
     const back = document.createElement('div');
@@ -2526,18 +2542,21 @@ function playViraIntro(card, delayMs) {
     document.body.appendChild(el);
     state.el = el;
 
-    // destino: centro do vira no monte
+    // destino: centro do vira no monte (canto)
     const tr = target.getBoundingClientRect();
-    const dx = (tr.left + tr.width / 2) - window.innerWidth / 2;
-    const dy = (tr.top + tr.height / 2) - window.innerHeight / 2;
+    const dx = (tr.left + tr.width / 2) - ox;
+    const dy = (tr.top + tr.height / 2) - oy;
 
-    const tFlip = VIRA_FADE_MS + VIRA_HOLD1_MS;
+    // quem clicou: vira na hora. quem assiste: pequeno "pop" (sem fade) e uma pausa com as costas à mostra
+    const tFlip = origin ? 0 : 160 + VIRA_HOLD1_MS;
     const tFly = tFlip + VIRA_FLIP_MS + VIRA_HOLD2_MS;
     const total = tFly + VIRA_FLY_MS;
 
-    state.anims.push(el.animate(
-      [{ opacity: 0, transform: 'scale(0.88)' }, { opacity: 1, transform: 'scale(1)' }],
-      { duration: VIRA_FADE_MS, easing: 'ease-out', fill: 'forwards' }));
+    if (!origin) {
+      state.anims.push(el.animate(
+        [{ transform: 'scale(0.9)' }, { transform: 'scale(1)' }],
+        { duration: 160, easing: 'ease-out', fill: 'backwards' }));
+    }
     state.anims.push(inner.animate(
       [{ transform: 'rotateY(0deg)' }, { transform: 'rotateY(180deg)' }],
       { delay: tFlip, duration: VIRA_FLIP_MS, easing: 'cubic-bezier(.45,0,.25,1)', fill: 'forwards' }));
@@ -2554,7 +2573,11 @@ function playViraIntro(card, delayMs) {
       try { GameAudio.cardDeal((tFlip + VIRA_FLIP_MS * 0.35) / 1000, 0); } catch (e) {}
       try { GameAudio.cardPlay((total - 60) / 1000); } catch (e) {}
     }
-  }, delayMs || 0);
+  };
+
+  // com a carta clicada na tela, começa NA HORA (a caixa de escolha some no mesmo quadro, sem piscar)
+  if (origin && !(delayMs > 0)) go();
+  else state.timer = setTimeout(go, delayMs || 0);
 }
 
 function renderMiniCard(el, card) {
