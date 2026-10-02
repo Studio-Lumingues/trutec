@@ -1012,11 +1012,50 @@ document.getElementById('btn-join').addEventListener('click', joinByCode);
 codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') joinByCode(); });
 
 // Criar sala privada: 1v1 ou 2v2
+// A tela da sala abre NA HORA (sem esperar o servidor) e é preenchida quando a resposta
+// chega. Antes, nada acontecia até o servidor responder — e se ele estivesse "dormindo"
+// (Render grátis) parecia que o botão tinha travado.
+let creatingRoom = false;
 document.querySelectorAll('.create-modes .btn').forEach((btn) => {
   btn.addEventListener('click', () => {
+    if (creatingRoom) return;
+    creatingRoom = true;
     myMode = btn.dataset.mode;
     myName = currentName();
-    socket.emit('create_room', { name: myName, mode: myMode, isPublic: false, character: getSavedCharacter(), stats: window.TruStats ? TruStats.get() : null, theme: window.TruThemes ? TruThemes.current() : null }, enterRoom);
+
+    const codeEl = document.getElementById('waiting-code');
+    const hintEl = document.getElementById('waiting-hint');
+    const startBtn = document.getElementById('btn-start-game');
+    const board = document.getElementById('waiting-players');
+    closeModal(createModal);
+    showScreen('screen-waiting');
+    if (codeEl) codeEl.textContent = '·····';
+    if (board) board.innerHTML = '';
+    if (startBtn) startBtn.classList.add('hidden');
+    if (hintEl) {
+      hintEl.textContent = socket.connected ? 'Criando a sala…' : 'Conectando ao servidor… (na primeira vez pode demorar um pouquinho)';
+      hintEl.classList.remove('hidden');
+    }
+
+    let answered = false;
+    const giveUp = (msg) => {
+      if (answered) return;
+      answered = true; creatingRoom = false;
+      showScreen('screen-lobby');
+      lobbyError(msg);
+    };
+    const timer = setTimeout(() => giveUp('O servidor demorou demais pra responder. Tente de novo.'), 60000);
+
+    socket.emit('create_room', { name: myName, mode: myMode, isPublic: false, character: getSavedCharacter(), stats: window.TruStats ? TruStats.get() : null, theme: window.TruThemes ? TruThemes.current() : null }, (res) => {
+      clearTimeout(timer);
+      if (answered) return;
+      answered = true; creatingRoom = false;
+      if (!res || !res.ok) {
+        showScreen('screen-lobby');
+        return lobbyError((res && res.error) || 'Não foi possível criar a sala.');
+      }
+      enterRoom(res);
+    });
   });
 });
 
