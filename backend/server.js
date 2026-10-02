@@ -137,6 +137,10 @@ const rooms = new Map();
 
 // Mão de 11: quanto tempo a dupla com 11 pontos tem pra ver as cartas uma da outra (ms).
 const PEEK_MS = 10000;
+// Escolha do vira (toda mão): quem deu as cartas escolhe 1 entre VIRA_PICK_COUNT cartas viradas.
+const VIRA_PICK_MS = 10000;    // tempo pra escolher (acabou: o servidor sorteia)
+const VIRA_PICK_COUNT = 3;
+const VIRA_REVEAL_MS = 2600;   // animação do vira na tela antes de liberar a 1ª carta
 // Mão de 11: tempo da votação "às cegas" ou "normal" antes da mão começar (ms).
 const VOTE_MS = 10000;
 
@@ -316,6 +320,11 @@ class Room {
     this._botTimer = null; // timer do bot (ver botKick)
     this.peekTeam = null; // mão de 11: dupla que pode ver as cartas uma da outra
     this.peekUntil = 0; // mão de 11: timestamp (ms) em que a janela de 10s acaba
+    this.viraPickOn = false;  // true enquanto quem deu as cartas escolhe o vira
+    this.viraPickUntil = 0;   // timestamp (ms) em que o tempo de escolha acaba
+    this.viraPickSeat = -1;   // quem escolhe (o dealer)
+    this._viraTimer = null;
+    this._peekAfterPick = null; // mão de 11: dupla que vai poder espiar DEPOIS da escolha do vira
     this._peekTimer = null;
     this.voteOn = false; // mão de ferro (11 x 11): votação aberta pra todos
     this.voteUntil = 0;
@@ -470,6 +479,7 @@ class Room {
     for (const p of this.players) p.hand = [];
     this.vira = null;
     this.manilhaRank = null;
+    this.clearViraPick();
 
     this.leaderSeat = (this.dealerSeat + 1) % n;
     this.turnSeat = this.leaderSeat;
@@ -483,8 +493,8 @@ class Room {
     if (this.mode === '2v2' && n === 4) {
       const t11 = [0, 1].filter(t => this.score[t] === 11);
       if (t11.length === 2 && this.startVote()) return; // cartas vêm depois do voto
+      if (t11.length === 1) this._peekAfterPick = t11[0];   // o peek de 10s começa depois que o vira for escolhido
       this.dealCards();
-      if (t11.length === 1) this.startPeek(t11[0]);
       return;
     }
     this.dealCards();
@@ -496,8 +506,55 @@ class Room {
     for (let i = 0; i < 3; i++) {
       for (const p of this.players) p.hand.push(this.deck.pop());
     }
-    this.vira = this.deck.pop();
+    this.vira = null;            // o vira só é revelado depois da escolha (startViraPick)
+    this.manilhaRank = null;
+    this.startViraPick();
+  }
+
+  // O dealer vê VIRA_PICK_COUNT cartas viradas e clica numa; os outros veem o aviso. As opções
+  // são as cartas do topo do monte (já embaralhado), então escolher qualquer uma é igual.
+  startViraPick() {
+    this.clearViraPick(true);   // true = mantém o peek da mão de 11 que está esperando o vira
+    const n = this.players.length;
+    const seat = this.dealerSeat >= 0 ? this.dealerSeat % n : n - 1;
+    const dealer = this.playerBySeat(seat);
+    const live = this.players.some(p => !p.isBot && p.connected);
+    if (!live || !dealer) {                       // ninguém pra assistir (ex.: só bots): escolhe na hora
+      this.finishViraPick(Math.floor(Math.random() * VIRA_PICK_COUNT), false);
+      return;
+    }
+    this.viraPickOn = true;
+    this.viraPickSeat = seat;
+    this.viraPickUntil = Date.now() + VIRA_PICK_MS;
+    // bot "pensa" um pouquinho; humano tem os 10s (e se estourar, sorteia)
+    const wait = dealer.isBot ? 1500 + Math.random() * 1800 : VIRA_PICK_MS;
+    const code = this.code;
+    this._viraTimer = setTimeout(() => {
+      this._viraTimer = null;
+      if (rooms.get(code) !== this || !this.viraPickOn) return;
+      this.finishViraPick(Math.floor(Math.random() * VIRA_PICK_COUNT), true);
+    }, wait);
+  }
+
+  finishViraPick(index, doBroadcast) {
+    if (this._viraTimer) { clearTimeout(this._viraTimer); this._viraTimer = null; }
+    let i = Number(index);
+    if (!Number.isInteger(i) || i < 0 || i >= VIRA_PICK_COUNT || i >= this.deck.length) i = 0;
+    this.vira = this.deck.splice(this.deck.length - 1 - i, 1)[0];
     this.manilhaRank = manilhaRankFromVira(this.vira.rank);
+    this.viraPickOn = false; this.viraPickUntil = 0; this.viraPickSeat = -1;
+    this.nextPlayAt = Date.now() + VIRA_REVEAL_MS;   // dá tempo da animação do vira antes da 1ª carta
+    if (this._peekAfterPick !== null) {              // mão de 11: agora sim abre a janela de espiar
+      const team = this._peekAfterPick; this._peekAfterPick = null;
+      this.startPeek(team);
+    }
+    if (doBroadcast) this.broadcastState(io);
+  }
+
+  clearViraPick(keepPeek) {
+    if (this._viraTimer) { clearTimeout(this._viraTimer); this._viraTimer = null; }
+    this.viraPickOn = false; this.viraPickUntil = 0; this.viraPickSeat = -1;
+    if (!keepPeek) this._peekAfterPick = null;
   }
 
   startVote() {
@@ -559,7 +616,7 @@ class Room {
 
   // qualquer fase da mão de 11 que trava as jogadas (votação ou peek)
   holdActive() {
-    return this.voteOn || this.peekActive();
+    return this.voteOn || this.peekActive() || this.viraPickOn;
   }
 
   peekActive() {
@@ -794,6 +851,8 @@ class Room {
         myVote: this._votes[viewerSeat] || null,
         votes: this.voteTally()
       } : undefined,
+      // escolha do vira: quem escolhe (seat), quanto tempo falta e quantas cartas viradas mostrar
+      viraPick: this.viraPickOn ? { seat: this.viraPickSeat, msLeft: Math.max(0, this.viraPickUntil - Date.now()), count: VIRA_PICK_COUNT } : undefined,
       blind: this.blind,
       code: this.code,
       mode: this.mode,
@@ -1000,6 +1059,7 @@ function resetRoomToLobby(r) {
   r.readySeats = new Set(); r.characterPhaseEndsAt = 0;
   r.busy = false; r.handOver = false; r.nextPlayAt = 0; r.queuedPlay = false;
   r.clearPeek();
+  r.clearViraPick();
 
   r.players.forEach(p => { if (!p.isBot) io.to(p.id).emit('back_to_room', { seat: p.seat }); });
   io.to(r.code).emit('lobby_update', r.lobbyState());
@@ -1761,6 +1821,23 @@ io.on('connection', (socket) => {
         r.broadcastState(io);
       }
     }, 1800);
+  });
+
+  // Quem deu as cartas clicou numa das cartas viradas: revela o vira e libera a mão.
+  socket.on('pick_vira', ({ index } = {}) => {
+    const r = room();
+    if (!r || !r.viraPickOn) return;
+    const me = r.playerBySocket(socket.id);
+    if (!me || me.seat !== r.viraPickSeat) return;      // só quem está escolhendo
+    r.finishViraPick(index, true);
+  });
+
+  // Ao abrir o site com uma sala salva: ela ainda existe e o meu lugar continua lá?
+  socket.on('check_session', ({ code, token } = {}, cb) => {
+    if (typeof cb !== 'function') return;
+    const r = rooms.get(String(code || '').toUpperCase());
+    const p = r && token ? r.players.find(x => x.token === token) : null;
+    cb({ ok: !!p });
   });
 
   // Escolha do vira: o cursor/hover/clique de quem escolhe aparece pros outros da sala.
