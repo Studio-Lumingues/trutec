@@ -959,7 +959,6 @@ function getSavedCharacter() {
     editingSlot = activeSlot;
     const it = slots[activeSlot];
     if (it.draw) { setSkin(it.skin || DEFAULT_SKIN); loadDrawing(it.draw); }
-    saveMsg.textContent = 'Você já tem um avatar salvo.';
     const previewImg = document.getElementById('character-preview-img');
     if (previewImg) previewImg.src = it.img;
     try { localStorage.setItem('trutec_meu_personagem', it.img); } catch (e) {}
