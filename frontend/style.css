@@ -3750,7 +3750,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 /* ---------------------------------------------------------------- */
 /* Tela SOCIAL: mesmo painel do editor de avatar (xadrez girando),   */
 /* aba "Social" em controle de vidro e os 3 bots lado a lado.        */
-/* Celular: os bots ficam um sobre o outro.                          */
+/* Celular: os bots continuam lado a lado (só ficam menores).        */
 /* ---------------------------------------------------------------- */
 #screen-social.screen {
   align-items: flex-start;
@@ -3845,59 +3845,63 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 .social-tab-btn.active { color: #040303; text-shadow: none; }
 
-/* os 3 bots */
+/* os 3 bots: lado a lado dentro de UMA moldura creme, igual à do editor de
+   avatar (fundo #fff8f0, borda arredondada, traço "tremendo" do boil-lg). */
 .social-panel-body { animation: tabPanelIn 0.4s ease both; }
 .social-bots {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem;
-  align-items: start;
-}
-.social-bot {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border-radius: 1.4rem;
-  background: linear-gradient(145deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.09) 100%);
-  border: 1px solid rgba(255,255,255,0.4);
-  -webkit-backdrop-filter: blur(0.6rem) saturate(1.6);
-  backdrop-filter: blur(0.6rem) saturate(1.6);
-  box-shadow: 0 1rem 2rem rgba(0,0,0,0.4);
-}
-.social-bot-photo {
   position: relative;
-  aspect-ratio: 1 / 1;
+  isolation: isolate;               /* o multiply das fotos mistura só com o creme */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(0.25rem, 2vw, 1.5rem);
+  width: min(52rem, 100%);
+  margin: 0 auto;
+  padding: clamp(0.5rem, 2vw, 1.25rem) clamp(0.25rem, 2vw, 1.25rem) 0;
   border-radius: 1.125rem;
   overflow: hidden;
   background: #fff8f0;
   border: 1px solid rgba(255,255,255,0.2);
+}
+.social-bot {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.social-bot-photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
 }
 .social-bot-photo img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center top;
+  object-fit: contain;
+  object-position: center bottom;
   pointer-events: none;
   user-select: none;
   filter: url(#boil-lg);
 }
+/* os JPG vêm com fundo branco: multiply deixa o branco virar o creme da moldura */
+.social-bot-photo img[src$=".jpg"] { mix-blend-mode: multiply; }
 .social-bot-name {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  font-size: 1.3rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.6rem 0 0.8rem;
+  font-size: clamp(0.95rem, 2.6vw, 1.3rem);
   font-weight: 700;
-  color: var(--cream);
-  text-shadow: 0 1px 0.4rem rgba(0,0,0,0.5);
+  color: #0a0a0a;
 }
+.social-bot-name .bot-tag { margin-left: 0; background: #0a0a0a; color: #fff8f0; }
 #screen-social .character-back-btn { margin-top: 1.25rem; }
 
 @media (max-width: 700px) {
   #screen-social .character-panel-wide { padding: 1rem 1rem 1.25rem; }
-  .social-bots { grid-template-columns: 1fr; gap: 1rem; }
-  .social-bot { width: min(18rem, 100%); margin: 0 auto; }
 }
