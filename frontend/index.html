@@ -594,6 +594,40 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <!-- ===================== TELA: SOCIAL ===================== -->
   <div id="screen-social" class="screen">
     <button type="button" id="btn-close-social" class="btn btn-ghost btn-back-arrow social-back" aria-label="Voltar" title="Voltar"><svg class="ic ic-only" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
+
+    <div class="social-panel">
+      <h2 class="social-title">Social</h2>
+      <form class="social-search" id="social-search" autocomplete="off">
+        <label class="social-input" for="social-input">
+          <span class="social-at" aria-hidden="true">@</span>
+          <input id="social-input" maxlength="17" placeholder="Procurar jogador" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" aria-label="Procurar jogador pelo @" />
+        </label>
+        <button type="submit" id="social-go" class="btn btn-primary social-go">Buscar</button>
+      </form>
+      <p class="social-msg" id="social-msg" role="status" aria-live="polite">Digite o @ de alguém pra ver o perfil.</p>
+
+      <!-- preenchido pelo social.js quando a busca acha alguém -->
+      <div class="social-profile hidden" id="social-profile">
+        <div class="sp-top">
+          <div class="sp-checker" aria-hidden="true"></div>
+          <img id="sp-avatar" class="sp-avatar" alt="" draggable="false" />
+        </div>
+        <div class="sp-body">
+          <h3 class="sp-handle" id="sp-handle"></h3>
+          <div class="sp-since" id="sp-since"></div>
+          <div class="sp-stats">
+            <div class="sp-stat"><b id="sp-wins">0</b><span>Vitórias</span></div>
+            <div class="sp-stat"><b id="sp-losses">0</b><span>Derrotas</span></div>
+            <div class="sp-stat"><b id="sp-rate">—</b><span>Aproveit.</span></div>
+          </div>
+          <div class="sp-collection" id="sp-collection-wrap" hidden>
+            <div class="sp-collection-title">Coleção</div>
+            <div class="sp-slots" id="sp-slots" role="group" aria-label="Coleção de bonecos"></div>
+          </div>
+          <button type="button" id="sp-copy" class="btn btn-secondary sp-copy">Copiar link do perfil</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ===================== TELA: SALA DE ESPERA ===================== -->
