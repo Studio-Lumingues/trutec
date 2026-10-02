@@ -1136,7 +1136,6 @@ function handleLobbyUpdate(lobby) {
   smoothCardResize(() => renderLobby(lobby));
 }
 function renderLobby(lobby) {
-  pruneBadgeAngles(lobby);
   const revealBase = setRoomCode(lobby.code); // ms de espera se o código é novo (anima), 0 se já estava na tela
   currentRoomCodeForCopy = lobby.code;
   const wrap = document.getElementById('waiting-players');
@@ -1250,45 +1249,12 @@ function autoBalanceTeams(lobby) {
   }
 }
 
-// Crachá "Olá, eu sou..." de cada jogador na sala de espera.
-// Cada jogador ganha uma inclinação aleatória, sorteada UMA vez (a sala é redesenhada
-// a cada atualização, então guardamos o ângulo pra ele não mudar toda hora) e
-// diferente das inclinações dos outros crachás que estão na tela.
-const badgeRot = new Map();
-function badgeKey(p) { return p.seat + '|' + p.name; }
-function badgeAngle(p) {
-  const key = badgeKey(p);
-  if (badgeRot.has(key)) return badgeRot.get(key);
-  const used = Array.from(badgeRot.values());
-  let a, tries = 0;
-  do {
-    a = (2 + Math.random() * 4.5) * (Math.random() < 0.5 ? -1 : 1);   // de 2° a 6,5°, pra esquerda ou direita
-    tries++;
-  } while (tries < 30 && used.some(u => Math.abs(u - a) < 2.5));
-  a = Math.round(a * 10) / 10;
-  badgeRot.set(key, a);
-  return a;
-}
-function pruneBadgeAngles(lobby) {
-  const live = new Set(lobby.players.map(badgeKey));
-  Array.from(badgeRot.keys()).forEach(k => { if (!live.has(k)) badgeRot.delete(k); });
-}
-function lobbyBadgeHtml(p) {
-  const name = (p.name === undefined || p.name === null || String(p.name).trim() === '') ? 'Jogador' : p.name;
-  const n = String(name).length;
-  const fs = n <= 7 ? 1.5 : n <= 10 ? 1.3 : n <= 13 ? 1.1 : 0.95;   // nome comprido = letra menor
-  return `<div class="lobby-badge" style="--rot:${badgeAngle(p)}deg;--lb-fs:${fs}rem">
-    <div class="lb-head"><span class="lb-hello">Olá,</span><span class="lb-iam">eu sou...</span>${p.seat === 0 ? '<span class="lb-crown">' + ICON('crown', true) + '</span>' : ''}</div>
-    <div class="lb-field"><span class="wp-name lb-name">${nameFxHtml(name, p.nameFx)}${p.connected ? '' : ' (saiu)'}</span></div>
-  </div>`;
-}
-
 function playerCardHtml(p, draggable, slot) {
   const avatarSrc = p.character || 'assets/personagem.svg';
   return `
     <div class="team-card${draggable ? ' team-card-draggable' : ''}" data-seat="${p.seat}" data-slot="${slot}">
       <div class="wp-avatar"><img src="${avatarSrc}" alt="" draggable="false" /></div>
-      ${lobbyBadgeHtml(p)}
+      <span class="wp-name">${nameFxHtml(p.name, p.nameFx)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
       ${p.isBot && draggable ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}
       ${!p.isBot && p.seat !== 0 && draggable ? '<button type="button" class="bot-remove-btn kick-btn" title="Expulsar da sala" aria-label="Expulsar da sala">' + ICON('exit') + 'Expulsar</button>' : ''}
     </div>
@@ -1353,7 +1319,7 @@ function renderClassicList(lobby, canEdit) {
       row.innerHTML = `
         <div class="wp-avatar"><img src="${avatarSrc}" alt="" draggable="false" /></div>
         <div class="wp-info">
-          ${lobbyBadgeHtml(p)}
+          <span class="wp-name">${nameFxHtml(p.name, p.nameFx)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
           <span class="wp-team">Time ${p.team + 1}</span>
         </div>
         ${p.isBot && canEdit ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}
