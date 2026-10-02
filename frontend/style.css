@@ -2999,3 +2999,46 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 
 /* Posição (em cima / embaixo) sob o mouse enquanto arrasta um jogador */
 .team-slot-hover { outline: 2px dashed var(--gold-bright); outline-offset: 2px; }
+
+
+/* ---------------------------------------------------------------- */
+/* Sala de espera: entrada animada (card cresce, código letra a letra) */
+/* ---------------------------------------------------------------- */
+.room-code .rc-letter { display: inline-block; }
+.room-code.pending { display: inline-block; animation: rcPending 1s ease-in-out infinite; }
+
+@keyframes wrCardGrow {
+  from { opacity: 0; transform: scale(.82) translateY(1.5rem); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes wrFadeUp {
+  from { opacity: 0; transform: translateY(.75rem); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes wrLetter {
+  0%   { opacity: 0; transform: scale(0) rotate(-14deg); }
+  60%  { opacity: 1; transform: scale(1.35) rotate(4deg); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes wrPop {
+  from { opacity: 0; transform: scale(.9) translateY(.6rem); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes wrGlow {
+  0%, 100% { text-shadow: 0 0 0 rgba(255,214,120,0); }
+  40%      { text-shadow: 0 0 .9rem rgba(255,214,120,.85); }
+}
+@keyframes rcPending { 50% { opacity: .35; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  #screen-waiting.active .lobby-card {
+    animation: wrCardGrow .6s cubic-bezier(.2, .9, .3, 1.1) backwards;
+  }
+  #screen-waiting.active .waiting-title { animation: wrFadeUp .45s ease-out .25s backwards; }
+  #screen-waiting.active .room-code-box { animation: wrFadeUp .5s ease-out .35s backwards; }
+  #screen-waiting.active .tagline       { animation: wrFadeUp .45s ease-out .55s backwards; }
+  .room-code .rc-letter { animation: wrLetter .55s cubic-bezier(.3, 1.4, .5, 1) backwards; }
+  .room-code.reveal { animation: wrGlow 1s ease-out var(--glow-delay, 0s) 1; }
+  .wr-pop { animation: wrPop .45s cubic-bezier(.3, 1.3, .5, 1) backwards; }
+}

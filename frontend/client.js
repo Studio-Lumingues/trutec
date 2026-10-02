@@ -259,7 +259,10 @@ setTimeout(showReconnectOffer, 900);
 // ------------------------------------------------------------------
 // Navegação de telas
 // ------------------------------------------------------------------
+let waitingShownAt = 0;   // quando a sala de espera abriu (pra sincronizar a animação do código)
+let shownRoomCode = null; // código que já está na tela (só anima quando muda)
 function showScreen(id) {
+  if (id === 'screen-waiting') waitingShownAt = performance.now();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if (window.GameAudio) GameAudio.onScreen(id);
@@ -1029,7 +1032,7 @@ document.querySelectorAll('.create-modes .btn').forEach((btn) => {
     const board = document.getElementById('waiting-players');
     closeModal(createModal);
     showScreen('screen-waiting');
-    if (codeEl) codeEl.textContent = '·····';
+    if (codeEl) setRoomCodePending();
     if (board) board.innerHTML = '';
     if (startBtn) startBtn.classList.add('hidden');
     if (hintEl) {
@@ -1067,11 +1070,45 @@ document.getElementById('btn-leave-waiting').addEventListener('click', () => {
 // ------------------------------------------------------------------
 // SALA DE ESPERA
 // ------------------------------------------------------------------
+// Código da sala: cada letra vira um <span> que "cresce" uma por uma.
+function setRoomCodePending() {
+  const el = document.getElementById('waiting-code');
+  shownRoomCode = null;
+  el.classList.add('pending');
+  el.removeAttribute('role'); el.removeAttribute('aria-label');
+  el.textContent = '·····';
+}
+// devolve o atraso inicial (ms) se animou, ou 0 se o código já estava na tela
+function setRoomCode(code) {
+  const el = document.getElementById('waiting-code');
+  if (!code || code === shownRoomCode) return 0;
+  shownRoomCode = code;
+  el.classList.remove('pending');
+  el.setAttribute('role', 'img');
+  el.setAttribute('aria-label', 'Código da sala: ' + code);
+  // se a tela acabou de abrir, espera o card terminar de crescer antes das letras
+  const base = performance.now() - waitingShownAt < 700 ? 450 : 80;
+  const STEP = 130;
+  el.textContent = '';
+  Array.from(code).forEach((ch, i) => {
+    const sp = document.createElement('span');
+    sp.className = 'rc-letter';
+    sp.setAttribute('aria-hidden', 'true');
+    sp.textContent = ch;
+    sp.style.animationDelay = (base + i * STEP) + 'ms';
+    el.appendChild(sp);
+  });
+  // brilho no código quando a última letra termina de aparecer
+  el.style.setProperty('--glow-delay', (base + code.length * STEP) + 'ms');
+  el.classList.remove('reveal'); void el.offsetWidth; el.classList.add('reveal');
+  return base;
+}
+
 let teamSwapBusy = 0;          // >0 enquanto uma substituição (2 pedidos ao servidor) está em andamento
 let deferredLobby = null;      // lobby_update recebido nesse meio tempo
 function handleLobbyUpdate(lobby) {
   if (teamSwapBusy > 0) { deferredLobby = lobby; return; }
-  document.getElementById('waiting-code').textContent = lobby.code;
+  const revealBase = setRoomCode(lobby.code); // ms de espera se o código é novo (anima), 0 se já estava na tela
   currentRoomCodeForCopy = lobby.code;
   const wrap = document.getElementById('waiting-players');
   wrap.innerHTML = '';
@@ -1090,6 +1127,14 @@ function handleLobbyUpdate(lobby) {
     wrap.appendChild(renderTeamsBoard(lobby, canEditTeams));
   } else {
     wrap.appendChild(renderClassicList(lobby, isHost && !lobby.started));
+  }
+
+  // sala acabou de aparecer: jogadores/duplas entram um depois do outro
+  if (revealBase) {
+    wrap.querySelectorAll('.wp-row, .team-column').forEach((el, i) => {
+      el.classList.add('wr-pop');
+      el.style.animationDelay = (revealBase + 400 + i * 100) + 'ms';
+    });
   }
 
   updateStartButton(lobby);
