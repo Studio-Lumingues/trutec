@@ -2,14 +2,22 @@
 // EFEITO DE "ABRIR" (botões Avatar e Social da tela inicial)
 // Em vez de a tela nova aparecer do nada, ela se abre a partir do botão clicado:
 // um círculo cresce do centro do botão até cobrir tudo (clip-path), com um
-// pequeno zoom. A tela inicial fica visível por baixo durante o efeito.
+// pequeno zoom. Na borda do círculo vai um anel líquido: ondulado (distorção)
+// e com as cores separadas em vermelho/verde/azul (aberração RGB). A tela inicial
+// fica visível por baixo durante o efeito.
 // Funciona sem mexer no showScreen(): um MutationObserver percebe quando a tela
 // vira .active e, se ela foi aberta por um desses botões, anima.
-// Ajustes: DURATION (ms) e EASING. Respeita "reduzir movimento".
+// Ajustes: DURATION (ms), EASING e os valores do anel (RING_*). Respeita "reduzir movimento".
 // ============================================================================
 (function () {
-  var DURATION = 600;
+  var DURATION = 700;
   var EASING = 'cubic-bezier(.22,.8,.2,1)';
+  var RING_BASE = 700;       // px do anel desenhado (ele é só ampliado depois: barato)
+  var RING_CENTER = 0.84;    // onde, no raio do anel, fica o centro das cores (a borda do círculo)
+  var RING_BG =              // bandas R / G / B em volta da borda (de dentro pra fora)
+    'radial-gradient(circle closest-side, transparent 0, transparent 68%,' +
+    ' rgba(255,40,90,0) 72%, rgba(255,40,90,.75) 78%, rgba(70,255,130,.7) 84%,' +
+    ' rgba(60,110,255,.75) 90%, rgba(60,110,255,0) 96%, transparent 100%)';
 
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduced || !Element.prototype.animate) return;
@@ -55,10 +63,27 @@
     screen.style.width = '100%';
     screen.style.height = '100dvh';
 
+    // anel RGB ondulado na borda do círculo (cresce junto com ele)
+    var ring = document.createElement('div');
+    ring.setAttribute('aria-hidden', 'true');
+    ring.style.cssText = 'position:fixed;pointer-events:none;z-index:61;border-radius:50%;will-change:transform,opacity;' +
+      'mix-blend-mode:screen;filter:url(#ring-wobble);' +
+      'left:' + (x - RING_BASE / 2) + 'px;top:' + (y - RING_BASE / 2) + 'px;' +
+      'width:' + RING_BASE + 'px;height:' + RING_BASE + 'px;background:' + RING_BG;
+    document.body.appendChild(ring);
+    var S = R / (RING_BASE / 2 * RING_CENTER);   // escala final: o centro das cores acompanha a borda
+
     function done() {
       screen.style.cssText = prev;
       if (lobby) lobby.classList.remove('screen-keep');
+      if (ring.parentNode) ring.parentNode.removeChild(ring);
     }
+
+    ring.animate([
+      { transform: 'scale(0) rotate(0deg)', opacity: 0 },
+      { transform: 'scale(' + (S * 0.15) + ') rotate(10deg)', opacity: 1, offset: 0.15 },
+      { transform: 'scale(' + S + ') rotate(80deg)', opacity: 0 }
+    ], { duration: DURATION, easing: EASING });
 
     var anim = screen.animate([
       { clipPath: 'circle(0px at ' + x + 'px ' + y + 'px)', transform: 'scale(0.94)', opacity: 0.4 },
