@@ -10,8 +10,7 @@ const crypto = require('crypto');
 const cors = require('cors');
 const { Server } = require('socket.io');
 const createBot = require('./bot');
-const createBotChat = require('./bot-chat');
-const BOT_AVATARS = require('./bot-avatars');
+const db = require('./db');
 
 const app = express();
 const server = http.createServer(app);
@@ -44,6 +43,67 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 3000;
+
+// ---------------------------------------------------------------------------
+// CONTAS (Google via Supabase) — API REST. O navegador manda o token do
+// Supabase em "Authorization: Bearer ..."; só este servidor fala com o banco.
+// ---------------------------------------------------------------------------
+app.set('trust proxy', 1);
+app.use(express.json({ limit: '600kb' }));
+
+const hits = new Map(); // limite simples por IP: 40 pedidos/min em /api
+app.use('/api', (req, res, next) => {
+  const k = req.ip, now = Date.now();
+  let h = hits.get(k);
+  if (!h || h.reset < now) { h = { n: 0, reset: now + 60000 }; hits.set(k, h); }
+  if (++h.n > 40) return res.status(429).json({ ok: false, error: 'Calma! Muitos pedidos, tente em instantes.' });
+  if (hits.size > 5000) hits.clear();
+  next();
+});
+app.use('/api', (req, res, next) => {
+  if (!db.enabled) return res.status(503).json({ ok: false, error: 'Contas não estão ativadas neste servidor.' });
+  next();
+});
+async function userOf(req) {
+  const h = req.headers.authorization || '';
+  return h.startsWith('Bearer ') ? db.verify(h.slice(7)) : null;
+}
+const wrap = (fn) => (req, res) => fn(req, res).catch((e) => { console.error('[api]', e && e.message); res.status(500).json({ ok: false, error: 'Erro no servidor.' }); });
+
+app.get('/api/me', wrap(async (req, res) => {
+  const u = await userOf(req);
+  if (!u) return res.status(401).json({ ok: false, error: 'Faça login.' });
+  res.json({ ok: true, profile: await db.byId(u.id) }); // profile = null => ainda não escolheu o @
+}));
+
+app.post('/api/profile', wrap(async (req, res) => {
+  const u = await userOf(req);
+  if (!u) return res.status(401).json({ ok: false, error: 'Faça login.' });
+  const handle = db.normHandle(req.body && req.body.handle);
+  const bad = db.checkHandle(handle);
+  if (bad) return res.status(400).json({ ok: false, error: bad });
+  const r = await db.create(u.id, handle);
+  if (r.error) return res.status(409).json({ ok: false, error: r.error });
+  res.json({ ok: true, profile: r.profile });
+}));
+
+app.put('/api/me/character', wrap(async (req, res) => {
+  const u = await userOf(req);
+  if (!u) return res.status(401).json({ ok: false, error: 'Faça login.' });
+  const ch = sanitizeCharacter(req.body && req.body.character);
+  if (!ch) return res.status(400).json({ ok: false, error: 'Avatar inválido.' });
+  await db.setCharacter(u.id, ch);
+  res.json({ ok: true });
+}));
+
+app.get('/api/profile/:handle', wrap(async (req, res) => {
+  const handle = db.normHandle(req.params.handle);
+  if (!/^[a-z0-9_]{3,16}$/.test(handle)) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });
+  const p = await db.byHandle(handle);
+  if (!p) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });
+  delete p.id; // público: nunca expõe o id interno nem e-mail
+  res.json({ ok: true, profile: p });
+}));
 
 // Serve os arquivos estáticos do frontend só como conveniência para testar
 // localmente sem precisar rodar dois servidores. Em produção o frontend fica
@@ -79,7 +139,6 @@ const rooms = new Map();
 const PEEK_MS = 10000;
 // Mão de 11: tempo da votação "às cegas" ou "normal" antes da mão começar (ms).
 const VOTE_MS = 10000;
-const VIRA_PICK_MS = 15000; // tempo pra quem deu as cartas escolher o vira (acabou: sorteia)
 
 function genRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -259,12 +318,6 @@ class Room {
     this._peekTimer = null;
     this.voteOn = false; // mão de ferro (11 x 11): votação aberta pra todos
     this.voteUntil = 0;
-    this.viraPickOn = false; // toda mão: quem deu as cartas escolhe o vira entre 3 cartas viradas
-    this.viraPickSeat = -1;
-    this.viraPickUntil = 0;
-    this._viraOpts = []; // as 3 cartas oferecidas (só o servidor sabe quais são)
-    this._viraPickTimer = null;
-    this._peekAfterPick = null; // mão de 11: dupla que faz o peek logo depois do vira escolhido
     this._votes = {}; // seat -> 'cegas' | 'normal'
     this._voteTimer = null;
     this.blind = false; // mão de ferro: todo mundo joga às cegas (ninguém vê as próprias cartas)
@@ -330,8 +383,8 @@ class Room {
       canStart: !this.started && this.players.length === this.maxPlayers && this.teamsReady(),
       teamsReady: this.teamsReady(),
       players: this.players.map(p => ({
-        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: shownCharacter(p), nameFx: fxOf(p), isBot: !!p.isBot, persona: p.persona || null,
-        theme: p.theme || null, stats: p.stats || null
+        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: shownCharacter(p), nameFx: fxOf(p), isBot: !!p.isBot,
+        theme: p.theme || null, stats: p.stats || null, handle: p.handle || null
       }))
     };
   }
@@ -401,8 +454,7 @@ class Room {
     this.vira = null;
     this.manilhaRank = null;
 
-    // a vez anda pra DIREITA (sentido anti-horário na tela): abre quem está à direita de quem deu
-    this.leaderSeat = (this.dealerSeat + n - 1) % n;
+    this.leaderSeat = (this.dealerSeat + 1) % n;
     this.turnSeat = this.leaderSeat;
 
     // Mão de 11 (só 2v2):
@@ -414,8 +466,8 @@ class Room {
     if (this.mode === '2v2' && n === 4) {
       const t11 = [0, 1].filter(t => this.score[t] === 11);
       if (t11.length === 2 && this.startVote()) return; // cartas vêm depois do voto
-      if (t11.length === 1) this._peekAfterPick = t11[0]; // o peek começa depois que o vira for escolhido
       this.dealCards();
+      if (t11.length === 1) this.startPeek(t11[0]);
       return;
     }
     this.dealCards();
@@ -427,46 +479,8 @@ class Room {
     for (let i = 0; i < 3; i++) {
       for (const p of this.players) p.hand.push(this.deck.pop());
     }
-    // o vira NÃO sai direto do baralho: quem deu as cartas escolhe entre 3 viradas
-    this.vira = null;
-    this.manilhaRank = null;
-    this.beginViraPick();
-  }
-
-  // Separa 3 cartas viradas do baralho; quem deu as cartas (dealerSeat) escolhe uma
-  // delas pra ser o vira. Bot / jogador desconectado escolhe sozinho em instantes;
-  // humano tem VIRA_PICK_MS e, se o tempo acabar, a carta é sorteada.
-  beginViraPick() {
-    this._viraOpts = [this.deck.pop(), this.deck.pop(), this.deck.pop()];
-    this.viraPickOn = true;
-    this.viraPickSeat = this.dealerSeat;
-    const picker = this.playerBySeat(this.viraPickSeat);
-    const auto = !picker || picker.isBot || !picker.connected;
-    const ms = auto ? 1500 + Math.floor(Math.random() * 1200) : VIRA_PICK_MS;
-    this.viraPickUntil = Date.now() + ms;
-    const code = this.code;
-    if (this._viraPickTimer) clearTimeout(this._viraPickTimer);
-    this._viraPickTimer = setTimeout(() => {
-      this._viraPickTimer = null;
-      if (rooms.get(code) !== this) return;
-      this.resolveViraPick(-1, true);
-    }, ms);
-  }
-
-  // index 0..2 = carta escolhida; qualquer outro valor = sorteia.
-  resolveViraPick(index, doBroadcast) {
-    if (!this.viraPickOn) return false;
-    if (this._viraPickTimer) { clearTimeout(this._viraPickTimer); this._viraPickTimer = null; }
-    const opts = this._viraOpts;
-    const i = (Number.isInteger(index) && index >= 0 && index < opts.length)
-      ? index : Math.floor(Math.random() * opts.length);
-    this.vira = opts[i];
+    this.vira = this.deck.pop();
     this.manilhaRank = manilhaRankFromVira(this.vira.rank);
-    this.viraPickOn = false; this.viraPickSeat = -1; this.viraPickUntil = 0; this._viraOpts = [];
-    const peekTeam = this._peekAfterPick; this._peekAfterPick = null;
-    if (peekTeam !== null) this.startPeek(peekTeam);
-    if (doBroadcast !== false) this.broadcastState(io);
-    return true;
   }
 
   startVote() {
@@ -528,7 +542,7 @@ class Room {
 
   // qualquer fase da mão de 11 que trava as jogadas (votação ou peek)
   holdActive() {
-    return this.voteOn || this.viraPickOn || this.peekActive();
+    return this.voteOn || this.peekActive();
   }
 
   peekActive() {
@@ -541,14 +555,11 @@ class Room {
     this.peekUntil = 0;
     if (this._voteTimer) { clearTimeout(this._voteTimer); this._voteTimer = null; }
     this.voteOn = false; this.voteUntil = 0; this._votes = {};
-    if (this._viraPickTimer) { clearTimeout(this._viraPickTimer); this._viraPickTimer = null; }
-    this.viraPickOn = false; this.viraPickSeat = -1; this.viraPickUntil = 0; this._viraOpts = []; this._peekAfterPick = null;
     this.blind = false;
   }
 
   advanceDealer() {
-    const nPl = this.players.length; // quem dá as cartas também passa pra direita
-    this.dealerSeat = (this.dealerSeat + nPl - 1) % nPl;
+    this.dealerSeat = (this.dealerSeat + 1) % this.players.length;
   }
 
   currentTrickIndex() {
@@ -560,9 +571,6 @@ class Room {
     const player = this.playerBySeat(seat);
     const idx = player.hand.findIndex(c => c.id === cardId);
     if (idx === -1) return { error: 'Carta não encontrada na mão.' };
-    if (this.melouActive() && !this.melouAllowedIds(seat).includes(cardId)) {
-      return { error: 'Melou! Você só pode jogar a sua maior carta.' };
-    }
     const [card] = player.hand.splice(idx, 1);
     this.table.push({ seat, card, hidden: !!hidden });
     if (hidden) this.hiddenCardBySeat[seat] = true;
@@ -572,25 +580,8 @@ class Room {
     if (playedThisTrick >= n) {
       return this.resolveTrick();
     }
-    this.turnSeat = (seat + n - 1) % n; // próximo a jogar = o da direita (mesmo que recebe o truco)
+    this.turnSeat = (seat + 1) % n;
     return { ok: true };
-  }
-
-  // Melou: todas as vazas até agora empataram e todo mundo ainda tem carta.
-  // Nesse caso cada um é obrigado a jogar a sua maior carta (às cegas não restringe,
-  // porque o jogador nem sabe quais são as cartas).
-  melouActive() {
-    return !this.blind && this.tricks.length >= 1 && this.tricks.every(t => t.tie)
-      && this.players.every(p => p.hand.length > 0);
-  }
-
-  // ids das cartas que o jogador pode jogar no melou (as de maior força; empatadas valem todas)
-  melouAllowedIds(seat) {
-    const p = this.playerBySeat(seat);
-    if (!p || !p.hand.length) return [];
-    let max = -1;
-    for (const c of p.hand) max = Math.max(max, cardStrength(c, this.manilhaRank));
-    return p.hand.filter(c => cardStrength(c, this.manilhaRank) === max).map(c => c.id);
   }
 
   trickStartIndex() {
@@ -618,9 +609,32 @@ class Room {
       if (!t.tie && t.winnerTeam !== null) wins[t.winnerTeam]++;
     }
 
-    // MELOU (vaza empatada, ninguém ganhou ainda): NÃO é mais automático. A mão segue
-    // normalmente, mas cada jogador só pode jogar a sua MAIOR carta (ver melouActive).
-    // Dá pra blefar e pedir truco antes de jogar; a próxima vaza decide (ou a seguinte).
+    // MELOU: se a vaza empatou e ninguém ganhou vaza ainda, cada jogador
+    // mostra a MAIOR carta que ainda tem na mão — quem tiver a maior leva a mão.
+    // Se o showdown também empatar (ou não sobrar carta), segue a regra normal.
+    if (tie && wins[0] === 0 && wins[1] === 0 && this.players.every(p => p.hand.length > 0)) {
+      const picks = this.players.map(p => {
+        let bestCard = null;
+        let bestS = -1;
+        for (const c of p.hand) {
+          const st = cardStrength(c, this.manilhaRank);
+          if (st > bestS) { bestS = st; bestCard = c; }
+        }
+        return { seat: p.seat, card: bestCard, strength: bestS };
+      });
+      const showdown = evaluateEntries(picks, (seat) => this.seatTeam(seat));
+      if (!showdown.tie) {
+        this.busy = true;
+        this.turnSeat = -1;
+        return {
+          ok: true,
+          trickResult: this.tricks[this.tricks.length - 1],
+          maoOver: true,
+          maoWinnerTeam: showdown.winnerTeam,
+          showdown: { picks, winnerSeat: showdown.winnerSeat, winnerTeam: showdown.winnerTeam }
+        };
+      }
+    }
 
     let maoWinnerTeam = null;
     const t1 = this.tricks[0], t2 = this.tricks[1];
@@ -750,14 +764,6 @@ class Room {
         myVote: this._votes[viewerSeat] || null,
         votes: this.voteTally()
       } : undefined,
-      // escolha do vira: todos sabem quem está escolhendo; as 3 cartas ninguém vê (nem o escolhedor)
-      viraPick: this.viraPickOn ? {
-        seat: this.viraPickSeat,
-        msLeft: Math.max(0, this.viraPickUntil - Date.now()),
-        count: this._viraOpts.length
-      } : undefined,
-      // melou: só as cartas permitidas (a maior) ficam claras pra quem está jogando
-      melou: this.melouActive() ? { allowedIds: this.melouAllowedIds(viewerSeat) } : undefined,
       blind: this.blind,
       code: this.code,
       mode: this.mode,
@@ -778,11 +784,11 @@ class Room {
         team: p.team,
         connected: p.connected,
         isBot: !!p.isBot,
-        persona: p.persona || null,
         character: shownCharacter(p),
         nameFx: fxOf(p),
         theme: p.theme || null,
         stats: p.stats || null,
+        handle: p.handle || null,
         cardsLeft: p.hand.length,
         // às cegas: o dono recebe só os ids (sem naipe/valor), então nem pelo console dá pra ver
         hand: p.seat === viewerSeat
@@ -817,26 +823,6 @@ class Room {
 //   jogador retoma o lugar se voltar com o token, ex.: queda de conexão).
 // ---------------------------------------------------------------------------
 const brain = createBot({ Room, cardStrength, buildDeck, STAKE_SEQUENCE });
-// Conversa dos bots no chat (ver bot-chat.js): cada persona escreve do seu jeito.
-const botChat = createBotChat({ io, alive: (r) => rooms.get(r.code) === r });
-const PERSONA_NAMES = { jailson: 'Jailson', joao: 'João', thiago: 'Thiago' };
-const BOT_DESCS = {
-  jailson: 'Na moral. Pede pouco truco, mas às vezes dá um facão.',
-  joao: 'Doidão. Truca bastante, com carta ou sem carta.',
-  thiago: 'Racional. Só pede truco com motivo e faz as contas.'
-};
-const BOT_CATALOG = Object.keys(PERSONA_NAMES).map(k => ({
-  persona: k, name: PERSONA_NAMES[k], desc: BOT_DESCS[k], avatar: BOT_AVATARS[k]
-}));
-// Escolhe a personalidade do bot: a pedida (se válida), senão uma que ainda não está na sala.
-function pickPersona(r, wanted, allowDup) {
-  const used = new Set(r.players.map(p => p.persona).filter(Boolean));
-  const keys = Object.keys(PERSONA_NAMES);
-  if (wanted && PERSONA_NAMES[wanted]) return used.has(wanted) && !allowDup ? null : wanted;
-  const free = keys.filter(k => !used.has(k));
-  if (free.length) return free[Math.floor(Math.random() * free.length)];
-  return allowDup ? keys[Math.floor(Math.random() * keys.length)] : null;
-}
 
 // Quais modos trocam quem sai por um bot no meio da partida (depois de BOT_GRACE_MS).
 const BOT_REPLACES = { '2v2': true, '1v1': true };
@@ -937,9 +923,24 @@ function botAct(r) {
 // Bot que assume o lugar de quem saiu no meio da partida.
 // Fim de partida: mostra o resultado e devolve TODO MUNDO pra sala de espera
 // (mesmo código, mesmas duplas, bots mantidos) pra jogar de novo sem criar sala.
+// Quem tem conta ganha vitória/derrota no banco — mas só se houve ao menos um
+// adversário humano (partida só contra bots não conta, pra ninguém "farmar").
+function recordMatchResults(r, winnerTeam) {
+  if (!db.enabled) return;
+  const humans = r.players.filter(p => !p.isBot);
+  humans.forEach(p => {
+    if (!p.userId) return;
+    if (!humans.some(o => o.team !== p.team)) return;
+    const win = p.team === winnerTeam;
+    if (p.stats) { if (win) p.stats.wins++; else p.stats.losses++; }
+    const sk = io.sockets.sockets.get(p.id); // mantém o perfil do socket em dia p/ a próxima sala
+    if (sk && sk.data && sk.data.profile) { if (win) sk.data.profile.wins++; else sk.data.profile.losses++; }
+    db.recordResult(p.userId, win).catch(e => console.error('[db] recordResult:', e && e.message));
+  });
+}
 function endGame(r, winnerTeam) {
+  recordMatchResults(r, winnerTeam);
   io.to(r.code).emit('game_over', { winnerTeam, score: r.score.slice() });
-  botChat.gameResult(r, winnerTeam);
   resetRoomToLobby(r);
 }
 
@@ -979,14 +980,12 @@ function botTakeover(r, p) {
   p.origName = p.name;
   p.origCharacter = p.character;
   p.replacedHuman = true;
-  p.persona = pickPersona(r, null, true); // (se acabarem os tipos, repete: a partida não pode ficar sem bot)
-  p.name = PERSONA_NAMES[p.persona];
-  p.character = BOT_AVATARS[p.persona] || BOT_AVATAR;
+  p.name = pickBotName(r);
+  p.character = BOT_AVATAR;
   p.isBot = true;
   p.connected = true;
   io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${p.origName} saiu — ${p.name} assumiu o lugar.`, ts: Date.now() });
   r.broadcastState(io); // atualiza nome/boneco na mesa e já deixa o bot agir se for a vez
-  botChat.say(r, p, 'takeover');
 }
 
 // Menor assento livre (0..maxPlayers-1) — assentos não podem repetir mesmo
@@ -1047,12 +1046,6 @@ function doPlayCard(r, player, payload, tell) {
   if (!r || !r.started || r.gameOver || !player) return;
   if (r.handOver || r.busy || r.holdActive() || r.turnSeat !== player.seat || r.pendingCall) return tell('play_rejected'); // avisa o cliente pra desfazer a jogada instantânea
 
-  // Melou: bot que escolheu uma carta não permitida joga a maior no lugar
-  if (player.isBot && r.melouActive()) {
-    const ok = r.melouAllowedIds(player.seat);
-    if (ok.length && !ok.includes(cardId)) cardId = ok[0];
-  }
-
   // Não pode esconder a carta na primeira rodada (vaza) da mão.
   if (r.tricks.length === 0) hidden = false;
 
@@ -1070,10 +1063,6 @@ function doPlayCard(r, player, payload, tell) {
       winnerTeam: result.trickResult.winnerTeam,
       tie: result.trickResult.tie
     });
-    // melou: avisa que agora todo mundo joga a maior carta (e ainda dá pra pedir truco)
-    if (!result.maoOver && result.trickResult.tie && r.tricks.length === 1 && r.melouActive()) {
-      io.to(r.code).emit('melou', {});
-    }
   }
 
   // Sempre manda o estado com a carta recém-jogada (e a vaza revelada)
@@ -1129,7 +1118,6 @@ function doPlayCard(r, player, payload, tell) {
     io.to(r.code).emit('mao_result', {
       winnerTeam, points, score: r.score, teamName: r.teamName(winnerTeam)
     });
-    botChat.handResult(r, winnerTeam);
     setTimeout(() => {
       if (isGameOver) {
         endGame(r, winnerTeam);
@@ -1151,7 +1139,6 @@ function doCallTruco(r, player, level, tell) {
     byTeam: player.team, byName: player.name, level, value: r.pendingCall.value
   });
   r.broadcastState(io);
-  if (player.isBot) botChat.say(r, player, level === 'truco' ? 'call' : 'raise');
 }
 
 function doRespondTruco(r, player, action, tell) {
@@ -1167,8 +1154,6 @@ function doRespondTruco(r, player, action, tell) {
       winnerTeam: result.winnerTeam, points: result.points, score: r.score,
       teamName: r.teamName(result.winnerTeam), ran: true
     });
-    if (player.isBot) botChat.say(r, player, 'run');
-    else botChat.sayAny(r, r.players.filter(p => p.team !== player.team), 'ran');
     setTimeout(() => {
       if (isGameOver) {
         endGame(r, result.winnerTeam);
@@ -1183,11 +1168,33 @@ function doRespondTruco(r, player, action, tell) {
 
   io.to(r.code).emit('call_response', { action, byName: player.name });
   r.broadcastState(io);
-  if (player.isBot) botChat.say(r, player, action === 'aumentar' ? 'raise' : 'accept');
 }
+
+// Login do socket: lê o token do Supabase (handshake ou evento auth_refresh).
+// Nunca derruba a conexão: token ruim/ausente = jogador convidado.
+async function authSocket(socket, token) {
+  socket.data.user = null; socket.data.profile = null;
+  if (!db.enabled || !token) return null;
+  try {
+    const u = await db.verify(token);
+    if (!u) return null;
+    const prof = await db.byId(u.id);
+    socket.data.user = u; socket.data.profile = prof;
+    return prof;
+  } catch (e) { return null; }
+}
+io.use(async (socket, next) => {
+  await authSocket(socket, socket.handshake.auth && socket.handshake.auth.token);
+  next();
+});
 
 io.on('connection', (socket) => {
   let currentRoomCode = null;
+
+  socket.on('auth_refresh', async ({ token } = {}, cb) => {
+    const prof = await authSocket(socket, token);
+    if (typeof cb === 'function') cb({ ok: true, handle: prof ? prof.handle : null });
+  });
   const tell = (ev, msg) => socket.emit(ev, msg);
 
   function room() {
@@ -1241,15 +1248,6 @@ io.on('connection', (socket) => {
       checkAllReady(r);
     }
     reply({ ok: true });
-  });
-
-  // Só confere se a sala/lugar ainda existe (sem entrar). O cliente usa isso pra
-  // decidir se mostra a oferta "Reconectar" ao abrir o site.
-  socket.on('check_session', ({ code, token } = {}, cb) => {
-    if (typeof cb !== 'function') return;
-    const r = rooms.get(String(code || '').toUpperCase());
-    const ok = !!(r && token && r.players.some(x => x.token === token));
-    cb({ ok });
   });
 
   // Reconexão: se a conexão cair (Render free, wifi, celular), o cliente volta
@@ -1371,12 +1369,6 @@ io.on('connection', (socket) => {
     reply({ ok: true });
   });
 
-  // Lista de bots que o host pode escolher (nome, descrição e avatar de cada personalidade).
-  socket.on('get_bot_catalog', (cb) => {
-    if (typeof cb !== 'function') return;
-    cb({ ok: true, bots: BOT_CATALOG });
-  });
-
   // Host adiciona um bot na sala de espera (1v1 ou 2v2). No 2v2 pode escolher a dupla.
   socket.on('add_bot', (payload, cb) => {
     const reply = (o) => { if (typeof cb === 'function') cb(o); };
@@ -1401,16 +1393,12 @@ io.on('connection', (socket) => {
       }
     }
     const token = crypto.randomBytes(12).toString('hex');
-    const persona = pickPersona(r, payload && payload.persona);
-    if (!persona) return reply({ ok: false, error: 'Esse bot já está na sala. Cada tipo de bot só entra uma vez.' });
-    const newBot = {
-      id: 'bot:' + token, token, name: PERSONA_NAMES[persona], seat, team,
-      connected: true, hand: [], character: BOT_AVATARS[persona] || BOT_AVATAR, isBot: true, persona
-    };
-    r.players.push(newBot);
+    r.players.push({
+      id: 'bot:' + token, token, name: pickBotName(r), seat, team,
+      connected: true, hand: [], character: BOT_AVATAR, isBot: true
+    });
     io.to(r.code).emit('lobby_update', r.lobbyState());
     reply({ ok: true });
-    botChat.say(r, newBot, 'join');
   });
 
   socket.on('remove_bot', ({ seat } = {}, cb) => {
@@ -1432,6 +1420,12 @@ io.on('connection', (socket) => {
     const seat = freeSeat(r);
     const team = pickTeam(r, seat);
     const player = { id: socket.id, token: crypto.randomBytes(12).toString('hex'), name, seat, team, connected: true, hand: [], character: sanitizeCharacter(character), theme: sanitizeTheme(extra.theme), stats: sanitizeStats(extra.stats) };
+    const acc = socket.data && socket.data.profile;
+    if (acc) { // conta logada: o servidor manda no @ e nas estatísticas (o cliente não)
+      player.userId = acc.id;
+      player.handle = acc.handle;
+      player.stats = { wins: acc.wins, losses: acc.losses };
+    }
     if (adminPhoto) player.adminPhoto = adminPhoto; // admin que já definiu a foto antes de entrar na sala
     if (adminNameFx) player.nameFx = adminNameFx;   // ...e o efeito do nome
     r.players.push(player);
@@ -1617,34 +1611,6 @@ io.on('connection', (socket) => {
     else r.broadcastState(io); // todos veem quem votou em quê; a votação continua
   });
 
-  // Escolha do vira: só quem deu as cartas (viraPickSeat) pode escolher, uma vez.
-  socket.on('pick_vira', ({ index } = {}) => {
-    const r = room();
-    if (!r || !r.started || r.gameOver || !r.viraPickOn) return;
-    const me = r.playerBySocket(socket.id);
-    if (!me || me.isBot || me.seat !== r.viraPickSeat) return;
-    const i = parseInt(index, 10);
-    if (!(i >= 0 && i < r._viraOpts.length)) return;
-    r.resolveViraPick(i, true);
-  });
-
-  // Escolha do vira: o cursor/hover/clique de quem escolhe aparece pros outros da sala.
-  // Só repassa (nada é guardado) e só aceita de quem está escolhendo agora (viraPickSeat).
-  let lastViraCursor = 0;
-  socket.on('vira_cursor', (m) => {
-    const r = room();
-    if (!r || !r.started || r.gameOver || !r.viraPickOn || !m || typeof m !== 'object') return;
-    const me = r.playerBySocket(socket.id);
-    if (!me || me.isBot || me.seat !== r.viraPickSeat) return;
-    const now = Date.now();
-    const click = m.k !== undefined && m.k !== null && Number(m.k) >= 0;
-    if (!click && now - lastViraCursor < 25) return;      // ~40 msgs/s no máximo (o clique sempre passa)
-    lastViraCursor = now;
-    const num = (v) => { v = Number(v); return Number.isFinite(v) ? Math.max(-5, Math.min(6, v)) : 0; };
-    const idx = (v) => { v = Number(v); return Number.isInteger(v) && v >= 0 && v <= 4 ? v : -1; };
-    socket.to(r.code).emit('vira_cursor', { seat: me.seat, x: num(m.x), y: num(m.y), h: idx(m.h), k: idx(m.k) });
-  });
-
   // Sinal pro parceiro enquanto há um truco pendente contra a dupla.
   // Só os companheiros de dupla recebem (adversários nunca), e bots são ignorados.
   const PARTNER_SIGNALS = { vamos: 'Vamos!', nao: 'Não vamos...', algo: 'Tenho alguma coisa', nada: 'Não tenho nada' };
@@ -1690,14 +1656,30 @@ io.on('connection', (socket) => {
     }, 1800);
   });
 
+  // Escolha do vira: o cursor/hover/clique de quem escolhe aparece pros outros da sala.
+  // Só repassa (sem guardar nada); o client só desenha se `seat` for mesmo o de quem está escolhendo.
+  let lastViraCursor = 0;
+  socket.on('vira_cursor', (m) => {
+    const r = room();
+    if (!r || !m || typeof m !== 'object') return;
+    const now = Date.now();
+    const click = m.k !== undefined && m.k !== null && Number(m.k) >= 0;
+    if (!click && now - lastViraCursor < 25) return;      // ~40 msgs/s no máximo (clique sempre passa)
+    lastViraCursor = now;
+    const me = r.playerBySocket(socket.id);
+    if (!me) return;
+    const num = (v) => { v = Number(v); return Number.isFinite(v) ? Math.max(-5, Math.min(6, v)) : 0; };
+    const idx = (v) => { v = Number(v); return Number.isInteger(v) && v >= 0 && v <= 4 ? v : -1; };
+    socket.to(r.code).emit('vira_cursor', { seat: me.seat, x: num(m.x), y: num(m.y), h: idx(m.h), k: idx(m.k) });
+  });
+
   socket.on('chat_message', ({ text }) => {
     const r = room();
     if (!r) return;
     const player = r.playerBySocket(socket.id);
     if (!player || !text) return;
-    const msg = { name: player.name, nameFx: fxOf(player), seat: player.seat, isBot: !!player.isBot, text: String(text).slice(0, 200), ts: Date.now() };
+    const msg = { name: player.name, nameFx: fxOf(player), seat: player.seat, text: String(text).slice(0, 200), ts: Date.now() };
     io.to(r.code).emit('chat_message', msg);
-    if (!player.isBot) botChat.reply(r, msg.text, player.name); // às vezes um bot responde
   });
 
 

@@ -1,6 +1,9 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    { "source": "/@:handle", "destination": "/perfil.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

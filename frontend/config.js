@@ -12,6 +12,12 @@
 
 const BACKEND_URL = 'https://trutec-1.onrender.com';
 
+// Supabase (login com Google). Pegue os dois valores em:
+// Supabase > Project Settings > API  ("Project URL" e chave "anon public").
+// A chave anon é pública por natureza, pode ficar aqui sem problema.
+const SUPABASE_URL = 'https://ikiotgvoczgfbzfjcjtm.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_hofLOE-DQMU3Ut1vlhLcfQ_mCv4CS9K';
+
 // Não mexa daqui pra baixo -----------------------------------------------
 const _params = new URLSearchParams(window.location.search);
 const RESOLVED_BACKEND_URL = _params.get('server') || BACKEND_URL;

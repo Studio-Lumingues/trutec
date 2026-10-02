@@ -43,7 +43,7 @@
   }
 
   // ---- card do adversário ----
-  var card = null, wEl = null, lEl = null, activeFig = null;
+  var card = null, hEl = null, wEl = null, lEl = null, activeFig = null;
   var themeBox = null, themeNameEl = null, thumbEl = null, shownTheme = null;
   var OFFSET = 18;
   var canHover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -53,6 +53,7 @@
     card.className = 'stats-card';
     card.setAttribute('aria-hidden', 'true');
     card.innerHTML =
+      '<div class="stats-row stats-handle" hidden><b></b></div>' +
       '<div class="stats-row"><span>Vitórias:</span><b class="stats-wins">—</b></div>' +
       '<div class="stats-row"><span>Derrotas:</span><b class="stats-losses">—</b></div>' +
       '<div class="stats-theme" hidden>' +
@@ -62,6 +63,7 @@
     document.body.appendChild(card);
     wEl = card.querySelector('.stats-wins');
     lEl = card.querySelector('.stats-losses');
+    hEl = card.querySelector('.stats-handle');
     themeBox = card.querySelector('.stats-theme');
     themeNameEl = card.querySelector('.stats-theme-name');
     thumbEl = card.querySelector('.stats-thumb');
@@ -83,6 +85,9 @@
 
   function fill(fig) {
     var w = fig.dataset.wins, l = fig.dataset.losses;
+    var hd = fig.dataset.handle;
+    hEl.hidden = !hd;
+    if (hd) hEl.firstChild.textContent = '@' + hd;
     wEl.textContent = w === undefined || w === '' ? '—' : w;
     lEl.textContent = l === undefined || l === '' ? '—' : l;
     fillTheme(fig);

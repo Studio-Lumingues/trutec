@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Perfil — TruTEC</title>
+<link rel="icon" href="/assets/personagem.svg" />
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #0a0a0a; color: #fff8f0;
+    font-family: 'Coolvetica', 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  body { display: flex; align-items: center; justify-content: center; padding: 1.5rem; min-height: 100dvh; }
+  .card { width: min(22rem, 100%); border-radius: 1.4rem; overflow: hidden; background: #111;
+    border: 1px solid rgba(255,248,240,.18); box-shadow: 0 1.2rem 3rem rgba(0,0,0,.6); }
+  .top { position: relative; height: 13rem; overflow: hidden; isolation: isolate; display: flex; align-items: flex-end; justify-content: center; }
+  .checker { position: absolute; z-index: -1; left: 50%; top: 50%; width: 60rem; height: 60rem; margin: -30rem 0 0 -30rem;
+    background: repeating-conic-gradient(rgba(90,90,90,.55) 0% 25%, rgba(10,10,10,.5) 0% 50%) 0 0 / 3rem 3rem;
+    animation: spin 60s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .checker { animation: none; } }
+  .top img { height: 12rem; width: auto; max-width: 100%; object-fit: contain; display: block; }
+  .body { padding: 1.1rem 1.25rem 1.25rem; text-align: center; }
+  h1 { margin: 0; font-size: 1.9rem; letter-spacing: .01em; word-break: break-all; }
+  .since { opacity: .6; font-size: .9rem; margin-top: .15rem; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1.1rem 0; }
+  .stat { background: rgba(255,248,240,.07); border-radius: .8rem; padding: .7rem .3rem; }
+  .stat b { display: block; font-size: 1.6rem; }
+  .stat span { font-size: .8rem; opacity: .7; }
+  .actions { display: flex; gap: .6rem; }
+  .btn { flex: 1; padding: .75rem 1rem; border-radius: .8rem; border: 1px solid rgba(255,248,240,.25); background: rgba(255,248,240,.08);
+    color: inherit; font: inherit; font-size: 1.05rem; cursor: pointer; text-decoration: none; text-align: center; }
+  .btn.primary { background: #fff8f0; color: #0a0a0a; border-color: #fff8f0; }
+  .btn:hover { filter: brightness(1.15); }
+  .msg { padding: 2.5rem 1.25rem; text-align: center; }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="msg" id="msg">Carregando perfil…</div>
+</div>
+<script src="/config.js"></script>
+<script>
+(function () {
+  var card = document.getElementById('card');
+  var m = decodeURIComponent(location.pathname).match(/^\/@([^\/]+)/);
+  var handle = m ? m[1] : new URLSearchParams(location.search).get('u');
+  handle = (handle || '').toLowerCase().replace(/^@/, '');
+
+  function fail(text) {
+    card.innerHTML = '<div class="msg"></div><div class="actions" style="padding:0 1.25rem 1.25rem"><a class="btn primary" href="/">Ir pro jogo</a></div>';
+    card.firstChild.textContent = text;
+  }
+  if (!/^[a-z0-9_]{3,16}$/.test(handle)) return fail('Perfil não encontrado.');
+
+  fetch(RESOLVED_BACKEND_URL + '/api/profile/' + encodeURIComponent(handle))
+    .then(function (r) { return r.json(); })
+    .then(function (r) {
+      if (!r || !r.ok) return fail((r && r.error) || 'Perfil não encontrado.');
+      var p = r.profile, total = p.wins + p.losses;
+      var rate = total ? Math.round(p.wins / total * 100) + '%' : '—';
+      var since = p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '';
+      var img = (p.character && p.character.indexOf('data:image/png;base64,') === 0) ? p.character : '/assets/personagem.svg';
+      document.title = '@' + p.handle + ' — TruTEC';
+      card.innerHTML =
+        '<div class="top"><div class="checker"></div><img alt="" /></div>' +
+        '<div class="body"><h1></h1><div class="since"></div>' +
+        '<div class="stats"><div class="stat"><b id="w"></b><span>Vitórias</span></div><div class="stat"><b id="l"></b><span>Derrotas</span></div><div class="stat"><b id="r"></b><span>Aproveit.</span></div></div>' +
+        '<div class="actions"><button class="btn" id="copy" type="button">Copiar link</button><a class="btn primary" href="/">Jogar</a></div></div>';
+      card.querySelector('img').src = img;
+      card.querySelector('h1').textContent = '@' + p.handle;
+      card.querySelector('.since').textContent = since ? 'Jogando desde ' + since : '';
+      document.getElementById('w').textContent = p.wins;
+      document.getElementById('l').textContent = p.losses;
+      document.getElementById('r').textContent = rate;
+      var b = document.getElementById('copy');
+      b.addEventListener('click', function () {
+        var done = function () { b.textContent = 'Copiado!'; setTimeout(function () { b.textContent = 'Copiar link'; }, 1500); };
+        if (navigator.clipboard) navigator.clipboard.writeText(location.href).then(done);
+      });
+    })
+    .catch(function () { fail('Servidor indisponível. Tente de novo em instantes.'); });
+})();
+</script>
+</body>
+</html>

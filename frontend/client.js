@@ -79,7 +79,11 @@ const CLIENT_ID = (function () {
 
 const socket = io(RESOLVED_BACKEND_URL, {
   transports: ['websocket', 'polling'],
-  auth: { clientId: CLIENT_ID }
+  // função: a cada (re)conexão pega o token de login mais novo (null = convidado)
+  auth: (cb) => {
+    const t = window.TruAccount ? TruAccount.getToken() : Promise.resolve(null);
+    t.then((token) => cb({ clientId: CLIENT_ID, token })).catch(() => cb({ clientId: CLIENT_ID }));
+  }
 });
 
 socket.on('connect_error', (err) => {
@@ -1160,6 +1164,7 @@ function enterRoom(res) {
   myWaitingSeat = res.seat;
   myToken = res.token || null;
   saveSession();
+  if (window.TruAccount) TruAccount.syncCharacter();
   closeModal(joinModal);
   closeModal(createModal);
   showScreen('screen-waiting');
@@ -2273,6 +2278,7 @@ function renderState(realState) {
     // vitórias/derrotas do jogador (mostradas no card ao dar zoom no boneco)
     const figEl = document.getElementById(`figure-${pos}`);
     if (figEl) {
+      if (p.handle) figEl.dataset.handle = p.handle; else delete figEl.dataset.handle;
       if (p.stats) { figEl.dataset.wins = p.stats.wins; figEl.dataset.losses = p.stats.losses; }
       else { delete figEl.dataset.wins; delete figEl.dataset.losses; }
       // tema que o jogador está usando (o card mostra nome + miniatura)
@@ -3189,7 +3195,8 @@ socket.on('mao_result', ({ winnerTeam, points, teamName, ran }) => {
 
 socket.on('game_over', ({ winnerTeam, score }) => {
   const mine = winnerTeam === myTeam;
-  if (window.TruStats && !statsCounted) {
+  const logged = window.TruAccount && TruAccount.isLoggedIn();
+  if (window.TruStats && !statsCounted && !logged) { // com conta, quem conta é o servidor
     statsCounted = true; // garante que a partida só conta uma vez
     if (mine) TruStats.addWin(); else TruStats.addLoss();
   }
