@@ -2902,7 +2902,10 @@ html[data-theme="casa"] .table-disc::before {
   top: 50%;
   height: 230%;
   aspect-ratio: 1.2 / 1;
-  transform: translateY(-46%);
+  /* centro da dupla = centro do boneco do Avatar (que tem largura = altura = H).
+     A dupla tem 1.2H de largura, então empurra 0.1H pra direita = 8.333% dela.
+     Se mudar o aspect-ratio (A), use (A - 1) / 2 / A * 100% no translateX. */
+  transform: translate(8.333%, -46%);
   pointer-events: none;
   user-select: none;
 }
