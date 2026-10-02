@@ -3398,17 +3398,18 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   filter: url(#boil-ic);   /* mesmo tremido de desenho à mão dos outros ícones */
 }
 
-
 /* ---------------------------------------------------------------- */
-/* Editor de avatar: fundo xadrez girando bem devagar (no lugar do   */
-/* preto). O xadrez fica num ::before gigante que gira atrás do      */
-/* conteúdo; o painel corta o excesso. Ajustes: cores, tamanho do    */
-/* quadradinho (--ck-size) e a duração da volta (120s).              */
+/* Editor de avatar: xadrez preto e branco girando bem devagar, com  */
+/* ondulação e uma separação RGB discreta (filtro #ck-a24 no         */
+/* index.html). O xadrez fica num ::before gigante que gira atrás    */
+/* do conteúdo; o painel corta o excesso.                            */
+/* Ajustes: --ck-size (quadradinho), 120s (volta), e no filtro:      */
+/* scale = ondulação, dx = força do RGB.                             */
 /* ---------------------------------------------------------------- */
 #screen-character-editor .character-panel-wide {
-  --ck-a: #3a2866;
-  --ck-b: #2a1b4f;
-  --ck-size: 5rem;
+  --ck-a: #f4f4f4;
+  --ck-b: #0a0a0a;
+  --ck-size: 4.5rem;
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -3417,16 +3418,30 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 #screen-character-editor .character-panel-wide::before {
   content: "";
   position: absolute;
-  left: -150%;
-  top: -150%;
-  width: 400%;
-  height: 400%;
+  left: -100%;
+  top: -100%;
+  width: 300%;
+  height: 300%;
   z-index: -1;
   pointer-events: none;
   background: repeating-conic-gradient(var(--ck-a) 0% 25%, var(--ck-b) 0% 50%) 0 0 / var(--ck-size) var(--ck-size);
+  filter: url(#ck-a24);
   animation: checkerSpin 120s linear infinite;
 }
 @keyframes checkerSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   #screen-character-editor .character-panel-wide::before { animation: none; }
+}
+
+/* título com respiro embaixo + contorno preto pros textos soltos no xadrez */
+#screen-character-editor .character-panel-wide .character-title {
+  margin: 0.25rem 0 1.5rem;
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+}
+#screen-character-editor .character-panel-wide .character-title,
+#screen-character-editor .brush-row label,
+#screen-character-editor .skin-hint {
+  -webkit-text-stroke: 0.3rem #000;
+  paint-order: stroke fill;
 }
