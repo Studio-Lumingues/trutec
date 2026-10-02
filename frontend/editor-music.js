@@ -4,6 +4,7 @@
 // estiver aberta (entrou = fade in; saiu = fade out) e mostra o card discreto
 // com os créditos (#editor-music-card). O volume segue o controle "Música" das
 // Configurações (e o mudo). Se a rádio da sala estiver tocando, fica quieto.
+// (A trilha do lobby já para sozinha nessa tela: ver wantedTrack() no audio.js.)
 // ============================================================================
 (function () {
   var screen = document.getElementById('screen-character-editor');
@@ -49,7 +50,6 @@
     audio.volume = 0;
     var p = audio.play();
     if (p && p.catch) p.catch(function () {});
-    if (window.GameAudio && GameAudio.setRadio) GameAudio.setRadio(true);   // silencia a música de fundo do lobby
     ramp(target());
   }
 
@@ -61,7 +61,6 @@
     ramp(0, function () {
       if (active) return;
       audio.pause();
-      if (window.GameAudio && GameAudio.setRadio && !radioOn()) GameAudio.setRadio(false);
     });
   }
 
