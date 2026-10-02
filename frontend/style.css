@@ -3078,3 +3078,68 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .team-card .wp-name { font-size: 0.9rem; }
   .team-card { gap: 0.5rem; padding: 0 0.45rem; }
 }
+
+
+/* ---------------------------------------------------------------- */
+/* Sala de espera: jogadores como crachá "Olá, eu sou..." (grande, cada */
+/* um com uma inclinação aleatória — o ângulo vem do client.js, --rot)  */
+/* ---------------------------------------------------------------- */
+:root { --slot-h: 8.25rem; --slot-av: 4rem; }
+#screen-waiting .lobby-card { width: min(46rem, 96vw); }
+
+.lobby-badge {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  background: #e30613;
+  border-radius: 0.9rem;
+  padding: 0.3rem 0 0.45rem;
+  box-shadow: 0 0.22rem 0 rgba(0,0,0,0.4);
+  transform: rotate(var(--rot, 0deg));
+  transition: transform .25s cubic-bezier(.3, 1.5, .5, 1);
+}
+.team-card:hover .lobby-badge,
+.wp-row:hover .lobby-badge { transform: rotate(var(--rot, 0deg)) scale(1.04); }
+.lb-head {
+  display: flex; flex-direction: column; align-items: center;
+  line-height: 1; padding: 0.1rem 0 0.35rem;
+  color: #fff; text-transform: uppercase;
+}
+.lb-hello { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.04em; }
+.lb-iam   { margin-top: 0.12rem; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.06em; }
+.lb-crown { position: absolute; top: 0.5rem; right: 0.65rem; line-height: 0; color: #fff; }
+.lb-crown .ic { width: 1.5rem; height: 1.5rem; margin: 0; }
+.lb-field {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 3.4rem; padding: 0.3rem 0.6rem;
+  background: #f4f4f4; border-radius: 0.9rem;
+}
+.lobby-badge .wp-name.lb-name {
+  display: block; max-width: 100%; text-align: center;
+  color: #0a0a0a; font-size: var(--lb-fs, 1.8rem); font-weight: 800; line-height: 1.15;
+}
+
+/* rotação passa um pouco do card: nada pode cortar */
+.team-card, .waiting-players .wp-row:not(.wp-row-empty) { position: relative; overflow: visible; }
+.team-card { gap: 0.6rem; }
+.team-column-body { gap: 0.7rem; }
+
+/* 1 vs 1 */
+.waiting-players .wp-row { min-height: 8.5rem; }
+.waiting-players .wp-info .lobby-badge { flex: none; width: 100%; }
+.waiting-players .wp-info { gap: 0.5rem; }
+.waiting-players .wp-team { text-align: center; }
+
+/* "×" e "Expulsar" ficam no canto do card, sem empurrar o crachá */
+.team-card .bot-remove-btn,
+.waiting-players .wp-row .bot-remove-btn {
+  position: absolute; top: 0.35rem; right: 0.35rem; margin: 0; z-index: 3;
+}
+
+@media (max-width: 700px) {
+  :root { --slot-h: 7.4rem; --slot-av: 3.5rem; }
+  .teams-board { flex-direction: column; }
+  .lb-hello { font-size: 1.2rem; }
+  .lb-field { min-height: 3rem; }
+  .waiting-players .wp-row { min-height: 7.6rem; }
+}
