@@ -338,7 +338,7 @@ class Room {
       canStart: !this.started && this.players.length === this.maxPlayers && this.teamsReady(),
       teamsReady: this.teamsReady(),
       players: (this.normalizeSlots(), this.players).map(p => ({
-        seat: p.seat, name: p.name, team: p.team, slot: p.slot, connected: p.connected, character: shownCharacter(p), nameFx: fxOf(p), isBot: !!p.isBot,
+        seat: p.seat, name: p.name, team: p.team, slot: p.slot, connected: p.connected, character: shownCharacter(p), nameFx: fxOf(p), isBot: !!p.isBot, persona: p.persona || null,
         theme: p.theme || null, stats: p.stats || null
       }))
     };
@@ -801,9 +801,12 @@ const BOT_GRACE_MS = 10000; // quem cai fica "reconectando" por 10s; depois o bo
 //   thiago  = racional (só pede com motivo, mas às vezes dá facão)
 const BOT_AVATARS = require('./bot-avatars');
 const BOT_PERSONAS = [
-  { persona: 'jailson', name: 'Jailson', avatar: BOT_AVATARS.jailson },
-  { persona: 'joao',    name: 'João',    avatar: BOT_AVATARS.joao },
-  { persona: 'thiago',  name: 'Thiago',  avatar: BOT_AVATARS.thiago }
+  { persona: 'jailson', name: 'Jailson', avatar: BOT_AVATARS.jailson,
+    desc: 'Na moral. Pede pouco truco, mas de vez em quando dá um facão.' },
+  { persona: 'joao',    name: 'João',    avatar: BOT_AVATARS.joao,
+    desc: 'O doidão. Truca bastante, com carta ou sem carta.' },
+  { persona: 'thiago',  name: 'Thiago',  avatar: BOT_AVATARS.thiago,
+    desc: 'O racional. Só pede truco com motivo, mas às vezes dá facão também.' }
 ];
 
 // Escolhe um dos 3 bots que ainda não está na sala (se os 3 já estiverem, repete um).
@@ -1351,14 +1354,35 @@ io.on('connection', (socket) => {
         if (counts[team] >= 2) team = 1 - team;
       }
     }
+    // qual bot? (o host escolhe numa janela; sem escolha, sorteia um que ainda não está na sala)
+    let pick;
+    const wantPersona = payload && typeof payload.persona === 'string' ? payload.persona : null;
+    if (wantPersona) {
+      pick = BOT_PERSONAS.find(b => b.persona === wantPersona);
+      if (!pick) return reply({ ok: false, error: 'Bot não encontrado.' });
+      if (r.players.some(p => p.persona === wantPersona)) return reply({ ok: false, error: 'Esse bot já está na sala.' });
+    } else {
+      pick = pickBot(r);
+    }
     const token = crypto.randomBytes(12).toString('hex');
-    const pick = pickBot(r);
-    r.players.push({
+    const bot = {
       id: 'bot:' + token, token, name: pick.name, seat, team,
       connected: true, hand: [], character: pick.avatar, persona: pick.persona, isBot: true
-    });
+    };
+    // no 2v2 o bot ocupa a posição (em cima / embaixo) do slot em que o host clicou
+    if (r.mode === '2v2' && payload && (payload.slot === 0 || payload.slot === 1)) {
+      r.normalizeSlots();
+      if (!r.players.some(p => p.team === team && p.slot === payload.slot)) bot.slot = payload.slot;
+    }
+    r.players.push(bot);
     io.to(r.code).emit('lobby_update', r.lobbyState());
     reply({ ok: true });
+  });
+
+  // Lista dos bots (nome, descrição e desenho) pra janela "qual bot?" do host.
+  socket.on('get_bot_catalog', (cb) => {
+    if (typeof cb !== 'function') return;
+    cb({ ok: true, bots: BOT_PERSONAS.map(b => ({ persona: b.persona, name: b.name, desc: b.desc, avatar: b.avatar })) });
   });
 
   // Host expulsa um jogador (humano) da sala de espera.

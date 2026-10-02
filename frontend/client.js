@@ -260,7 +260,7 @@ setTimeout(showReconnectOffer, 900);
 // Navegação de telas
 // ------------------------------------------------------------------
 let waitingShownAt = 0;   // quando a sala de espera abriu (pra sincronizar a animação do código)
-let botFxPending = 0;      // bots cujo efeito já tocou no clique (não repetir quando o servidor confirmar)
+let lastRealLobby = null;  // último lobby que veio do servidor (base do bot instantâneo)
 let knownSeats = null;     // assentos já vistos na sala (pra detectar quem acabou de entrar)
 let shownRoomCode = null; // código que já está na tela (só anima quando muda)
 function showScreen(id) {
@@ -1134,6 +1134,7 @@ function smoothCardResize(change) {
 }
 
 function handleLobbyUpdate(lobby) {
+  lastRealLobby = lobby;
   if (teamSwapBusy > 0 || teamDrag) { deferredLobby = lobby; return; }   // troca/arraste em andamento: espera acabar
   smoothCardResize(() => renderLobby(lobby));
 }
@@ -1176,10 +1177,10 @@ function renderLobby(lobby) {
     knownSeats = seatsNow;
     let played = false;
     fresh.forEach((p, i) => {
+      if (p.isBot) return;                                           // bot entra na hora, sem explosão
       const el = wrap.querySelector('[data-seat="' + p.seat + '"]');
       if (!el) return;
       el.classList.add('smoke-in');
-      if (p.isBot && botFxPending > 0) { botFxPending--; return; }   // efeito já tocou no clique
       el.style.animationDelay = (i * 120) + 'ms';
       if (!played) { played = true; if (window.GameAudio && GameAudio.poof) GameAudio.poof(); }
       if (window.TruSmoke) setTimeout(() => TruSmoke.puff(el), i * 120);
@@ -1238,19 +1239,11 @@ document.getElementById('waiting-players').addEventListener('click', (e) => {
   }
   if (addBtn) {
     const col = addBtn.closest('.team-column');
-    const payload = col ? { team: parseInt(col.dataset.team, 10) } : {};
-    addBtn.disabled = true;
-    // fumaça + som NA HORA do clique (o bot em si só aparece quando o servidor
-    // responde; no Render isso pode levar um instante)
-    const slotEl = addBtn.closest('.team-slot-empty, .wp-row');
-    if (slotEl) {
-      botFxPending++;
-      if (window.GameAudio && GameAudio.poof) GameAudio.poof();
-      if (window.TruSmoke) TruSmoke.puff(slotEl);
-    }
-    socket.emit('add_bot', payload, (res) => {
-      addBtn.disabled = false; done(res);
-      if (slotEl && res && !res.ok) botFxPending = Math.max(0, botFxPending - 1); // falhou: não houve bot
+    const slotEl = addBtn.closest('.team-slot-empty');
+    openBotModal({
+      team: col ? parseInt(col.dataset.team, 10) : undefined,
+      slot: slotEl && slotEl.dataset.slot !== undefined ? parseInt(slotEl.dataset.slot, 10) : undefined,
+      done
     });
   } else {
     const card = rmBtn.closest('[data-seat]');
@@ -1258,6 +1251,90 @@ document.getElementById('waiting-players').addEventListener('click', (e) => {
     socket.emit('remove_bot', { seat: parseInt(card.dataset.seat, 10) }, done);
   }
 });
+
+// ------------------------------------------------------------------
+// Adicionar bot: o host escolhe QUAL bot numa janela (nome + descrição).
+// O bot aparece NA HORA na sala (sem esperar o servidor); se o servidor recusar,
+// a tela volta ao que era e mostra o erro.
+// ------------------------------------------------------------------
+const botModal = document.getElementById('bot-modal');
+const botListEl = document.getElementById('bot-list');
+let botCatalog = null;     // [{ persona, name, desc, avatar }] — vem do servidor, uma vez só
+let botTarget = null;      // { team, slot, done } do slot em que o host clicou
+
+function loadBotCatalog(cb) {
+  if (botCatalog) return cb(botCatalog);
+  socket.emit('get_bot_catalog', (res) => {
+    if (res && res.ok && Array.isArray(res.bots)) botCatalog = res.bots;
+    cb(botCatalog);
+  });
+}
+function closeBotModal() { botModal.classList.add('hidden'); botTarget = null; }
+function openBotModal(target) {
+  botTarget = target;
+  botListEl.textContent = 'Carregando…';
+  botModal.classList.remove('hidden');
+  document.getElementById('bot-cancel').focus();
+  loadBotCatalog((bots) => {
+    if (botTarget !== target) return;                       // fechou/abriu outra enquanto carregava
+    if (!bots) {                                            // servidor antigo: sorteia, como antes
+      closeBotModal();
+      target.team !== undefined || target.slot !== undefined
+        ? socket.emit('add_bot', { team: target.team, slot: target.slot }, target.done)
+        : socket.emit('add_bot', {}, target.done);
+      return;
+    }
+    const taken = new Set(((lastRealLobby && lastRealLobby.players) || []).map(p => p.persona).filter(Boolean));
+    botListEl.innerHTML = '';
+    bots.forEach((b) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'bot-option';
+      btn.disabled = taken.has(b.persona);
+      btn.innerHTML =
+        '<div class="wp-avatar"><img alt="" draggable="false" /></div>' +
+        '<div class="bot-option-info">' +
+          '<div class="bot-option-name">' + escapeHtml(b.name) + '<span class="bot-tag">BOT</span>' +
+            (btn.disabled ? '<span class="bot-option-taken">já está na sala</span>' : '') + '</div>' +
+          '<div class="bot-option-desc">' + escapeHtml(b.desc) + '</div>' +
+        '</div>';
+      btn.querySelector('img').src = b.avatar;
+      btn.addEventListener('click', () => chooseBot(b));
+      botListEl.appendChild(btn);
+    });
+  });
+}
+function chooseBot(bot) {
+  const t = botTarget;
+  closeBotModal();
+  if (!t) return;
+  addBotInstantly(t, bot);
+  socket.emit('add_bot', { team: t.team, slot: t.slot, persona: bot.persona }, (res) => {
+    t.done(res);
+    if (res && !res.ok && lastRealLobby) {                 // recusado: desfaz o bot que apareceu
+      knownSeats = new Set(lastRealLobby.players.map(p => p.seat));
+      renderLobby(lastRealLobby);
+    }
+  });
+}
+// Desenha o lobby já com o bot (a resposta do servidor depois só confirma, igualzinho).
+function addBotInstantly(t, bot) {
+  const base = lastRealLobby;
+  if (!base || teamSwapBusy > 0 || teamDrag) return;
+  const used = new Set(base.players.map(p => p.seat));
+  let seat = 0; while (used.has(seat)) seat++;
+  const team = base.mode === '2v2' && t.team !== undefined ? t.team : seat % 2;
+  const players = base.players.concat([{
+    seat, name: bot.name, team, slot: t.slot, connected: true, character: bot.avatar,
+    nameFx: null, isBot: true, persona: bot.persona, theme: null, stats: null
+  }]);
+  const full = players.length === base.maxPlayers;
+  const teamsReady = base.mode !== '2v2' || [0, 1].every(k => players.filter(p => p.team === k).length === 2);
+  renderLobby(Object.assign({}, base, { players, canStart: full && teamsReady, teamsReady }));
+}
+document.getElementById('bot-cancel').addEventListener('click', closeBotModal);
+botModal.addEventListener('click', (e) => { if (e.target === botModal) closeBotModal(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !botModal.classList.contains('hidden')) closeBotModal(); });
 
 const pendingBalance = new Set();
 function autoBalanceTeams(lobby) {
@@ -1286,7 +1363,7 @@ function playerCardHtml(p, draggable, slot) {
   return `
     <div class="team-card${draggable ? ' team-card-draggable' : ''}" data-seat="${p.seat}" data-slot="${slot}">
       <div class="wp-avatar"><img src="${avatarSrc}" alt="" draggable="false" /></div>
-      <span class="wp-name">${nameFxHtml(p.name, p.nameFx)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
+      <span class="wp-name">${nameFxHtml(p.name, p.nameFx)}${p.isBot ? '<span class="bot-tag">BOT</span>' : ''}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
       ${p.isBot && draggable ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}
       ${!p.isBot && p.seat !== 0 && draggable ? '<button type="button" class="bot-remove-btn kick-btn" title="Expulsar da sala" aria-label="Expulsar da sala">' + ICON('exit') + 'Expulsar</button>' : ''}
     </div>
@@ -1351,7 +1428,7 @@ function renderClassicList(lobby, canEdit) {
       row.innerHTML = `
         <div class="wp-avatar"><img src="${avatarSrc}" alt="" draggable="false" /></div>
         <div class="wp-info">
-          <span class="wp-name">${nameFxHtml(p.name, p.nameFx)}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
+          <span class="wp-name">${nameFxHtml(p.name, p.nameFx)}${p.isBot ? '<span class="bot-tag">BOT</span>' : ''}${p.connected ? '' : ' (saiu)'}${p.seat === 0 ? ' ' + ICON('crown', true) : ''}</span>
           <span class="wp-team">Time ${p.team + 1}</span>
         </div>
         ${p.isBot && canEdit ? '<button type="button" class="bot-remove-btn" title="Remover bot" aria-label="Remover bot">×</button>' : ''}

@@ -3166,3 +3166,46 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 .smoke-in { animation: smokeIn .5s cubic-bezier(.3, 1.3, .5, 1) backwards; }
 @media (prefers-reduced-motion: reduce) { .smoke-in { animation: none; } }
+
+
+/* ---------------------------------------------------------------- */
+/* Bots: tag "BOT" ao lado do nome + janela "Qual bot você quer?"     */
+/* ---------------------------------------------------------------- */
+.bot-tag {
+  display: inline-block;
+  margin-left: 0.45em;
+  padding: 0.08em 0.5em;
+  font-size: 0.55em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  border-radius: 0.4em;
+  background: #fff8f0;
+  color: #111;
+  vertical-align: 0.2em;
+}
+.bot-card { width: min(32rem, 100%); max-height: calc(100dvh - 1.5rem); overflow-y: auto; }
+.bot-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.bot-option {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 0.65rem 0.8rem;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 0.9rem;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .15s ease;
+}
+.bot-option:hover:not(:disabled) { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.55); transform: translateY(-1px); }
+.bot-option:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.bot-option:disabled { opacity: 0.4; cursor: not-allowed; }
+.bot-option .wp-avatar { width: 4.5rem; height: 4.5rem; }
+.bot-option-info { min-width: 0; }
+.bot-option-name { font-weight: 800; font-size: 1.25rem; }
+.bot-option-taken { margin-left: 0.6rem; font-size: 0.8rem; font-weight: 600; opacity: 0.8; }
+.bot-option-desc { margin-top: 0.15rem; font-size: 0.95rem; opacity: 0.85; line-height: 1.3; }
