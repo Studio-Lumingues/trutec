@@ -3047,7 +3047,14 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 /* Sala de espera: jogadores maiores                                  */
 /* (fica no fim do arquivo pra ganhar das regras antigas)             */
 /* ---------------------------------------------------------------- */
-:root { --slot-h: 8rem; --slot-av: 6.25rem; }
+:root {
+  /* o tamanho dos jogadores se adapta à ALTURA da janela: grande quando sobra
+     espaço, menor quando a janela é baixa — a sala sempre cabe sem rolar.
+     (o número em rem é o que sobra na sala de espera além dos cards) */
+  --slot-h: clamp(4.5rem, calc((100dvh - 36rem) / 2), 8rem);   /* 2 vs 2 */
+  --slot-av: calc(var(--slot-h) - 1.75rem);
+  --row-h: clamp(5rem, calc((100dvh - 32rem) / 2), 8.5rem);    /* 1 vs 1 */
+}
 
 #screen-waiting .lobby-card { width: min(46rem, 96vw); }
 
@@ -3058,9 +3065,9 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   gap: 1.3rem;
   border-radius: 1.1rem;
   font-size: 1.6rem;
-  min-height: 8.5rem;
+  min-height: var(--row-h);
 }
-.waiting-players .wp-avatar { width: 7rem; height: 7rem; border-radius: 1rem; }
+.waiting-players .wp-avatar { width: calc(var(--row-h) - 1.5rem); height: calc(var(--row-h) - 1.5rem); border-radius: 1rem; }
 .waiting-players .wp-team { font-size: 1rem; }
 
 /* 2 vs 2 */
@@ -3080,9 +3087,28 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .team-slot-empty { font-size: 1.05rem; border-radius: 0.9rem; }
 
 @media (max-width: 700px) {
-  :root { --slot-h: 6.2rem; --slot-av: 4.8rem; }
+  :root {
+    --slot-h: clamp(3.4rem, calc((100dvh - 44rem) / 4), 6.2rem);   /* 4 cards empilhados */
+    --row-h: clamp(4.5rem, calc((100dvh - 33rem) / 2), 7rem);
+  }
   .teams-board { flex-direction: column; }
-  .waiting-players .wp-avatar { width: 5.5rem; height: 5.5rem; }
-  .waiting-players .wp-row { font-size: 1.25rem; padding: 0.7rem 1rem; gap: 1rem; min-height: 7rem; }
+  .waiting-players .wp-row { font-size: 1.25rem; padding: 0.7rem 1rem; gap: 1rem; }
   .team-card .wp-name { font-size: 1.15rem; }
 }
+
+
+/* ---------------------------------------------------------------- */
+/* Sala de espera: compactar na vertical pra tudo caber sem rolar      */
+/* ---------------------------------------------------------------- */
+#screen-waiting .waiting-title { margin-bottom: 0.4rem; }
+#screen-waiting .copy-feedback { min-height: 0.85rem; margin: 0.1rem 0 0; }
+#screen-waiting .tagline { margin-bottom: 0.9rem; }
+#screen-waiting .waiting-players { margin: 0.6rem 0; }
+#screen-waiting .waiting-hint { margin: 0.4rem 0 0; }
+#screen-waiting .waiting-spinner { margin: 0.5rem auto 0.25rem; }
+#screen-waiting #btn-start-game { margin-top: 0.5rem; }
+/* sem erro na tela, o aviso não ocupa espaço */
+#screen-waiting #waiting-error:empty { display: none; }
+/* seta de voltar colada no botão Iniciar partida */
+#screen-waiting #btn-leave-waiting { margin-top: 0.15rem; padding-top: 0.1rem; padding-bottom: 0; }
+#screen-waiting #btn-leave-waiting .ic { width: 3rem; height: 3rem; }

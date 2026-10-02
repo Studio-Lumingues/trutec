@@ -1580,7 +1580,7 @@ function updateStartButton(lobby) {
     }
 
     if (!full) {
-      hint.textContent = 'Aguardando mais jogadores entrarem na sala…';
+      hint.textContent = ''; // o próprio botão já mostra "Aguardando jogadores… (1/4)"
     } else if (!teamsReady) {
       hint.textContent = 'Toque em "Dupla 1" / "Dupla 2" pra montar os times (2 jogadores em cada).';
     } else {
