@@ -260,6 +260,7 @@ setTimeout(showReconnectOffer, 900);
 // Navegação de telas
 // ------------------------------------------------------------------
 let waitingShownAt = 0;   // quando a sala de espera abriu (pra sincronizar a animação do código)
+let botFxPending = 0;      // bots cujo efeito já tocou no clique (não repetir quando o servidor confirmar)
 let knownSeats = null;     // assentos já vistos na sala (pra detectar quem acabou de entrar)
 let shownRoomCode = null; // código que já está na tela (só anima quando muda)
 function showScreen(id) {
@@ -1173,16 +1174,16 @@ function renderLobby(lobby) {
   } else {
     const fresh = lobby.players.filter(p => !knownSeats.has(p.seat));
     knownSeats = seatsNow;
-    if (fresh.length) {
-      if (window.GameAudio && GameAudio.poof) GameAudio.poof();
-      fresh.forEach((p, i) => {
-        const el = wrap.querySelector('[data-seat="' + p.seat + '"]');
-        if (!el) return;
-        el.classList.add('smoke-in');
-        el.style.animationDelay = (i * 120) + 'ms';
-        if (window.TruSmoke) setTimeout(() => TruSmoke.puff(el), i * 120);
-      });
-    }
+    let played = false;
+    fresh.forEach((p, i) => {
+      const el = wrap.querySelector('[data-seat="' + p.seat + '"]');
+      if (!el) return;
+      el.classList.add('smoke-in');
+      if (p.isBot && botFxPending > 0) { botFxPending--; return; }   // efeito já tocou no clique
+      el.style.animationDelay = (i * 120) + 'ms';
+      if (!played) { played = true; if (window.GameAudio && GameAudio.poof) GameAudio.poof(); }
+      if (window.TruSmoke) setTimeout(() => TruSmoke.puff(el), i * 120);
+    });
   }
 
   updateStartButton(lobby);
@@ -1239,7 +1240,18 @@ document.getElementById('waiting-players').addEventListener('click', (e) => {
     const col = addBtn.closest('.team-column');
     const payload = col ? { team: parseInt(col.dataset.team, 10) } : {};
     addBtn.disabled = true;
-    socket.emit('add_bot', payload, (res) => { addBtn.disabled = false; done(res); });
+    // fumaça + som NA HORA do clique (o bot em si só aparece quando o servidor
+    // responde; no Render isso pode levar um instante)
+    const slotEl = addBtn.closest('.team-slot-empty, .wp-row');
+    if (slotEl) {
+      botFxPending++;
+      if (window.GameAudio && GameAudio.poof) GameAudio.poof();
+      if (window.TruSmoke) TruSmoke.puff(slotEl);
+    }
+    socket.emit('add_bot', payload, (res) => {
+      addBtn.disabled = false; done(res);
+      if (slotEl && res && !res.ok) botFxPending = Math.max(0, botFxPending - 1); // falhou: não houve bot
+    });
   } else {
     const card = rmBtn.closest('[data-seat]');
     if (!card) return;

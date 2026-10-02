@@ -39,10 +39,14 @@
   }
 
   function center(p) {
-    var el = p.el && p.el.isConnected ? (p.el.querySelector('.wp-avatar') || p.el) : null;
-    if (el) {
-      var r = el.getBoundingClientRect();
+    if (!p.el || !p.el.isConnected) return;
+    var av = p.el.querySelector('.wp-avatar');
+    if (av) {
+      var r = av.getBoundingClientRect();
       if (r.width > 0) { p.x = r.left + r.width / 2; p.y = r.top + r.height / 2; p.size = r.width; }
+    } else {                                   // slot vazio: fumaça onde o avatar vai ficar
+      var q = p.el.getBoundingClientRect();
+      if (q.height > 0) { p.size = q.height * 0.8; p.x = q.left + q.height * 0.55; p.y = q.top + q.height / 2; }
     }
   }
 
