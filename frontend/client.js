@@ -382,6 +382,8 @@ function getSavedCharacter() {
         btn.classList.add('active');
         const panel = document.querySelector(`.editor-tab-panel[data-tab-panel="${btn.dataset.tab}"]`);
         if (panel) panel.classList.add('active');
+        const bar = document.querySelector('#screen-character-editor .character-toolbar');
+        if (bar) bar.classList.toggle('is-pele', btn.dataset.tab === 'pele');   // Pele: card só encolhe; Desenho: igual ao quadrado
       });
     });
   });

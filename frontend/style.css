@@ -3550,9 +3550,21 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 #screen-character-editor .character-toolbar label,
 #screen-character-editor .character-toolbar .skin-hint { text-shadow: 0 1px 0.4rem rgba(0,0,0,0.5); }
 
-/* o card ocupa um pouco mais pra manter o tamanho dos botões */
+/* Desktop: na aba Desenho o card tem EXATAMENTE a altura do quadrado do       */
+/* desenho (estica até a altura da linha e distribui o conteúdo). Na aba Pele  */
+/* (.is-pele, posta pelo client.js) ele só encolhe até o tamanho do conteúdo,  */
+/* centralizado; a altura é animada pelo smoothToolbarResize.                  */
 @media (min-width: 901px) {
-  #screen-character-editor .character-toolbar { flex: 0 0 21rem; width: 21rem; }
+  #screen-character-editor .character-toolbar {
+    flex: 0 0 21rem;
+    width: 21rem;
+    align-self: stretch;
+    justify-content: space-between;
+  }
+  #screen-character-editor .character-toolbar.is-pele {
+    align-self: center;
+    justify-content: flex-start;
+  }
 }
 
 /* troca de aba (Desenho / Pele): o conteúdo novo entra com fade; a altura  */
