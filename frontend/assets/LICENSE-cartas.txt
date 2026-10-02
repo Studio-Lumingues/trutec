@@ -1,0 +1,3 @@
+Sons de carta (assets/card-play-*.wav e assets/card-deal-*.wav):
+"Casino Audio" por Kenney (www.kenney.nl) — licença CC0 (domínio público), uso livre, inclusive comercial.
+Os arquivos foram só cortados e normalizados.

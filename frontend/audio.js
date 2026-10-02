@@ -69,6 +69,7 @@
     analyser.fftSize = 512;
     analyser.smoothingTimeConstant = 0.2;
     tracks.jungle.fade.connect(analyser);
+    loadCardSamples();
     return true;
   }
 
@@ -179,9 +180,10 @@
     src.stop(t + o.dur + 0.02);
   }
 
+  // [RESERVA] sintetizado: só toca se os arquivos de som das cartas não carregarem.
   // carta batendo na mesa: estalo seco de papel + "toc" grave no feltro.
   // Cada chamada varia um pouquinho (tom/timbre), pra não soar sempre igual.
-  function sfxCardPlay(delaySec) {
+  function sfxCardPlaySynth(delaySec) {
     if (!sfxReady()) return;
     var t = ctx.currentTime + (delaySec || 0);
     var j = 0.9 + Math.random() * 0.2;
@@ -201,7 +203,7 @@
 
   // carta sendo distribuída/puxada: "fri-frit" curto e crocante (papel deslizando
   // com micro-estalos, como a borda de um baralho)
-  function sfxCardDeal(delaySec, variation) {
+  function sfxCardDealSynth(delaySec, variation) {
     if (!sfxReady()) return;
     var t = ctx.currentTime + (delaySec || 0);
     var j = 0.92 + Math.random() * 0.16 + (variation || 0) * 0.04;
@@ -209,6 +211,62 @@
     for (var k = 0; k < 3; k++) {
       noiseBurst(t + k * 0.014, { type: 'highpass', f: 3200 * j, dur: 0.02, peak: 0.5 - k * 0.12, attack: 0.001 });
     }
+  }
+
+  // ---- Sons de carta de verdade (pacote Casino Audio do Kenney, CC0, em assets/) ----
+  // card-play-*: carta jogada na mesa (estalo do papel). card-deal-*: carta distribuída/puxada (deslize).
+  // Cada vez sorteia uma gravação diferente da anterior e varia de leve o tom (playbackRate) e o volume,
+  // pra não soar sempre igual. Se algum arquivo não carregar, usa o som sintetizado de antes.
+  var CARD_FILES = {
+    play: ['assets/card-play-1.wav', 'assets/card-play-2.wav', 'assets/card-play-3.wav', 'assets/card-play-4.wav'],
+    deal: ['assets/card-deal-1.wav', 'assets/card-deal-2.wav', 'assets/card-deal-3.wav', 'assets/card-deal-4.wav']
+  };
+  var CARD_GAIN = { play: 1.5, deal: 1.2 };   // multiplica o volume de efeitos (as gravações estão normalizadas em 0,8)
+  var cardBufs = { play: [], deal: [] }, cardLast = { play: -1, deal: -1 }, cardLoading = false;
+
+  function loadCardSamples() {
+    if (cardLoading || !ctx) return;
+    cardLoading = true;
+    Object.keys(CARD_FILES).forEach(function (kind) {
+      CARD_FILES[kind].forEach(function (url, i) {
+        fetch(url)
+          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+          .then(function (data) { return new Promise(function (ok, fail) { ctx.decodeAudioData(data, ok, fail); }); })
+          .then(function (buf) { cardBufs[kind][i] = buf; })
+          .catch(function (err) { console.warn('[áudio] não consegui carregar ' + url + ' — confira se está na pasta assets/.', err); });
+      });
+    });
+  }
+
+  // toca uma gravação sorteada do grupo; devolve false se nenhuma carregou (aí cai no sintetizado)
+  function playCardSample(kind, delaySec, pitch) {
+    var list = cardBufs[kind], ok = [];
+    for (var i = 0; i < list.length; i++) if (list[i]) ok.push(i);
+    if (!ok.length) return false;
+    var idx;
+    do { idx = ok[Math.floor(Math.random() * ok.length)]; } while (idx === cardLast[kind] && ok.length > 1);
+    cardLast[kind] = idx;
+    var t = ctx.currentTime + (delaySec || 0);
+    var src = ctx.createBufferSource();
+    src.buffer = list[idx];
+    src.playbackRate.value = (pitch || 1) * (0.95 + Math.random() * 0.1);
+    var g = ctx.createGain();
+    g.gain.value = Math.min(1, CARD_GAIN[kind] * SFX_VOLUME * (0.88 + Math.random() * 0.24));
+    src.connect(g); g.connect(ctx.destination);
+    src.start(t);
+    return true;
+  }
+
+  // carta batendo na mesa
+  function sfxCardPlay(delaySec) {
+    if (!sfxReady()) return;
+    if (!playCardSample('play', delaySec, 1)) sfxCardPlaySynth(delaySec);
+  }
+
+  // carta sendo distribuída/puxada (a 2ª, 3ª... saem um tiquinho mais agudas, como num leque)
+  function sfxCardDeal(delaySec, variation) {
+    if (!sfxReady()) return;
+    if (!playCardSample('deal', delaySec, 1 + (variation || 0) * 0.015)) sfxCardDealSynth(delaySec, variation);
   }
 
   // explosãozinha (jogador entrou na sala): "pof" grave abafado + sopro de ruído
