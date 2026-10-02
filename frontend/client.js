@@ -333,7 +333,8 @@ function getSavedCharacter() {
   // cor sólida, então rotacionar o matiz é suficiente pra trocar o tom).
   // ------------------------------------------------------------------
   const CHARACTER_BASE_COLOR = '#ff0042'; // cor original do svg do avatar
-  const skinHueSlider = document.getElementById('character-skin-hue');
+  const skinLightSlider = document.getElementById('character-skin-light');
+  const skinColorPicker = document.getElementById('skin-color-picker');
   const skinPresetsWrap = document.getElementById('skin-presets');
   const tabButtons = document.querySelectorAll('.editor-tab-btn');
   const tabPanels = document.querySelectorAll('.editor-tab-panel');
@@ -473,15 +474,91 @@ function getSavedCharacter() {
   }
 
 
-  function setSkin(k) {
+  // ---- cor-alvo -> { h, s, b } ----
+  // O boneco só tem 3 "botões" (matiz, saturação, brilho) aplicados sobre o rosa original.
+  // Pra aceitar QUALQUER cor (roleta, ou a barra claro -> escuro), procuramos a combinação
+  // h/s/b que mais se aproxima da cor pedida. O formato salvo/exportado continua o mesmo.
+  const SKIN_BASE_RGB = [255, 0, 66];   // = CHARACTER_BASE_COLOR
+  const SKIN_S_MAX = 2, SKIN_B_MAX = 5.5;
+  const clamp255 = (v) => Math.min(255, Math.max(0, v));
+
+  function hexToRgb(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex).trim());
+    if (!m) return [198, 134, 66];
+    const n = parseInt(m[1], 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function rgbToHex(c) {
+    return '#' + c.map(v => Math.round(clamp255(v)).toString(16).padStart(2, '0')).join('');
+  }
+
+  // cor do boneco antes do brilho (matiz + saturação sobre o rosa original)
+  function skinPreBright(h, s) {
+    const a = h * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
+    const r = SKIN_BASE_RGB[0], g = SKIN_BASE_RGB[1], bl = SKIN_BASE_RGB[2];
+    const r1 = clamp255((0.213 + co * 0.787 - si * 0.213) * r + (0.715 - co * 0.715 - si * 0.715) * g + (0.072 - co * 0.072 + si * 0.928) * bl);
+    const g1 = clamp255((0.213 - co * 0.213 + si * 0.143) * r + (0.715 + co * 0.285 + si * 0.140) * g + (0.072 - co * 0.072 - si * 0.283) * bl);
+    const b1 = clamp255((0.213 - co * 0.213 - si * 0.787) * r + (0.715 - co * 0.715 + si * 0.715) * g + (0.072 + co * 0.928 + si * 0.072) * bl);
+    return [
+      clamp255((0.213 + 0.787 * s) * r1 + (0.715 - 0.715 * s) * g1 + (0.072 - 0.072 * s) * b1),
+      clamp255((0.213 - 0.213 * s) * r1 + (0.715 + 0.285 * s) * g1 + (0.072 - 0.072 * s) * b1),
+      clamp255((0.213 - 0.213 * s) * r1 + (0.715 - 0.715 * s) * g1 + (0.072 + 0.928 * s) * b1)
+    ];
+  }
+  function skinRGB(k) {
+    const c = skinPreBright(k.h, k.s);
+    return [clamp255(c[0] * k.b), clamp255(c[1] * k.b), clamp255(c[2] * k.b)];
+  }
+
+  function fitSkin(t, hint) {
+    hint = hint || { h: 0, s: 1, b: 1 };
+    let best = null;
+    function tryHS(h, s) {
+      const c = skinPreBright(h, s);
+      const cc = c[0] * c[0] + c[1] * c[1] + c[2] * c[2];
+      let b = cc > 0 ? (c[0] * t[0] + c[1] * t[1] + c[2] * t[2]) / cc : 0;
+      b = Math.min(SKIN_B_MAX, Math.max(0, b));
+      let e = 0;
+      for (let i = 0; i < 3; i++) { const d = clamp255(c[i] * b) - t[i]; e += d * d; }
+      // desempate: prefere ficar perto do tom atual (a barra não "pula" de matiz à toa)
+      let dh = Math.abs(h - hint.h); if (dh > 180) dh = 360 - dh;
+      e += 0.0005 * dh * dh + 20 * (s - hint.s) * (s - hint.s);
+      if (!best || e < best.e) best = { e, h, s, b };
+    }
+    for (let h = 0; h < 360; h += 2) for (let s = 0; s <= SKIN_S_MAX + 1e-9; s += 0.05) tryHS(h, s);
+    // refina em volta do melhor
+    const c0 = { h: best.h, s: best.s };
+    for (let h = c0.h - 2; h <= c0.h + 2; h += 0.25) {
+      for (let s = Math.max(0, c0.s - 0.05); s <= Math.min(SKIN_S_MAX, c0.s + 0.05); s += 0.005) tryHS(((h % 360) + 360) % 360, s);
+    }
+    return { h: Math.round(best.h * 10) / 10, s: Math.round(best.s * 1000) / 1000, b: Math.round(best.b * 1000) / 1000 };
+  }
+
+  // ---- barra "mais claro -> mais escuro" em cima da cor-base escolhida ----
+  // esquerda = branco, meio = a cor escolhida, direita = preto
+  let skinBase = skinRGB({ h: 0, s: 1, b: 1 });
+  function mixRGB(a, b, t) { return a.map((v, i) => v + (b[i] - v) * t); }
+  function paintSkinSlider() {
+    skinLightSlider.style.setProperty('--skin-base', rgbToHex(skinBase));
+  }
+  function setSkinBase(rgb) {
+    skinBase = rgb;
+    skinLightSlider.value = 50;
+    paintSkinSlider();
+  }
+
+  function setSkin(k, keepBase) {
     skin = { h: k.h || 0, s: k.s === undefined ? 1 : k.s, b: k.b === undefined ? 1 : k.b };
-    skinHueSlider.value = skin.h;
     const f = skinFilter(skin);
     characterBase.style.filter = (f ? f + ' ' : '') + 'url(#boil-lg)'; // boil-lg = tremida animada (boil.js)
     document.querySelectorAll('.skin-preset').forEach(btn => {
       btn.classList.toggle('active',
         Number(btn.dataset.h) === skin.h && Number(btn.dataset.s) === skin.s && Number(btn.dataset.b) === skin.b);
     });
+    if (!keepBase) {                        // veio de bolinha/salvo/importado: a barra passa a girar em torno desse tom
+      setSkinBase(skinRGB(skin));
+      skinColorPicker.classList.remove('active');
+    }
   }
 
   function addPreset(wrap, k, color, title) {
@@ -498,7 +575,22 @@ function getSavedCharacter() {
   SKIN_NATURAL.forEach(t => addPreset(skinPresetsWrap, t, t.c, t.n));
   SKIN_FUN_DEGS.forEach(deg => addPreset(skinPresetsWrap, { h: deg, s: 1, b: 1 }, hueRotatedColor(deg), deg === 0 ? 'Rosa original' : `Cor ${deg}°`));
 
-  skinHueSlider.addEventListener('input', () => setSkin({ h: Number(skinHueSlider.value), s: 1, b: 1 }));
+  // roleta de cores: qualquer cor vira o novo tom-base
+  skinPresetsWrap.appendChild(skinColorPicker);   // fica por último na fileira de bolinhas
+  skinColorPicker.addEventListener('input', () => {
+    const rgb = hexToRgb(skinColorPicker.value);
+    setSkin(fitSkin(rgb, skin), true);
+    setSkinBase(rgb);
+    skinColorPicker.style.setProperty('--picked', skinColorPicker.value);
+    skinColorPicker.classList.add('active');
+  });
+
+  // barra: 0 = o mais claro possível (branco), 50 = o tom escolhido, 100 = o mais escuro (preto)
+  skinLightSlider.addEventListener('input', () => {
+    const t = Number(skinLightSlider.value) / 50;       // 0..2
+    const target = t <= 1 ? mixRGB([255, 255, 255], skinBase, t) : mixRGB(skinBase, [0, 0, 0], t - 1);
+    setSkin(fitSkin(target, skin), true);
+  });
 
   setSkin({ h: 0, s: 1, b: 1 });
   try {

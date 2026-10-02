@@ -518,8 +518,10 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
           </div>
 
           <div class="editor-tab-panel" data-tab-panel="pele">
-            <div class="skin-presets" id="skin-presets"></div>
-            <input type="range" id="character-skin-hue" class="skin-hue-slider" min="0" max="360" value="0" />
+            <div class="skin-presets" id="skin-presets">
+              <input type="color" id="skin-color-picker" value="#f1c27d" title="Cor personalizada" aria-label="Cor personalizada" />
+            </div>
+            <input type="range" id="character-skin-light" class="skin-light-slider" min="0" max="100" value="50" title="Do mais claro ao mais escuro" aria-label="Do tom mais claro ao mais escuro" />
           </div>
 
           <div class="share-row">
