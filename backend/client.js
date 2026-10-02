@@ -2755,6 +2755,18 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// Tag BOT ao lado do nome dentro da partida (estilo próprio, não depende do style.css)
+(function () {
+  if (document.getElementById('bot-tag-ingame-css')) return;
+  const st = document.createElement('style');
+  st.id = 'bot-tag-ingame-css';
+  st.textContent =
+    '.seat-name .bot-tag,.chat-messages .bot-tag{display:inline-block;margin:0 .35em 0 .4em;padding:.08em .4em;border-radius:.35em;' +
+    'background:#ff2e63;color:#fff;font:800 .62em/1.3 system-ui,sans-serif;letter-spacing:.06em;vertical-align:.12em;' +
+    'text-transform:uppercase;white-space:nowrap;-webkit-text-fill-color:#fff;filter:none;animation:none}';
+  document.head.appendChild(st);
+})();
+
 // Efeitos de nome (só o admin tem; ver `auth nome`). A lista precisa bater com o servidor e o style.css.
 const NAME_FX = new Set(['fogo', 'arco-iris', 'neon', 'glitch', 'gelo', 'ouro', 'eletrico', 'galaxia', 'sangue', 'matrix']);
 function nameFxHtml(name, fx) {

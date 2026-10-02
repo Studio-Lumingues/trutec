@@ -323,7 +323,7 @@ class Room {
       canStart: !this.started && this.players.length === this.maxPlayers && this.teamsReady(),
       teamsReady: this.teamsReady(),
       players: this.players.map(p => ({
-        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: shownCharacter(p), nameFx: fxOf(p), isBot: !!p.isBot,
+        seat: p.seat, name: p.name, team: p.team, connected: p.connected, character: shownCharacter(p), nameFx: fxOf(p), isBot: !!p.isBot, persona: p.persona || null,
         theme: p.theme || null, stats: p.stats || null
       }))
     };
@@ -724,6 +724,7 @@ class Room {
         team: p.team,
         connected: p.connected,
         isBot: !!p.isBot,
+        persona: p.persona || null,
         character: shownCharacter(p),
         nameFx: fxOf(p),
         theme: p.theme || null,
@@ -774,13 +775,13 @@ const BOT_CATALOG = Object.keys(PERSONA_NAMES).map(k => ({
   persona: k, name: PERSONA_NAMES[k], desc: BOT_DESCS[k], avatar: BOT_AVATARS[k]
 }));
 // Escolhe a personalidade do bot: a pedida (se válida), senão uma que ainda não está na sala.
-function pickPersona(r, wanted) {
-  if (wanted && PERSONA_NAMES[wanted]) return wanted;
+function pickPersona(r, wanted, allowDup) {
   const used = new Set(r.players.map(p => p.persona).filter(Boolean));
   const keys = Object.keys(PERSONA_NAMES);
+  if (wanted && PERSONA_NAMES[wanted]) return used.has(wanted) && !allowDup ? null : wanted;
   const free = keys.filter(k => !used.has(k));
-  const list = free.length ? free : keys;
-  return list[Math.floor(Math.random() * list.length)];
+  if (free.length) return free[Math.floor(Math.random() * free.length)];
+  return allowDup ? keys[Math.floor(Math.random() * keys.length)] : null;
 }
 
 // Quais modos trocam quem sai por um bot no meio da partida (depois de BOT_GRACE_MS).
@@ -924,7 +925,7 @@ function botTakeover(r, p) {
   p.origName = p.name;
   p.origCharacter = p.character;
   p.replacedHuman = true;
-  p.persona = pickPersona(r);
+  p.persona = pickPersona(r, null, true); // (se acabarem os tipos, repete: a partida não pode ficar sem bot)
   p.name = PERSONA_NAMES[p.persona];
   p.character = BOT_AVATARS[p.persona] || BOT_AVATAR;
   p.isBot = true;
@@ -1337,6 +1338,7 @@ io.on('connection', (socket) => {
     }
     const token = crypto.randomBytes(12).toString('hex');
     const persona = pickPersona(r, payload && payload.persona);
+    if (!persona) return reply({ ok: false, error: 'Esse bot já está na sala. Cada tipo de bot só entra uma vez.' });
     const newBot = {
       id: 'bot:' + token, token, name: PERSONA_NAMES[persona], seat, team,
       connected: true, hand: [], character: BOT_AVATARS[persona] || BOT_AVATAR, isBot: true, persona
