@@ -760,8 +760,8 @@ class Room {
 // ---------------------------------------------------------------------------
 const brain = createBot({ Room, cardStrength, buildDeck, STAKE_SEQUENCE });
 
-// Quais modos trocam quem sai por um bot no meio da partida.
-const BOT_REPLACES = { '2v2': true, '1v1': false };
+// Quais modos trocam quem sai por um bot no meio da partida (depois de BOT_GRACE_MS).
+const BOT_REPLACES = { '2v2': true, '1v1': true };
 const BOT_GRACE_MS = 10000; // quem cai fica "reconectando" por 10s; depois o bot assume (2v2)
 
 const BOT_NAMES = ['Bot Tião', 'Bot Zezé', 'Bot Chico', 'Bot Neide', 'Bot Baiano', 'Bot Dona Maria', 'Bot Zeca', 'Bot Lurdes'];
