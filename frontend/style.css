@@ -2854,6 +2854,29 @@ html[data-theme="casa"] .table-disc::before {
   text-shadow: 0 1px 0.4rem rgba(0,0,0,0.55);
   transition: transform .1s, filter .15s, box-shadow .15s, background .2s;
 }
+/* xadrez girando atrás do vidro (o mesmo do editor de avatar, só que
+   translúcido e em ponto menor). Fica num quadrado enorme centrado no botão
+   que gira; o overflow:hidden do botão corta o excesso.
+   Ajustes: --gck-a / --gck-b (cores e transparência), --gck-size, 60s. */
+.btn-glass .glass-checker {
+  --gck-a: rgba(90,90,90,0.55);
+  --gck-b: rgba(10,10,10,0.35);
+  --gck-size: 1.6rem;
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: 44rem;
+  height: 44rem;
+  margin: -22rem 0 0 -22rem;
+  pointer-events: none;
+  background: repeating-conic-gradient(var(--gck-a) 0% 25%, var(--gck-b) 0% 50%) 0 0 / var(--gck-size) var(--gck-size);
+  animation: glassCheckerSpin 60s linear infinite;
+}
+@keyframes glassCheckerSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .btn-glass .glass-checker { animation: none; }
+}
 /* boneco visto através do vidro (cortado pela borda do botão) */
 .btn-glass .glass-avatar {
   position: absolute;
