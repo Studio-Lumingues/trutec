@@ -2894,14 +2894,14 @@ html[data-theme="casa"] .table-disc::before {
    boneco do botão Avatar (height 230%, mesma posição vertical). O da direita
    fica na frente, cobrindo um pouco o da esquerda, com drop-shadow pra dar a
    ideia de que está por cima. Ajustes: aspect-ratio (quanto um cobre o outro:
-   menor = mais sobreposto) e o drop-shadow. */
+   1.2 = bem sobreposto, 1.55 = quase lado a lado) e o drop-shadow. */
 .btn-glass .glass-duo {
   position: absolute;
   z-index: 0;
   right: 0.6rem;
   top: 50%;
   height: 230%;
-  aspect-ratio: 1.55 / 1;
+  aspect-ratio: 1.2 / 1;
   transform: translateY(-46%);
   pointer-events: none;
   user-select: none;
@@ -2917,6 +2917,7 @@ html[data-theme="casa"] .table-disc::before {
 .btn-glass .glass-duo .gd-back { left: 0; z-index: 1; }
 .btn-glass .glass-duo .gd-front {
   right: 0;
+  top: 5%;                       /* um pouco mais baixo: reforça que está na frente */
   z-index: 2;
   filter: url(#boil-sm) drop-shadow(-0.4rem 0.15rem 0.45rem rgba(0,0,0,0.5));
 }
