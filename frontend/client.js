@@ -2324,10 +2324,19 @@ function updateViraPickUI(state) {
   box.classList.toggle('mine', mine);
   viraPickEndsAt = Date.now() + Math.max(0, v.msLeft || 0);
   const owner = state.players.find(p => p.seat === v.seat);
+  // "card" com o título grande e a contagem regressiva bem grande logo abaixo
   const paint = () => {
     const secs = Math.max(0, Math.ceil((viraPickEndsAt - Date.now()) / 1000));
-    if (mine) titleEl.textContent = 'Escolha o vira! ' + secs + 's';
-    else titleEl.textContent = (owner ? owner.name : 'Alguém') + ' está escolhendo o vira…';
+    let head = titleEl.querySelector('.vp-head'), num = titleEl.querySelector('.vp-secs b');
+    if (!head || !num) {
+      titleEl.innerHTML = '<div class="vp-head"></div><div class="vp-secs"><b></b><span>s</span></div>';
+      head = titleEl.querySelector('.vp-head'); num = titleEl.querySelector('.vp-secs b');
+    }
+    const headTxt = mine ? 'Escolha o vira!' : (owner ? owner.name : 'Alguém') + ' está escolhendo o vira…';
+    if (head.textContent !== headTxt) head.textContent = headTxt;
+    head.classList.toggle('watch', !mine);
+    if (num.textContent !== String(secs)) num.textContent = secs;
+    titleEl.classList.toggle('low', secs <= 5);
   };
   paint();
   if (!viraPickInterval) viraPickInterval = setInterval(paint, 250);
