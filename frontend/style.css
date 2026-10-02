@@ -4111,3 +4111,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 @supports not selector(::-webkit-scrollbar) {
   * { scrollbar-width: thin; scrollbar-color: rgba(255, 248, 240, 0.4) rgba(255, 248, 240, 0.05); }
 }
+
+
+/* Efeito de abrir (screen-open.js): mantém a tela inicial visível por baixo enquanto a nova se abre */
+.screen.screen-keep { display: flex; }
