@@ -730,7 +730,6 @@ function getSavedCharacter() {
     encodeAvatar().then((code) => {
       exportCode.value = code;
       exportView.textContent = shortCode(code);
-      exportMsg.textContent = 'Código com ' + code.length.toLocaleString('pt-BR') + ' caracteres.';
     }, () => { exportCode.value = ''; exportView.textContent = '—'; exportMsg.textContent = 'Não consegui gerar o código.'; });
   }
   function closeExport() { exportModal.classList.add('hidden'); document.getElementById('btn-avatar-share').focus(); }

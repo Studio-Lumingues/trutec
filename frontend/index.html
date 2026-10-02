@@ -415,7 +415,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       <h2 id="import-title">Importar avatar</h2>
       <p class="modal-hint">Cole aqui o código que um amigo exportou.</p>
       <div class="code-preview" id="import-preview" hidden><img id="import-img" alt="Avatar do código" draggable="false" /></div>
-      <textarea id="import-code" class="code-box" placeholder="Cole o código aqui" spellcheck="false" autocomplete="off" aria-label="Código do avatar"></textarea>
+      <input id="import-code" class="code-input" type="text" placeholder="Cole o código aqui" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Código do avatar" />
       <p id="import-msg" class="code-msg" aria-live="polite"></p>
       <div class="modal-actions">
         <button id="import-cancel" type="button" class="btn btn-secondary">Cancelar</button>
