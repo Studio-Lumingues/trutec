@@ -2966,3 +2966,32 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .code-bar .code-input {
   margin: 0; padding: 0; width: 100%; border: 0; border-radius: 0; background: transparent;
 }
+
+/* Jogador sem conexão: avatar escurecido com a rodinha por cima */
+.seat-away {
+  position: absolute; inset: 0; z-index: 4; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.62); pointer-events: none;
+  animation: awayIn .2s ease-out;
+}
+.seat-away .game-intro-spinner { width: 58%; height: 58%; }
+@keyframes awayIn { from { opacity: 0; } }
+
+/* Botão "Reconectar": bem grande */
+.reconnect-offer {
+  flex-direction: column; gap: 0.9rem; padding: 1.2rem 1.4rem 1.3rem;
+  width: min(26rem, calc(100vw - 1.5rem)); border-radius: 1.4rem;
+}
+.reconnect-offer .ro-text { align-items: center; text-align: center; font-size: 1rem; }
+.reconnect-offer .ro-text b { font-size: 1.25rem; }
+.reconnect-offer .ro-actions { width: 100%; flex-direction: column; gap: 0.6rem; }
+.reconnect-offer .ro-go {
+  width: 100%; padding: 1.25rem 1rem; border-radius: 1rem;
+  font-size: 1.5rem; font-weight: 800; letter-spacing: 0.02em;
+  box-shadow: 0 0.35rem 0 rgba(0,0,0,0.35);
+}
+.reconnect-offer .ro-go:active:not(:disabled) { transform: translateY(0.15rem); box-shadow: 0 0.2rem 0 rgba(0,0,0,0.35); }
+.reconnect-offer .ro-no { width: 100%; height: 2.6rem; font-size: 0.95rem; }
+.reconnect-offer .ro-no::after { content: " Agora não"; }
+.conn-bar { padding-top: calc(0.9rem + env(safe-area-inset-top, 0px)); padding-bottom: 0.9rem; font-size: 1.05rem; }
+.conn-bar .cb-btn { padding: 0.85rem 1.6rem; font-size: 1.15rem; border-radius: 0.8rem; }

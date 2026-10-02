@@ -762,6 +762,7 @@ const brain = createBot({ Room, cardStrength, buildDeck, STAKE_SEQUENCE });
 
 // Quais modos trocam quem sai por um bot no meio da partida.
 const BOT_REPLACES = { '2v2': true, '1v1': false };
+const BOT_GRACE_MS = 10000; // quem cai fica "reconectando" por 10s; depois o bot assume (2v2)
 
 const BOT_NAMES = ['Bot Tião', 'Bot Zezé', 'Bot Chico', 'Bot Neide', 'Bot Baiano', 'Bot Dona Maria', 'Bot Zeca', 'Bot Lurdes'];
 const BOT_AVATAR_SVG =
@@ -1162,6 +1163,7 @@ io.on('connection', (socket) => {
       delete p.replacedHuman; delete p.origName; delete p.origCharacter;
       io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${p.name} voltou e retomou o lugar.`, ts: Date.now() });
     }
+    clearTimeout(p._takeoverTimer); p._takeoverTimer = null;
     p.id = socket.id;
     p.connected = true;
     socket.join(r.code);
@@ -1569,7 +1571,18 @@ io.on('connection', (socket) => {
     io.to(r.code).emit('chat_message', { name: 'Sistema', text: `${player.name} desconectou.`, ts: Date.now() });
 
     // No meio da partida (2v2), um bot assume o lugar de quem saiu.
-    if (r.started && !r.gameOver && BOT_REPLACES[r.mode] && humansConnected(r)) botTakeover(r, player);
+    if (r.started && !r.gameOver) {
+      r.broadcastState(io); // os outros veem o avatar escurecido com a rodinha
+      if (BOT_REPLACES[r.mode]) {
+        clearTimeout(player._takeoverTimer);
+        player._takeoverTimer = setTimeout(() => {
+          player._takeoverTimer = null;
+          if (rooms.get(r.code) !== r || !r.started || r.gameOver) return;
+          if (player.connected || player.isBot || !r.players.includes(player)) return;
+          if (humansConnected(r)) botTakeover(r, player);
+        }, BOT_GRACE_MS);
+      }
+    }
 
     // limpa salas vazias/abandonadas (bots não contam como "alguém na sala")
     const anyoneConnected = r.players.some(p => !p.isBot && p.connected);

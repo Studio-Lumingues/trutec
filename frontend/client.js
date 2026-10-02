@@ -108,6 +108,19 @@ function lobbyErrorSafe(msg) {
   if (el) el.textContent = msg;
 }
 
+// Avatar escurecido + círculo girando enquanto o jogador está sem conexão
+function setSeatAway(figEl, away) {
+  let ov = figEl.querySelector('.seat-away');
+  if (!away) { if (ov) ov.remove(); return; }
+  if (ov) return;
+  ov = document.createElement('div');
+  ov.className = 'seat-away';
+  ov.setAttribute('aria-label', 'Jogador reconectando');
+  ov.innerHTML = '<div class="game-intro-spinner"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+    '<path d="M50 12 A38 38 0 0 1 86 38" /><path d="M50 88 A38 38 0 0 1 14 62" /></svg></div>';
+  figEl.appendChild(ov);
+}
+
 // Ícones hand drawn (sprite no index.html). Sempre brancos/da cor do texto.
 const ICON = (name, only) => '<svg class="ic' + (only ? ' ic-only' : '') + '" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
 const SUIT_SYMBOLS = { ouros: '♦', espadas: '♠', copas: '♥', paus: '♣' };
@@ -1736,6 +1749,8 @@ function renderState(realState) {
       else { delete figEl.dataset.wins; delete figEl.dataset.losses; }
       // tema que o jogador está usando (o card mostra nome + miniatura)
       if (p.theme) figEl.dataset.theme = p.theme; else delete figEl.dataset.theme;
+      // caiu a conexão: avatar escurece e aparece a rodinha (até voltar ou o bot assumir)
+      setSeatAway(figEl, !p.isBot && p.connected === false);
     }
     if (nameEl) {
       setNameEl(nameEl, p.name, (n === 4 && p.team === myTeam) ? ' (parceiro)' : '', p.nameFx);
