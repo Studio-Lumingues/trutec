@@ -3878,17 +3878,11 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 
 
 /* ---------------------------------------------------------------- */
-/* Tela SOCIAL: mesmo painel do editor de avatar (xadrez girando),   */
-/* aba "Social" em controle de vidro e os 3 bots lado a lado.        */
-/* Celular: os bots continuam lado a lado (só ficam menores).        */
+/* Tela SOCIAL: o fundo do site inteiro vira o xadrez escuro com     */
+/* quadrados cinza girando (o mesmo do editor de avatar). Só há a    */
+/* seta de voltar no canto superior esquerdo.                        */
 /* ---------------------------------------------------------------- */
 #screen-social.screen {
-  align-items: flex-start;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 0.75rem;
-}
-#screen-social .character-panel-wide {
   --ck-a: #3b3b3b;
   --ck-b: #0a0a0a;
   --ck-size: 5rem;
@@ -3896,140 +3890,29 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   overflow: hidden;
   isolation: isolate;
   background: var(--ck-b);
-  margin: auto;
-  width: min(60rem, 100%);
-  max-width: 100%;
-  padding: 1.25rem 1.5rem 1.5rem;
 }
-#screen-social .character-panel-wide::before {
+#screen-social.screen::before {
   content: "";
   position: absolute;
-  left: -150%;
-  top: -150%;
-  width: 400%;
-  height: 400%;
+  left: 50%;
+  top: 50%;
+  width: 250vmax;
+  height: 250vmax;
+  margin: -125vmax 0 0 -125vmax;
   z-index: -1;
   pointer-events: none;
   background: repeating-conic-gradient(var(--ck-a) 0% 25%, var(--ck-b) 0% 50%) 0 0 / var(--ck-size) var(--ck-size);
   animation: checkerSpin 120s linear infinite;
 }
-#screen-social .character-title {
-  margin: 0.25rem 0 1.5rem;
-  font-size: 1.3rem;
-  letter-spacing: 0.04em;
-}
-#screen-social.active .character-panel { animation: editorDrop 0.65s both; transform-origin: 50% 100%; }
-#screen-social.active { animation: editorNoScroll 0.7s; }
 @media (prefers-reduced-motion: reduce) {
-  #screen-social .character-panel-wide::before,
-  #screen-social.active .character-panel,
-  #screen-social.active { animation: none; }
+  #screen-social.screen::before { animation: none; }
 }
-
-/* card de vidro com a aba (igual ao card de ferramentas do editor) */
-.social-toolbar {
-  position: relative;
-  isolation: isolate;
-  width: min(21rem, 100%);
-  margin: 0 auto 1.25rem;
-  padding: 0.75rem 1rem;
-  border-radius: 1.6rem;
-  background: linear-gradient(145deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.04) 40%, rgba(255,255,255,0.09) 100%);
-  -webkit-backdrop-filter: blur(0.8rem) saturate(1.8) brightness(1.08);
-  backdrop-filter: blur(0.8rem) saturate(1.8) brightness(1.08);
-  box-shadow: 0 1.5rem 3rem rgba(0,0,0,0.5);
-}
-.social-toolbar::before {
-  content: "";
+#screen-social .social-back {
   position: absolute;
-  inset: 0;
-  z-index: -1;
-  padding: 1px;
-  border-radius: inherit;
-  pointer-events: none;
-  background: rgba(255,255,255,0.5);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-}
-/* a pílula do .editor-tabs ocupa a largura toda (só há uma aba) */
-.social-tabs::before { width: calc(100% - 0.5rem); }
-.social-tab-btn {
-  position: relative;
+  top: 0.75rem;
+  left: 0.75rem;
   z-index: 1;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 0.5625rem 0.625rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: #fff;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-shadow: 0 1px 0.4rem rgba(0,0,0,0.5);
-  transition: color 0.3s ease;
-}
-.social-tab-btn.active { color: #040303; text-shadow: none; }
-
-/* os 3 bots: lado a lado dentro de UMA moldura creme, igual à do editor de
-   avatar (fundo #fff8f0, borda arredondada, traço "tremendo" do boil-lg). */
-.social-panel-body { animation: tabPanelIn 0.4s ease both; }
-.social-bots {
-  position: relative;
-  isolation: isolate;               /* o multiply das fotos mistura só com o creme */
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: clamp(0.25rem, 2vw, 1.5rem);
-  width: min(52rem, 100%);
-  margin: 0 auto;
-  padding: clamp(0.5rem, 2vw, 1.25rem) clamp(0.25rem, 2vw, 1.25rem) 0;
-  border-radius: 1.125rem;
-  overflow: hidden;
-  background: #fff8f0;
-  border: 1px solid rgba(255,255,255,0.2);
-}
-.social-bot {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.social-bot-photo {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-}
-.social-bot-photo img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center bottom;
-  pointer-events: none;
-  user-select: none;
-  filter: url(#boil-lg);
-}
-.social-bot-name {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 0.6rem 0 0.8rem;
-  font-size: clamp(0.95rem, 2.6vw, 1.3rem);
-  font-weight: 700;
-  color: #0a0a0a;
-}
-.social-bot-name .bot-tag { margin-left: 0; background: #0a0a0a; color: #fff8f0; }
-#screen-social .character-back-btn { margin-top: 1.25rem; }
-
-@media (max-width: 700px) {
-  #screen-social .character-panel-wide { padding: 1rem 1rem 1.25rem; }
+  width: auto;
+  margin: 0;
+  color: #fff8f0;
 }
