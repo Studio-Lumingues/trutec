@@ -2890,13 +2890,14 @@ html[data-theme="casa"] .table-disc::before {
   user-select: none;
   opacity: 0.95;
 }
-/* botão Social: os 3 bonecos lado a lado (um pouco sobrepostos), vistos
-   através do vidro e cortados pela borda do botão. O texto fica à esquerda. */
+/* botão Social: os 3 bonecos enfileirados pro lado, cada um sobreposto ao
+   anterior (o último fica por cima), vistos através do vidro e cortados pela
+   borda do botão. Ajustes: height (tamanho) e margin-left (quanto sobrepõe). */
 .btn-glass .glass-avatars {
   position: absolute;
   z-index: 0;
   right: 0.5rem;
-  top: 0.15rem;
+  top: 0.2rem;
   bottom: 0;
   display: flex;
   align-items: flex-start;
@@ -2904,17 +2905,16 @@ html[data-theme="casa"] .table-disc::before {
   user-select: none;
 }
 .btn-glass .glass-avatars img {
-  height: 150%;
+  position: relative;
+  height: 175%;
   width: auto;
   flex: none;
   opacity: 0.95;
 }
-.btn-glass .glass-avatars img + img { margin-left: -0.8rem; }
-#btn-open-social .glass-label { text-align: left; padding-left: 1.25rem; }
+.btn-glass .glass-avatars img + img { margin-left: -2.5rem; }
 @media (max-width: 400px) {
-  .btn-glass .glass-avatars img { height: 125%; }
-  .btn-glass .glass-avatars img + img { margin-left: -0.6rem; }
-  #btn-open-social .glass-label { padding-left: 0.9rem; }
+  .btn-glass .glass-avatars img { height: 150%; }
+  .btn-glass .glass-avatars img + img { margin-left: -2rem; }
 }
 /* reflexo especular por cima do boneco = efeito "vidro" */
 .btn-glass::before {
