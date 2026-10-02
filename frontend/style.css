@@ -3913,12 +3913,12 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 .social-nav {
   flex: none; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  height: 4.25rem; padding: 0 1.5rem; box-sizing: border-box;
+  height: 4rem; padding: 0 max(1.5rem, calc((100% - 62rem) / 2)); box-sizing: border-box;
   background: rgba(16,18,21,0.96); border-bottom: 1px solid rgba(255,255,255,0.12);
   box-shadow: 0 0.25rem 1rem rgba(0,0,0,0.4);
 }
 .social-logo {
-  --logo-w: 11rem;
+  --logo-w: 9.5rem;
   width: var(--logo-w); aspect-ratio: 1134 / 297; flex: none; padding: 0; border: 0; background: none;
   cursor: pointer; transition: filter .15s, transform .1s;
 }
@@ -3957,10 +3957,10 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 
 .social-main {
   flex: 1; min-height: 0; display: flex; align-items: stretch; gap: 1.5rem;
-  padding: 1.5rem; box-sizing: border-box; overflow-y: auto;
+  padding: 2rem max(1.5rem, calc((100% - 62rem) / 2)); box-sizing: border-box; overflow-y: auto;
 }
 .social-card {
-  flex: none; width: min(32rem, 44vw); align-self: flex-start;
+  flex: none; width: min(21rem, 40vw); align-self: flex-start;
   border-radius: 1.4rem; overflow: hidden; background: #111;
   border: 1px solid rgba(255,248,240,0.25); box-shadow: 0 1.2rem 3rem rgba(0,0,0,0.6);
 }
@@ -3970,27 +3970,27 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 .social-backme:hover { background: rgba(255,248,240,0.14); }
 .social-backme.hidden { display: none; }
-.sp-top { position: relative; height: 22rem; overflow: hidden; isolation: isolate; display: flex; align-items: flex-end; justify-content: center; }
+.sp-top { position: relative; height: 15rem; overflow: hidden; isolation: isolate; display: flex; align-items: flex-end; justify-content: center; }
 .sp-checker {
   position: absolute; z-index: -1; left: 50%; top: 50%; width: 60rem; height: 60rem; margin: -30rem 0 0 -30rem;
   background: repeating-conic-gradient(rgba(90,90,90,0.55) 0% 25%, rgba(10,10,10,0.5) 0% 50%) 0 0 / 3rem 3rem;
   animation: checkerSpin 60s linear infinite;
 }
-.sp-avatar { height: 21rem; width: auto; max-width: 100%; object-fit: contain; display: block; }
-.sp-body { padding: 1.25rem 1.75rem 1.75rem; text-align: center; }
-.sp-name { margin: 0; font-size: 2.6rem; line-height: 1.1; word-break: break-word; color: var(--cream); }
-.sp-handle { margin-top: 0.2rem; font-size: 1.15rem; font-weight: 600; opacity: 0.65; word-break: break-all; color: var(--cream); }
+.sp-avatar { height: 14rem; width: auto; max-width: 100%; object-fit: contain; display: block; }
+.sp-body { padding: 1rem 1.25rem 1.25rem; text-align: center; }
+.sp-name { margin: 0; font-size: 2rem; line-height: 1.1; word-break: break-word; color: var(--cream); }
+.sp-handle { margin-top: 0.2rem; font-size: 1rem; font-weight: 600; opacity: 0.65; word-break: break-all; color: var(--cream); }
 .sp-handle[hidden] { display: none; }
 .sp-since { opacity: 0.6; font-size: 0.95rem; margin-top: 0.3rem; min-height: 1em; }
 .sp-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin: 1rem 0; }
-.sp-stat { background: rgba(255,248,240,0.07); border-radius: 0.8rem; padding: 0.9rem 0.3rem; }
-.sp-stat b { display: block; font-size: 2rem; }
+.sp-stat { background: rgba(255,248,240,0.07); border-radius: 0.8rem; padding: 0.7rem 0.3rem; }
+.sp-stat b { display: block; font-size: 1.6rem; }
 .sp-stat span { font-size: 0.8rem; opacity: 0.7; }
 .sp-collection[hidden] { display: none; }
 .sp-collection-title { font-size: 0.95rem; opacity: 0.7; margin-bottom: 0.5rem; }
 .sp-slots { display: flex; gap: 0.625rem; justify-content: center; margin-bottom: 1rem; }
 .sp-slot {
-  position: relative; width: 5.5rem; height: 5.5rem; padding: 0; overflow: hidden;
+  position: relative; width: 4.5rem; height: 4.5rem; padding: 0; overflow: hidden;
   border-radius: 0.875rem; border: 0.125rem solid rgba(255,255,255,0.25); background: #fff8f0;
   transition: transform .1s, border-color .15s, box-shadow .15s;
 }
