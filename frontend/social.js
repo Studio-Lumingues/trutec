@@ -668,6 +668,23 @@
     if (sub) { var s = document.createElement('p'); s.className = 'social-empty-sub'; s.textContent = sub; box.appendChild(s); }
     inboxList.appendChild(box);
   }
+  // boneco de quem mandou: usa o que a mensagem trouxer; senão busca no perfil do @ (uma vez por @)
+  var senderAv = {}, senderPending = {};
+  function directAvatar(m) { return safeImg(m.fromAvatar || m.fromCharacter || m.avatar || m.character); }
+  function fetchSenderAvatar(handle, done) {
+    if (Object.prototype.hasOwnProperty.call(senderAv, handle)) return done(senderAv[handle]);
+    if (senderPending[handle]) { senderPending[handle].push(done); return; }
+    senderPending[handle] = [done];
+    fetch(RESOLVED_BACKEND_URL + '/api/profile/' + encodeURIComponent(handle))
+      .then(function (r) { return r.json(); })
+      .then(function (r) { return r && r.ok && r.profile ? safeImg(r.profile.character) : null; })
+      .catch(function () { return null; })
+      .then(function (img) {
+        senderAv[handle] = img || '';
+        var cbs = senderPending[handle] || []; delete senderPending[handle];
+        cbs.forEach(function (f) { f(senderAv[handle]); });
+      });
+  }
   function renderInbox() {
     if (!inboxItems.length) return inboxEmpty('Sua inbox está vazia.', 'Quando alguém te mandar uma mensagem, ela aparece aqui.');
     inboxList.innerHTML = '';
@@ -675,15 +692,27 @@
       var row = document.createElement('button');
       row.type = 'button';
       row.className = 'inbox-item' + (m.read ? '' : ' unread');
-      var top = document.createElement('div'); top.className = 'ii-top';
+      // ícone: o boneco que a pessoa está usando
+      var av = document.createElement('span'); av.className = 'ii-avatar';
+      var im = document.createElement('img'); im.alt = ''; im.draggable = false;
+      var direct = directAvatar(m);
+      im.src = direct || (m.fromHandle && senderAv[m.fromHandle]) || DEFAULT_AVATAR;
+      av.appendChild(im);
+      if (!direct && m.fromHandle && !Object.prototype.hasOwnProperty.call(senderAv, m.fromHandle)) {
+        fetchSenderAvatar(m.fromHandle, function (img) { if (img) im.src = img; });
+      }
+      // texto: remetente + hora (pequeno), assunto (destaque) e a mensagem (menor) logo abaixo
+      var main = document.createElement('span'); main.className = 'ii-main';
+      var top = document.createElement('span'); top.className = 'ii-top';
       var from = document.createElement('span'); from.className = 'ii-from';
       from.textContent = m.fromName + (m.fromHandle ? ' @' + m.fromHandle : '');
       var when = document.createElement('span'); when.className = 'ii-when'; when.textContent = fmtWhen(m.createdAt);
       top.appendChild(from); top.appendChild(when);
-      var tp = document.createElement('div'); tp.className = 'ii-topic'; tp.textContent = m.topic;
-      var sb = document.createElement('div'); sb.className = 'ii-subject'; sb.textContent = m.subject;
-      row.appendChild(top); row.appendChild(tp); row.appendChild(sb);
-      row.addEventListener('click', function () { openRead(m); });
+      var sb = document.createElement('span'); sb.className = 'ii-subject'; sb.textContent = m.subject;
+      var pv = document.createElement('span'); pv.className = 'ii-preview'; pv.textContent = String(m.body || '').replace(/\s+/g, ' ');
+      main.appendChild(top); main.appendChild(sb); main.appendChild(pv);
+      row.appendChild(av); row.appendChild(main);
+      row.addEventListener('click', function () { openRead(m); });   // abre a mensagem na tela
       inboxList.appendChild(row);
     });
   }
