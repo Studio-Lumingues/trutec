@@ -34,7 +34,6 @@
   var rateEl = document.getElementById('sp-rate');
   var colWrap = document.getElementById('sp-collection-wrap');
   var slotsEl = document.getElementById('sp-slots');
-  var copyBtn = document.getElementById('sp-copy');
 
   var DEFAULT_AVATAR = 'assets/personagem.svg';
   var PNG = 'data:image/png;base64,';
@@ -135,8 +134,6 @@
     lossesEl.textContent = losses;
     rateEl.textContent = total ? Math.round(wins / total * 100) + '%' : '—';
     renderCollection(d.collection, safeImg(d.avatar));
-    copyBtn.classList.toggle('hidden', !d.handle);   // aparece no perfil de quem tem @ (inclusive o seu)
-    copyBtn.textContent = 'Copiar link do perfil';
   }
 
   // ---- o seu perfil (dados locais do aparelho) ----
@@ -278,14 +275,6 @@
     var v = input.value, m = v.match(/\/@([A-Za-z0-9_]+)/);
     if (m) v = m[1];
     input.value = v.replace(/^@+/, '').replace(/[^A-Za-z0-9_]/g, '').slice(0, 16);
-  });
-
-  copyBtn.addEventListener('click', function () {
-    if (!shownHandle || !navigator.clipboard) return;
-    navigator.clipboard.writeText(location.origin + '/@' + shownHandle).then(function () {
-      copyBtn.textContent = 'Link copiado!';
-      setTimeout(function () { copyBtn.textContent = 'Copiar link do perfil'; }, 1500);
-    }).catch(function () {});
   });
 
   openBtn.addEventListener('click', function () {
