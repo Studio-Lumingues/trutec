@@ -3976,13 +3976,13 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .social-search, .social-search.open, .social-icon-btn svg { transition: none; }
 }
 .social-input:focus-within { background: #fff; }
-.social-at { padding-left: 0.6rem; font-size: 0.9rem; font-weight: 700; color: #9ab; }
+.social-at { padding-left: 0.6rem; font-size: 0.9rem; font-weight: 400; color: #9ab; }
 .social-input input {
-  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff;
-  padding: 0.4rem 0.6rem 0.4rem 0.15rem; font: inherit; font-size: 0.9rem; font-weight: 600;
+  flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #9ab;
+  padding: 0.4rem 0.6rem 0.4rem 0.15rem; font: inherit; font-size: 0.9rem; font-weight: 400;
 }
 .social-input input::placeholder { color: rgba(153,170,187,0.8); }
-.social-input:focus-within input, .social-input:focus-within .social-at { color: #0a0a0a; }
+.social-input:focus-within input, .social-input:focus-within .social-at { color: #9ab; }
 
 .social-main {
   flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: stretch; gap: 1.5rem;
