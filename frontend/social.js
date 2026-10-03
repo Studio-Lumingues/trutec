@@ -30,7 +30,6 @@
   var avatarEl = document.getElementById('sp-avatar');
   var nameEl = document.getElementById('sp-name');
   var handleEl = document.getElementById('sp-handle');
-  var sinceEl = document.getElementById('sp-since');
   var bioEl = document.getElementById('sp-bio');
   var winsEl = document.getElementById('sp-wins');
   var lossesEl = document.getElementById('sp-losses');
@@ -337,7 +336,6 @@
     nameEl.textContent = d.name || 'Jogador';
     handleEl.textContent = d.handle ? '@' + d.handle : '';
     handleEl.hidden = !d.handle;
-    sinceEl.textContent = d.since || '';
     var bio = String(d.bio || '').trim();
     bioEl.textContent = bio;
     bioEl.hidden = !bio;
