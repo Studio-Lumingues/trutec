@@ -4175,3 +4175,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 /* painel do boneco preenche o card inteiro (sem sobra embaixo) */
 .sp-top { aspect-ratio: auto; align-self: stretch; min-height: 26rem; }
 @media (max-width: 720px) { .sp-top { min-height: 0; } }
+
+/* estatísticas do perfil: centralizadas e sem negrito */
+.sp-stat { text-align: center; }
+.sp-stat b, .sp-stat span { font-weight: 400; font-synthesis: none; }
