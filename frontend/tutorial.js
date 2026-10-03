@@ -520,8 +520,11 @@
 
   function inLobby() {
     var el = document.getElementById('screen-lobby');
+    if (window.TruGate && window.TruGate.blocking()) return false;   // boas-vindas na frente: o guia espera
     return !!(el && el.classList.contains('active'));
   }
+  // a tela de boas-vindas fechou (conta ou convidado): agora o guia pode entrar
+  document.addEventListener('trugate', function () { setTimeout(syncFab, 450); });
 
   // fecha qualquer modal que o jogador tenha deixado aberto antes do tutorial começar
   function closeAll() {

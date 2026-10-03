@@ -11,6 +11,16 @@
 // ============================================================================
 (function () {
   var acc = window.TruAccount;
+  // Estado "portão aberto": enquanto a tela de boas-vindas estiver na frente, o guia (tutorial.js)
+  // e a música (audio.js) esperam. Eles perguntam via TruGate.blocking() e ouvem o evento 'trugate'.
+  var blocking = !!(acc && acc.enabled);       // até saber se vai aparecer a boas-vindas, segura
+  function setBlocking(v) {
+    v = !!v;
+    if (v === blocking) return;
+    blocking = v;
+    try { document.dispatchEvent(new Event('trugate')); } catch (e) {}
+  }
+  window.TruGate = { blocking: function () { return blocking; } };
   if (!acc || !acc.enabled) return;            // Supabase não configurado: não trava nada
 
   var GUEST_KEY = 'trutec-guest';
@@ -31,7 +41,7 @@
       '<h2 id="gate-title"></h2>' +
       '<p class="modal-hint" id="gate-text"></p>' +
       '<button type="button" class="btn btn-primary" id="gate-google">Entrar com Google</button>' +
-      '<button type="button" class="btn btn-ghost" id="gate-skip"></button>' +
+      '<button type="button" class="btn btn-secondary" id="gate-skip"></button>' +
       '<p class="error-text" id="gate-error"></p>' +
     '</div>';
   document.body.appendChild(modal);
@@ -49,6 +59,7 @@
       textEl.textContent = 'Entre com o Google para guardar suas vitórias, criar seu avatar e usar o Social. Ou jogue agora como convidado.';
       skipBtn.textContent = 'Jogar como convidado';
       dismissible = false;
+      setBlocking(true);
     } else {
       titleEl.textContent = 'Entre para continuar';
       textEl.textContent = 'Avatar e Social são só para quem tem conta. Entre com o Google, é rapidinho e você não precisa entrar de novo nas próximas vezes.';
@@ -60,7 +71,7 @@
     modal.classList.remove('hidden');
     googleBtn.focus();
   }
-  function closeGate() { modal.classList.add('hidden'); }
+  function closeGate() { modal.classList.add('hidden'); setBlocking(false); }
 
   googleBtn.addEventListener('click', function () {
     googleBtn.disabled = true;
@@ -113,5 +124,6 @@
   acc.ready().then(function () {
     refreshLocks();
     if (!acc.isSignedIn() && !isGuest()) openGate('welcome');
+    else setBlocking(false);
   });
 })();

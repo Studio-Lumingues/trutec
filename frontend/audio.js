@@ -119,6 +119,7 @@
   // qual faixa deve estar tocando agora (ou null = silêncio)
   function wantedTrack() {
     if (muted || matchStarted || radioOn) return null;
+    if (window.TruGate && window.TruGate.blocking()) return null;   // tela de boas-vindas aberta: sem música até entrar/jogar como convidado
     if (currentScreen === 'screen-character-editor') return null; // editor de avatar: sem música
     if (currentScreen === 'screen-lobby' || currentScreen === 'screen-waiting' || currentScreen === 'screen-social') return 'song';
     return null;
@@ -437,6 +438,12 @@
   // só estes eventos contam como "interação" para liberar áudio nos navegadores
   ['click', 'touchend', 'pointerup', 'keydown'].forEach(function (ev) {
     document.addEventListener(ev, unlock, { passive: true });
+  });
+
+  // a tela de boas-vindas fechou (entrou na conta ou escolheu convidado): a música pode começar
+  document.addEventListener('trugate', function () {
+    if (ctx && ctx.state === 'suspended') ctx.resume().catch(function () {});
+    sync();
   });
 
   // Avisa no console se algum arquivo de áudio não carregar (404, nome errado…)
