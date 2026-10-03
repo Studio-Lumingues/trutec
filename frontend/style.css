@@ -4005,7 +4005,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 .sp-body { padding: 1.75rem 2.25rem 2rem; text-align: left; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; }
 .sp-name { margin: 0; font-size: 2.4rem; line-height: 1.1; word-break: break-word; color: var(--cream); }
-.sp-handle { margin-top: 0.2rem; font-size: 1rem; font-weight: 600; opacity: 0.65; word-break: break-all; color: var(--cream); }
+.sp-handle { margin-top: 0.2rem; font-size: 1rem; font-weight: 400; font-synthesis: none; opacity: 0.65; word-break: break-all; color: var(--cream); }
 .sp-handle[hidden] { display: none; }
 .sp-since { opacity: 0.6; font-size: 0.95rem; margin-top: 0.3rem; min-height: 1em; }
 .sp-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin: 1rem 0; max-width: 24rem; }
@@ -4162,3 +4162,8 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .sn-item:disabled { opacity: 0.45; cursor: default; }
 .sn-danger { color: #ff9b8f; }
 @media (max-width: 720px) { .sn-user-name { display: none; } .sn-user { padding-right: 0.4rem; } }
+
+/* Aba Amigos com a mesma cor do nome da conta; nome e @ em peso normal */
+#screen-social .social-tab.active { color: #9ab; }
+#screen-social .social-tab.active:hover { color: #fff; }
+.sn-user { font-weight: 400; font-synthesis: none; }

@@ -135,11 +135,19 @@
     lossesEl.textContent = losses;
     rateEl.textContent = total ? Math.round(wins / total * 100) + '%' : '—';
     renderCollection(d.collection, safeImg(d.avatar));
-    copyBtn.classList.toggle('hidden', !d.other);
+    copyBtn.classList.toggle('hidden', !d.handle);   // aparece no perfil de quem tem @ (inclusive o seu)
     copyBtn.textContent = 'Copiar link do perfil';
   }
 
   // ---- o seu perfil (dados locais do aparelho) ----
+  function myProfile() { return window.TruAccount && TruAccount.profile ? TruAccount.profile() : null; }
+  function myHandle() { var p = myProfile(); return p && p.handle ? String(p.handle) : ''; }
+  function mySince() {
+    var p = myProfile();
+    if (!p || !p.createdAt) return '';
+    var d = new Date(p.createdAt);
+    return isNaN(d) ? '' : 'Jogando desde ' + d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  }
   function myData() {
     var name = '';
     try { name = localStorage.getItem('trutec-name') || ''; } catch (e) {}
@@ -153,7 +161,7 @@
       if (Array.isArray(arr)) slots = [0, 1, 2].map(function (i) { return arr[i] && arr[i].img ? arr[i].img : null; });
     } catch (e) {}
     return {
-      name: name || 'Jogador', handle: '', since: '', wins: st.wins, losses: st.losses,
+      name: name || 'Jogador', handle: myHandle(), since: mySince(), wins: st.wins, losses: st.losses,
       avatar: avatar, collection: slots, other: false
     };
   }
@@ -213,7 +221,7 @@
     refreshUser();
     reqId++;                 // cancela busca em andamento
     closeBox();
-    shownHandle = '';
+    shownHandle = myHandle();   // o seu @ também pode ter o link copiado
     say('');
     paint(myData());
   }
