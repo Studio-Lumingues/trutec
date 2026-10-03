@@ -751,7 +751,18 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
     <main class="social-main inbox-screen" id="social-pane-inbox" aria-label="Inbox" hidden>
       <div class="inbox-wrap">
         <div class="inbox-head">
-          <h2 class="inbox-title">Inbox</h2>
+          <div class="inbox-title-row">
+            <span class="inbox-icon" aria-hidden="true">
+              <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+                <path class="mb-post" d="M34 44 V66 M23 66 H45"/>
+                <path class="mb-box" d="M13 44 V32 C13 22 21 16 31 16 H37 C47 16 55 22 55 32 V44 Z"/>
+                <path class="mb-slot" d="M24 34 H44"/>
+                <g class="mb-flag"><path d="M58 36 V14 M58 14 H67 V21 H58"/></g>
+                <g class="mb-letter"><path d="M23 1 H45 V12 H23 Z M23 1 L34 8 L45 1"/></g>
+              </svg>
+            </span>
+            <h2 class="inbox-title">Inbox</h2>
+          </div>
           <p class="inbox-sub" id="inbox-sub"></p>
         </div>
         <div class="inbox-list" id="inbox-list"></div>

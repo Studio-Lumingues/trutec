@@ -4511,3 +4511,33 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 /* Inbox carregando: símbolo girando no centro da tela */
 .inbox-loading { display: flex; align-items: center; justify-content: center; padding: 5rem 1rem; }
 .inbox-loading .game-intro-spinner { width: 4.5rem; height: 4.5rem; }
+
+/* ---- Caixinha de correio animada ao lado do título da Inbox ---- */
+.inbox-title-row { display: flex; align-items: center; gap: 0.9rem; min-width: 0; }
+.inbox-icon { flex: none; display: block; width: 3.8rem; height: 3.8rem; filter: url(#boil-sm); }   /* mesmo tremido "hand drawn" */
+.inbox-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.inbox-icon path { fill: none; stroke: #fff8f0; stroke-width: 3.6; stroke-linecap: round; stroke-linejoin: round; }
+.inbox-icon .mb-slot { stroke-width: 3; opacity: 0.7; }
+.inbox-icon .mb-flag, .inbox-icon .mb-letter { transform-box: view-box; }
+.inbox-icon .mb-flag { transform-origin: 58px 38px; animation: mbFlag 3.6s ease-in-out infinite; }
+.inbox-icon .mb-flag path { stroke: #ff4d4d; }
+.inbox-icon .mb-letter { animation: mbLetter 3.6s ease-in infinite; }
+@keyframes mbLetter {
+  0%   { transform: translateY(-6px); opacity: 0; }
+  15%  { transform: translateY(0);    opacity: 1; }
+  50%  { transform: translateY(14px); opacity: 1; }
+  60%  { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(20px); opacity: 0; }
+}
+@keyframes mbFlag {          /* baixa; quando a carta entra, a bandeirinha levanta com um balanço */
+  0%, 55% { transform: rotate(100deg); }
+  66%     { transform: rotate(-12deg); }
+  72%     { transform: rotate(6deg); }
+  78%, 92% { transform: rotate(0deg); }
+  100%    { transform: rotate(100deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inbox-icon .mb-flag { animation: none; transform: rotate(0deg); }
+  .inbox-icon .mb-letter { animation: none; opacity: 0; }
+}
+@media (max-width: 720px) { .inbox-icon { width: 3rem; height: 3rem; } }
