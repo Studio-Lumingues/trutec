@@ -4409,3 +4409,15 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 
 /* perfil de outra pessoa com espaço vazio: retângulo tracejado normal (não esmaecido) */
 .sp-slot.empty:disabled { opacity: 1; cursor: default; }
+
+/* ---- Perfil: TODOS os cards com o mesmo tamanho e o boneco preenchendo o painel igual ----
+   Antes a altura do card dependia do conteúdo (bio, coleção) e o boneco era encaixado com
+   "contain", então cada perfil mostrava o boneco num tamanho. Agora o card tem altura fixa e o
+   boneco cobre o painel inteiro (igual aos cartazes da coleção: cobre e alinha pelo topo). */
+@media (min-width: 721px) {
+  .social-card { height: 36rem; grid-template-rows: minmax(0, 1fr); }
+  .sp-top { min-height: 0; height: 100%; }
+  .sp-body { min-height: 0; overflow-y: auto; scrollbar-width: none; }
+  .sp-body::-webkit-scrollbar { width: 0; height: 0; }
+}
+.sp-avatar { object-fit: cover; object-position: center top; padding: 0; }
