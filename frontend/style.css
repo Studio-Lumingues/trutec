@@ -4478,3 +4478,32 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .inbox-screen .inbox-item .ii-avatar { width: 4.2rem; height: 4.2rem; }
   .inbox-screen .inbox-item .ii-subject { font-size: 1.2rem; }
 }
+
+/* ---- Janela de LER mensagem: grande e bege (igual à de escrever) ---- */
+#mail-read-modal .settings-card {
+  width: min(62rem, 100%);
+  height: min(36rem, calc(100dvh - 2rem));
+  display: flex; flex-direction: column;
+  padding: 1.75rem 2.25rem 1.5rem;
+  background: var(--cream);
+  color: var(--ink);
+  border: 1px solid rgba(4,3,3,0.2);
+}
+#mail-read-modal .pe-card h2.mr-subject,
+#mail-read-modal h2.mr-subject { margin: 0 0 0.35rem; font-size: 2.4rem; line-height: 1.15; color: var(--ink); }
+#mail-read-modal .mr-from { margin: 0 0 1.1rem; padding-bottom: 0.9rem; font-size: 1rem; opacity: 0.6; border-bottom: 1px solid rgba(4,3,3,0.15); }
+#mail-read-modal .mr-body {
+  flex: 1 1 auto; min-height: 0; max-height: none; margin: 0 0 1rem; overflow-y: auto;
+  font-size: 1.35rem; line-height: 1.5; color: var(--ink);
+}
+#mail-read-modal .modal-actions { margin: 0; padding-top: 0.9rem; border-top: 1px solid rgba(4,3,3,0.12); justify-content: flex-end; }
+#mail-read-modal .modal-actions .btn { flex: none; min-width: 8rem; font-size: 1.15rem; }
+#mail-read-modal .btn-secondary { color: var(--ink); background: transparent; border: 1px solid rgba(4,3,3,0.35); box-shadow: none; }
+#mail-read-modal .btn-secondary:hover { background: rgba(4,3,3,0.07); }
+#mail-read-modal .btn-primary { background: var(--ink); color: var(--cream); box-shadow: none; }
+@media (max-width: 40rem) {
+  #mail-read-modal .settings-card { height: calc(100dvh - 2rem); padding: 1.1rem; }
+  #mail-read-modal h2.mr-subject { font-size: 1.8rem; }
+  #mail-read-modal .mr-body { font-size: 1.15rem; }
+  #mail-read-modal .modal-actions .btn { min-width: 0; flex: 1; }
+}
