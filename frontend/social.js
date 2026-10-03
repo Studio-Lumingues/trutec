@@ -163,7 +163,6 @@
   var uMenu = document.getElementById('sn-menu');
   var uAvatar = document.getElementById('sn-user-avatar');
   var uName = document.getElementById('sn-user-name');
-  var uChars = document.getElementById('sn-chars');
 
   function menuOpen() { return uMenu && !uMenu.classList.contains('hidden'); }
   function closeMenu() {
@@ -182,32 +181,6 @@
     var handle = prof ? prof.handle : '';
     uName.textContent = handle || me.name;
     uAvatar.src = safeImg(me.avatar) || DEFAULT_AVATAR;
-    uChars.innerHTML = '';
-    var slots = me.collection || [];
-    for (var i = 0; i < 3; i++) {
-      var img = safeImg(slots[i]);
-      var row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'sn-item sn-char';
-      row.setAttribute('role', 'menuitem');
-      var ic = document.createElement('span');
-      ic.className = 'sn-char-icon' + (img ? '' : ' empty');
-      if (img) { var im = document.createElement('img'); im.src = img; im.alt = ''; im.draggable = false; ic.appendChild(im); }
-      var lb = document.createElement('span');
-      lb.className = 'sn-char-label';
-      lb.textContent = img ? 'Boneco ' + (i + 1) : 'Espaço vazio';
-      row.appendChild(ic); row.appendChild(lb);
-      if (img && img === safeImg(me.avatar)) {
-        var tag = document.createElement('span'); tag.className = 'sn-char-tag'; tag.textContent = 'em uso';
-        row.appendChild(tag);
-      }
-      if (img) {
-        row.addEventListener('click', (function (src, btn) {
-          return function () { closeMenu(); openBox(src, btn); };
-        })(img, row));
-      } else row.disabled = true;
-      uChars.appendChild(row);
-    }
     var pub = document.getElementById('sn-public');
     pub.hidden = !handle;
     if (handle) pub.href = '/@' + handle;
