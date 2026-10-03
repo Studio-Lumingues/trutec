@@ -4221,3 +4221,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   transition: clip-path .15s cubic-bezier(.4,0,.8,.4), opacity .1s ease .05s, visibility 0s .15s;
 }
 @media (prefers-reduced-motion: reduce) { .sn-menu, .sn-menu.hidden { transition: none; } }
+
+/* Avatar: sem a queda de cima pra baixo. A tela agora só aparece com fade-in (feito no screen-open.js). */
+#screen-character-editor.active .character-panel { animation: none; }
+#screen-character-editor.active { animation: none; }
