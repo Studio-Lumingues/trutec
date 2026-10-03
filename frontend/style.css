@@ -4552,22 +4552,28 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 @media (max-width: 720px) { .inbox-icon { width: 1.9rem; height: 1.75rem; } }
 
 
-/* ---- Amizade: personagem ao lado do nome, "pisando" na mesma linha do texto, com o sinal colado na cabeça ----
-   Ajuste fino: --fr-h (altura do boneco), --fr-badge-x / --fr-badge-y (posição do sinal) e --fr-badge-s (tamanho do sinal). */
-.sp-name-row .sp-name { flex: 0 1 auto; align-self: baseline; }   /* nome só ocupa o que precisa; o boneco fica colado nele */
+/* ---- Amizade: personagem ao lado do nome, com o sinal em cima da cabeça dele ----
+   O botão tem exatamente o tamanho do desenho (largura automática), então o sinal sempre cola na cabeça.
+   Ajuste fino (tudo aqui em cima do bloco):
+     --fr-h        altura do boneco
+     --fr-lift     quanto a base do boneco sobe pra ficar na linha do texto (aumente = boneco sobe)
+     --fr-badge-x  posição do sinal na largura do boneco (aumente = vai pra direita)
+     --fr-badge-y  posição do sinal na altura do boneco (aumente = desce)
+     --fr-badge-s  tamanho do sinal */
+.sp-name-row .sp-name { flex: 0 1 auto; }   /* o nome só ocupa o que precisa: o boneco fica colado nele */
 .sp-name-row .sp-actions { margin-left: auto; align-self: center; }
-.sp-friend-btn { --fr-h: 4.4rem; --fr-badge-x: 0.45rem; --fr-badge-y: 0.2rem; --fr-badge-s: 1rem;
-  position: relative; flex: none; display: block; width: calc(var(--fr-h) * 0.7); height: var(--fr-h);
-  align-self: baseline;                       /* a base do boneco fica exatamente na linha de base do texto */
-  margin: calc(2.4rem - var(--fr-h)) 0 0 0.45rem;   /* a parte que sobe acima do texto não aumenta a altura da linha */
+.sp-friend-btn { --fr-h: 4.4rem; --fr-lift: 0.65rem; --fr-badge-x: 58%; --fr-badge-y: 4%; --fr-badge-s: 1rem;
+  position: relative; flex: none; display: block; width: auto; height: var(--fr-h);
+  align-self: flex-end;                                  /* base do boneco na parte de baixo da linha do nome */
+  margin: calc(2.2rem - var(--fr-h)) 0 var(--fr-lift) 0.45rem;   /* o que sobe acima do texto não aumenta a altura da linha */
   padding: 0; background: none; border: 0; border-radius: 0.4rem; color: #22c55e; cursor: pointer; transition: transform .12s; transform-origin: center bottom; }
 .sp-friend-btn[hidden] { display: none; }
 .sp-friend-btn:hover { transform: scale(1.08); }
 .sp-friend-btn:active { transform: scale(0.95); }
 .sp-friend-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .sp-friend-btn:disabled { opacity: .55; cursor: wait; }
-.sp-friend-char { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; display: block; pointer-events: none; }
-.sp-friend-badge { position: absolute; top: var(--fr-badge-y); left: calc(50% + var(--fr-badge-x)); width: var(--fr-badge-s); height: var(--fr-badge-s);
+.sp-friend-char { height: var(--fr-h); width: auto; max-width: none; display: block; pointer-events: none; }
+.sp-friend-badge { position: absolute; top: var(--fr-badge-y); left: var(--fr-badge-x); width: var(--fr-badge-s); height: var(--fr-badge-s);
   display: flex; align-items: center; justify-content: center; color: inherit; pointer-events: none; filter: drop-shadow(0 0 1.5px rgba(0,0,0,.9)); }
 .sp-friend-badge svg { width: 100%; height: 100%; display: block; fill: none; stroke: currentColor; stroke-width: 5; stroke-linecap: round; }
 .sp-friend-btn[data-state="none"] { color: #22c55e; }          /* + verde */
