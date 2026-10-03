@@ -4507,3 +4507,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   #mail-read-modal .mr-body { font-size: 1.15rem; }
   #mail-read-modal .modal-actions .btn { min-width: 0; flex: 1; }
 }
+
+/* Inbox carregando: símbolo girando no centro da tela */
+.inbox-loading { display: flex; align-items: center; justify-content: center; padding: 5rem 1rem; }
+.inbox-loading .game-intro-spinner { width: 4.5rem; height: 4.5rem; }

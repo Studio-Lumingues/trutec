@@ -675,6 +675,18 @@
     if (sub) { var s = document.createElement('p'); s.className = 'social-empty-sub'; s.textContent = sub; box.appendChild(s); }
     inboxList.appendChild(box);
   }
+  // carregando: o mesmo símbolo girando da tela de carregamento (em vez do texto "Carregando…")
+  function inboxLoading() {
+    if (inboxSub) inboxSub.textContent = '';
+    inboxList.innerHTML =
+      '<div class="inbox-loading" role="status" aria-label="Carregando">' +
+        '<div class="game-intro-spinner" aria-hidden="true">' +
+          '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+            '<path d="M50 12 A38 38 0 0 1 86 38" /><path d="M50 88 A38 38 0 0 1 14 62" />' +
+          '</svg>' +
+        '</div>' +
+      '</div>';
+  }
   // boneco de quem mandou: usa o que a mensagem trouxer; senão busca no perfil do @ (uma vez por @)
   var senderAv = {}, senderPending = {};
   function directAvatar(m) { return safeImg(m.fromAvatar || m.fromCharacter || m.avatar || m.character); }
@@ -728,7 +740,7 @@
   }
   function loadInbox(silent) {
     if (!loggedIn()) return inboxEmpty('Entre na sua conta pra ver a inbox.', 'Use o botão de conta na tela inicial e escolha seu @.');
-    if (!silent) inboxEmpty('Carregando…');
+    if (!silent) inboxLoading();
     mailApi('/api/messages').then(function (r) {
       if (!inboxOn) return;
       if (!r || !r.ok) return inboxEmpty((r && r.error) || 'Não deu pra carregar a inbox.');
