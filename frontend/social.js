@@ -247,7 +247,7 @@
     uWrap.addEventListener('pointerleave', function (e) {
       if (e.pointerType !== 'mouse') return;
       clearTimeout(hoverTimer);
-      hoverTimer = setTimeout(closeMenu, 180);
+      hoverTimer = setTimeout(closeMenu, 50);
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && menuOpen()) { closeMenu(); uBtn.focus(); }

@@ -4218,6 +4218,6 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   display: block;                      /* sobrescreve o display:none: precisa existir pra animar */
   visibility: hidden; pointer-events: none; opacity: 0;
   clip-path: inset(-1rem -2rem 100% -2rem);
-  transition: clip-path .26s cubic-bezier(.5,0,.75,0), opacity .2s ease .08s, visibility 0s .28s;
+  transition: clip-path .15s cubic-bezier(.4,0,.8,.4), opacity .1s ease .05s, visibility 0s .15s;
 }
 @media (prefers-reduced-motion: reduce) { .sn-menu, .sn-menu.hidden { transition: none; } }
