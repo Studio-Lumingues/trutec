@@ -4208,3 +4208,16 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 /* o fundo creme fica no cartaz (parado); só o desenho do boneco treme */
 .sp-tilt { background: #fff8f0; overflow: hidden; }
 .sp-tilt .sp-lightbox-img { background: transparent; border-radius: 0; }
+
+/* menu da conta: abre crescendo de cima pra baixo; ao tirar o mouse faz o caminho inverso */
+.sn-menu {
+  clip-path: inset(-1rem -2rem -2.5rem -2rem);
+  transition: clip-path .32s cubic-bezier(.2,.8,.2,1), opacity .2s ease, visibility 0s;
+}
+.sn-menu.hidden {
+  display: block;                      /* sobrescreve o display:none: precisa existir pra animar */
+  visibility: hidden; pointer-events: none; opacity: 0;
+  clip-path: inset(-1rem -2rem 100% -2rem);
+  transition: clip-path .26s cubic-bezier(.5,0,.75,0), opacity .2s ease .08s, visibility 0s .28s;
+}
+@media (prefers-reduced-motion: reduce) { .sn-menu, .sn-menu.hidden { transition: none; } }
