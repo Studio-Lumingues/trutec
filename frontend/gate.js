@@ -144,6 +144,13 @@
     if (justClaimed) { closeAccountModal(); setTimeout(closeAccountModal, 60); }
   });
 
+  // escolher o @ é obrigatório: se a caixa fechar (Esc, clique fora...) com a pessoa ainda sem @, reabre
+  if (accModal) new MutationObserver(function () {
+    if (accModal.classList.contains('hidden') && needsHandle()) {
+      setTimeout(function () { if (needsHandle() && accModal.classList.contains('hidden')) acc.openModal(); }, 0);
+    }
+  }).observe(accModal, { attributes: true, attributeFilter: ['class'] });
+
   // tela de escolher o @: só aceita caracteres válidos, mostra o contador e já foca o campo
   var handleInput = document.getElementById('acc-handle');
   var countEl = document.getElementById('acc-count');

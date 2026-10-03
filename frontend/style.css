@@ -4398,13 +4398,8 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 #acc-claim .acc-rules b { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
 #acc-claim #acc-save { width: 100%; font-size: 1.3rem; padding: 0.95rem 1.2rem; }
 #account-modal:has(#acc-claim:not([hidden])) #acc-error { min-height: 1.2rem; margin-top: 0.8rem; font-size: 1.05rem; }
-/* "Fechar" vira um link discreto nesse passo, pra não competir com o botão principal */
-#account-modal:has(#acc-claim:not([hidden])) #acc-close {
-  width: auto; margin: 0.4rem auto 0; display: block;
-  background: transparent; border: 0; box-shadow: none;
-  font-size: 1rem; font-weight: 500; opacity: 0.6; text-decoration: underline;
-}
-#account-modal:has(#acc-claim:not([hidden])) #acc-close:hover { opacity: 1; }
+/* escolher o @ é obrigatório: sem botão de fechar nesse passo */
+#account-modal:has(#acc-claim:not([hidden])) #acc-close { display: none; }
 @media (max-width: 40rem) {
   #account-modal:has(#acc-claim:not([hidden])) .settings-card { padding: 1.7rem 1.25rem 1.3rem; }
   #acc-claim .acc-claim-title { font-size: 1.9rem; }
