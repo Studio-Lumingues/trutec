@@ -463,6 +463,11 @@
   function onKey(e) {
     if (!running) return;
     var k = e.key;
+    // segurar a tecla (repetição automática) não avança nem volta: cada passo exige um aperto novo
+    if (e.repeat && (k === 'Enter' || k === 'ArrowRight' || k === 'ArrowLeft' || k === ' ')) {
+      if (!(e.target && e.target.tagName === 'INPUT' && !(e.target.closest && e.target.closest('.tut-root')))) { e.preventDefault(); e.stopPropagation(); }
+      return;
+    }
     if (k === 'Escape') {                              // 1ª vez é obrigatório: Esc não pula
       e.preventDefault(); e.stopPropagation();
       if (!mandatory) stop(false);
