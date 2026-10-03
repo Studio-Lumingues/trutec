@@ -4201,3 +4201,6 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 .sp-tilt.lit .sp-glare { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .sp-tilt { transition: none; transform: none; } .sp-glare { display: none; } }
+
+/* boneco ampliado também treme "hand drawn" (filtro grande, pois a imagem é grande) */
+.sp-lightbox-img { filter: url(#boil-lg); }
