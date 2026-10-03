@@ -2,7 +2,7 @@
 // EFEITO DE "ABRIR" (botões Avatar e Social da tela inicial)
 // Em vez de a tela nova aparecer do nada, ela se abre a partir do botão clicado:
 // um círculo cresce do centro do botão até cobrir tudo (clip-path), com um
-// pequeno zoom. A tela inicial fica visível por baixo durante o efeito.
+// leve fade (sem zoom: escalar a tela com filtros SVG dentro deixava a abertura pesada). A tela inicial fica visível por baixo durante o efeito.
 // Funciona sem mexer no showScreen(): um MutationObserver percebe quando a tela
 // vira .active e, se ela foi aberta por um desses botões, anima.
 // Ajustes: DURATION (ms) e EASING. Respeita "reduzir movimento".
@@ -55,14 +55,21 @@
     screen.style.width = '100%';
     screen.style.height = '100dvh';
 
+    // durante o efeito: congela o "tremido" (boil.js) e avisa o navegador pra preparar a camada,
+    // senão os filtros SVG do editor são recalculados a cada quadro e a abertura engasga
+    var root = document.documentElement;
+    root.classList.add('screen-opening');
+    screen.style.willChange = 'clip-path, opacity';
+
     function done() {
       screen.style.cssText = prev;
       if (lobby) lobby.classList.remove('screen-keep');
+      root.classList.remove('screen-opening');
     }
 
     var anim = screen.animate([
-      { clipPath: 'circle(0px at ' + x + 'px ' + y + 'px)', transform: 'scale(0.94)', opacity: 0.4 },
-      { clipPath: 'circle(' + R + 'px at ' + x + 'px ' + y + 'px)', transform: 'scale(1)', opacity: 1 }
+      { clipPath: 'circle(0px at ' + x + 'px ' + y + 'px)', opacity: 0.4 },
+      { clipPath: 'circle(' + R + 'px at ' + x + 'px ' + y + 'px)', opacity: 1 }
     ], { duration: DURATION, easing: EASING });
     anim.onfinish = done;
     anim.oncancel = done;

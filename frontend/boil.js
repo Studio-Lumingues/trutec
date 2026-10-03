@@ -14,7 +14,7 @@
 
   var frame = 0;
   function tick() {
-    if (document.hidden) return;
+    if (document.hidden || document.documentElement.classList.contains('screen-opening')) return;
     var seed = SEEDS[frame++ % SEEDS.length];
     for (var i = 0; i < nodes.length; i++) nodes[i].setAttribute('seed', seed);
   }
