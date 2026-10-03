@@ -758,7 +758,7 @@ function getSavedCharacter() {
     return out;
   }
   function writeSlots() {
-    try { localStorage.setItem(SLOTS_KEY, JSON.stringify(slots)); return true; }
+    try { localStorage.setItem(SLOTS_KEY, JSON.stringify(slots)); if (window.TruAccount) TruAccount.syncCharacter(); return true; }
     catch (e) { console.warn('Não foi possível salvar a coleção:', e); return false; }
   }
 

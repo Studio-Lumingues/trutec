@@ -90,9 +90,28 @@ async function setProfileInfo(userId, displayName, bio) {
   const { error } = await sb.from('profiles').update({ display_name: displayName, bio: bio || null }).eq('id', userId);
   if (error) throw error;
 }
+// Coleção (3 vagas de avatar PNG). Coluna separada ("collection" jsonb, veja supabase-colecao.sql)
+// pra não derrubar display_name/bio caso ela ainda não exista no banco.
+const PNG_RE = /^data:image\/png;base64,[A-Za-z0-9+\/=]+$/;
+function cleanCollection(col) {
+  if (!Array.isArray(col) || col.length > 3) return null;
+  return [0, 1, 2].map((i) => {
+    const v = col[i];
+    return typeof v === 'string' && v.length <= 400000 && PNG_RE.test(v) ? v : null;
+  });
+}
+async function setCollection(userId, col) {
+  const { error } = await sb.from('profiles').update({ collection: col }).eq('id', userId);
+  if (error) throw error;
+}
+async function collectionOf(userId) {
+  const { data, error } = await sb.from('profiles').select('collection').eq('id', userId).maybeSingle();
+  if (error || !data || !Array.isArray(data.collection)) return [null, null, null];
+  return [0, 1, 2].map((i) => (typeof data.collection[i] === 'string' ? data.collection[i] : null));
+}
 async function recordResult(userId, win) {
   const { error } = await sb.rpc('record_result', { p_user: userId, p_win: !!win });
   if (error) throw error;
 }
 
-module.exports = { enabled, verify, byId, byHandle, create, setCharacter, setProfileInfo, cleanText, recordResult, normHandle, checkHandle };
+module.exports = { enabled, verify, byId, byHandle, create, setCharacter, setProfileInfo, cleanCollection, setCollection, collectionOf, cleanText, recordResult, normHandle, checkHandle };

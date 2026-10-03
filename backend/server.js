@@ -49,7 +49,7 @@ const PORT = process.env.PORT || 3000;
 // Supabase em "Authorization: Bearer ..."; só este servidor fala com o banco.
 // ---------------------------------------------------------------------------
 app.set('trust proxy', 1);
-app.use(express.json({ limit: '600kb' }));
+app.use(express.json({ limit: '1400kb' })); // coleção = até 3 avatares de ~400KB
 
 const hits = new Map(); // limite simples por IP: 40 pedidos/min em /api
 app.use('/api', (req, res, next) => {
@@ -96,6 +96,18 @@ app.put('/api/me/character', wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// Coleção: as 3 vagas de avatar (PNG base64) que aparecem no perfil público.
+app.put('/api/me/collection', wrap(async (req, res) => {
+  const u = await userOf(req);
+  if (!u) return res.status(401).json({ ok: false, error: 'Faça login.' });
+  const col = db.cleanCollection(req.body && req.body.collection);
+  if (!col) return res.status(400).json({ ok: false, error: 'Coleção inválida.' });
+  const mine = await db.byId(u.id);
+  if (!mine) return res.status(400).json({ ok: false, error: 'Escolha seu @ primeiro.' });
+  await db.setCollection(u.id, col);
+  res.json({ ok: true });
+}));
+
 // Nome de exibição + descrição (editar perfil). Exige login e um @ já escolhido.
 app.put('/api/me/profile', wrap(async (req, res) => {
   const u = await userOf(req);
@@ -114,6 +126,7 @@ app.get('/api/profile/:handle', wrap(async (req, res) => {
   if (!/^[a-z0-9_]{3,16}$/.test(handle)) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });
   const p = await db.byHandle(handle);
   if (!p) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });
+  p.collection = await db.collectionOf(p.id);
   delete p.id; // público: nunca expõe o id interno nem e-mail
   res.json({ ok: true, profile: p });
 }));

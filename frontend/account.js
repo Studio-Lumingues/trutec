@@ -96,14 +96,38 @@
 
   function syncCharacter() {
     if (!profile) return;
-    var ch = null;
+    var PNG = 'data:image/png;base64,';
+    var ch = null, slotsRaw = null;
     try { ch = localStorage.getItem('trutec_meu_personagem'); } catch (e) {}
-    if (!ch || ch.indexOf('data:image/png;base64,') !== 0) return;
-    var sig = ch.length + ':' + ch.slice(-40), last = null;
-    try { last = localStorage.getItem('trutec-char-synced'); } catch (e) {}
-    if (last === sig + ':' + profile.handle) return;
-    api('/api/me/character', 'PUT', { character: ch }).then(function (r) {
-      if (r && r.ok) { try { localStorage.setItem('trutec-char-synced', sig + ':' + profile.handle); } catch (e) {} }
+    try { slotsRaw = localStorage.getItem('trutec_avatar_slots'); } catch (e) {}
+
+    // avatar equipado
+    if (ch && ch.indexOf(PNG) === 0) {
+      var sig = ch.length + ':' + ch.slice(-40), last = null;
+      try { last = localStorage.getItem('trutec-char-synced'); } catch (e) {}
+      if (last !== sig + ':' + profile.handle) {
+        api('/api/me/character', 'PUT', { character: ch }).then(function (r) {
+          if (r && r.ok) { try { localStorage.setItem('trutec-char-synced', sig + ':' + profile.handle); } catch (e) {} }
+        });
+      }
+    }
+
+    // coleção (3 vagas)
+    var col = [null, null, null];
+    try {
+      var arr = JSON.parse(slotsRaw);
+      if (Array.isArray(arr)) col = [0, 1, 2].map(function (i) {
+        var im = arr[i] && arr[i].img;
+        return typeof im === 'string' && im.indexOf(PNG) === 0 ? im : null;
+      });
+    } catch (e) {}
+    if (!col.some(Boolean)) return;
+    var csig = col.map(function (x) { return x ? x.length + ':' + x.slice(-20) : '-'; }).join('|') + ':' + profile.handle;
+    var clast = null;
+    try { clast = localStorage.getItem('trutec-col-synced'); } catch (e) {}
+    if (clast === csig) return;
+    api('/api/me/collection', 'PUT', { collection: col }).then(function (r) {
+      if (r && r.ok) { try { localStorage.setItem('trutec-col-synced', csig); } catch (e) {} }
     });
   }
 
