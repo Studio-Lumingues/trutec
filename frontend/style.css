@@ -4512,19 +4512,15 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .inbox-loading { display: flex; align-items: center; justify-content: center; padding: 5rem 1rem; }
 .inbox-loading .game-intro-spinner { width: 4.5rem; height: 4.5rem; }
 
-/* ---- Caixinha de correio animada, à direita do título da Inbox ---- */
-.inbox-title-row { display: flex; align-items: center; gap: 1rem; min-width: 0; }
-.inbox-icon { flex: none; display: block; width: 3.4rem; height: 3.1rem; filter: url(#boil-sm); }   /* mesmo tremido "hand drawn" */
+/* ---- Caixinha de correio animada: pequena, no alto ao lado do título (tipo "Inbox²") ---- */
+.inbox-title-row { display: flex; align-items: flex-start; gap: 0.3rem; min-width: 0; }
+.inbox-icon { flex: none; display: block; width: 2.3rem; height: 2.1rem; margin-top: 0.05rem; }   /* sem o tremido "hand drawn" */
 .inbox-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.inbox-icon path, .inbox-icon circle { stroke: #040303; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
-.inbox-icon .mb-body  { fill: #ff2e63; }
-.inbox-icon .mb-wood  { fill: #d9b98a; }
-.inbox-icon .mb-paper { fill: #fff8f0; }
-.inbox-icon .mb-cloth { fill: #ffd23f; }
-.inbox-icon .mb-knob  { fill: #fff8f0; stroke-width: 2.4; }
+.inbox-icon path, .inbox-icon circle { stroke: #040303; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.inbox-icon .mb-body, .inbox-icon .mb-wood, .inbox-icon .mb-paper, .inbox-icon .mb-cloth, .inbox-icon .mb-knob { fill: #fff8f0; }  /* creme do fundo do TruTEC */
+.inbox-icon .mb-knob  { stroke-width: 3; }
 .inbox-icon .mb-line, .inbox-icon .mb-pole { fill: none; }
-.inbox-icon .mb-slot  { fill: none; stroke-width: 4.2; }
-.inbox-icon .mb-shine { fill: none; stroke: rgba(255,255,255,0.7); stroke-width: 2.6; }
+.inbox-icon .mb-slot  { fill: none; stroke-width: 5; }
 .inbox-icon .mb-letter, .inbox-icon .mb-flag, .inbox-icon .mb-box { transform-box: view-box; }
 .inbox-icon .mb-letter { animation: mbLetter 3.8s ease-in infinite; }
 .inbox-icon .mb-flag   { transform-origin: 74px 50px; animation: mbFlag 3.8s ease-in-out infinite; }
@@ -4553,4 +4549,4 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .inbox-icon .mb-letter { opacity: 0; }
   .inbox-icon .mb-flag { transform: rotate(0deg); }
 }
-@media (max-width: 720px) { .inbox-icon { width: 2.8rem; height: 2.6rem; } }
+@media (max-width: 720px) { .inbox-icon { width: 1.9rem; height: 1.75rem; } }

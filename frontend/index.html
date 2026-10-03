@@ -755,16 +755,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
             <h2 class="inbox-title">Inbox</h2>
             <span class="inbox-icon" aria-hidden="true">
               <svg viewBox="0 0 92 84" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <!-- contorno de "adesivo" creme em volta do desenho, pra destacar no fundo escuro -->
-                  <filter id="mb-sticker" x="-10%" y="-10%" width="120%" height="120%">
-                    <feMorphology in="SourceAlpha" operator="dilate" radius="2.4" result="d"/>
-                    <feFlood flood-color="#fff8f0"/>
-                    <feComposite in2="d" operator="in" result="o"/>
-                    <feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge>
-                  </filter>
-                </defs>
-                <g filter="url(#mb-sticker)">
+                <g>
                   <!-- carta: desenhada ANTES da caixa, então some "dentro" dela ao descer -->
                   <g class="mb-letter">
                     <path class="mb-paper" d="M26 2 H52 V21 H26 Z"/>
@@ -776,7 +767,6 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
                   <!-- caixa -->
                   <g class="mb-box">
                     <path class="mb-body" d="M8 56 V38 C8 25 19 16 32 16 H50 C63 16 74 25 74 38 V56 Z"/>
-                    <path class="mb-shine" d="M17 36 C19 28 25 24 33 23 M17 43 V46"/>
                     <path class="mb-slot" d="M25 37 H53"/>
                     <circle class="mb-knob" cx="63" cy="44" r="3.2"/>
                   </g>
