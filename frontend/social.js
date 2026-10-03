@@ -157,7 +157,87 @@
       avatar: avatar, collection: slots, other: false
     };
   }
+  // ---- menu do usuário na barra (avatar + nome + opções, estilo Letterboxd) ----
+  var uWrap = document.getElementById('sn-user-wrap');
+  var uBtn = document.getElementById('sn-user');
+  var uMenu = document.getElementById('sn-menu');
+  var uAvatar = document.getElementById('sn-user-avatar');
+  var uName = document.getElementById('sn-user-name');
+  var uChars = document.getElementById('sn-chars');
+
+  function menuOpen() { return uMenu && !uMenu.classList.contains('hidden'); }
+  function closeMenu() {
+    if (!uMenu) return;
+    uMenu.classList.add('hidden');
+    uBtn.setAttribute('aria-expanded', 'false');
+  }
+  function openMenu() {
+    refreshUser();
+    uMenu.classList.remove('hidden');
+    uBtn.setAttribute('aria-expanded', 'true');
+  }
+  function refreshUser() {
+    if (!uBtn) return;
+    var me = myData(), prof = window.TruAccount && TruAccount.profile ? TruAccount.profile() : null;
+    var handle = prof ? prof.handle : '';
+    uName.textContent = handle || me.name;
+    uAvatar.src = safeImg(me.avatar) || DEFAULT_AVATAR;
+    uChars.innerHTML = '';
+    var slots = me.collection || [];
+    for (var i = 0; i < 3; i++) {
+      var img = safeImg(slots[i]);
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'sn-item sn-char';
+      row.setAttribute('role', 'menuitem');
+      var ic = document.createElement('span');
+      ic.className = 'sn-char-icon' + (img ? '' : ' empty');
+      if (img) { var im = document.createElement('img'); im.src = img; im.alt = ''; im.draggable = false; ic.appendChild(im); }
+      var lb = document.createElement('span');
+      lb.className = 'sn-char-label';
+      lb.textContent = img ? 'Boneco ' + (i + 1) : 'Espaço vazio';
+      row.appendChild(ic); row.appendChild(lb);
+      if (img && img === safeImg(me.avatar)) {
+        var tag = document.createElement('span'); tag.className = 'sn-char-tag'; tag.textContent = 'em uso';
+        row.appendChild(tag);
+      }
+      if (img) {
+        row.addEventListener('click', (function (src, btn) {
+          return function () { closeMenu(); openBox(src, btn); };
+        })(img, row));
+      } else row.disabled = true;
+      uChars.appendChild(row);
+    }
+    var pub = document.getElementById('sn-public');
+    pub.hidden = !handle;
+    if (handle) pub.href = '/@' + handle;
+    document.getElementById('sn-copy').hidden = !handle;
+  }
+  if (uBtn && uMenu) {
+    uBtn.addEventListener('click', function (e) { e.stopPropagation(); if (menuOpen()) closeMenu(); else openMenu(); });
+    document.addEventListener('click', function (e) { if (menuOpen() && !uWrap.contains(e.target)) closeMenu(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && menuOpen()) { closeMenu(); uBtn.focus(); }
+    });
+    document.getElementById('sn-me').addEventListener('click', function () { closeMenu(); closeSearch(); input.value = ''; showMe(); });
+    document.getElementById('sn-public').addEventListener('click', closeMenu);
+    document.getElementById('sn-copy').addEventListener('click', function () {
+      var p = window.TruAccount && TruAccount.profile(), b = this;
+      if (!p || !navigator.clipboard) return;
+      navigator.clipboard.writeText(location.origin + '/@' + p.handle).then(function () {
+        b.textContent = 'Link copiado!';
+        setTimeout(function () { b.textContent = 'Copiar link'; closeMenu(); }, 900);
+      }).catch(function () {});
+    });
+    document.getElementById('sn-logout').addEventListener('click', function () {
+      if (window.TruAccount && TruAccount.logout) TruAccount.logout();
+    });
+    document.addEventListener('truaccount', refreshUser);
+    refreshUser();
+  }
+
   function showMe() {
+    refreshUser();
     reqId++;                 // cancela busca em andamento
     closeBox();
     shownHandle = '';
@@ -228,5 +308,5 @@
     input.value = '';
     showScreen('screen-social');
   });
-  logoBtn.addEventListener('click', function () { closeBox(); showScreen('screen-lobby'); });
+  logoBtn.addEventListener('click', function () { closeBox(); closeMenu(); showScreen('screen-lobby'); });
 })();

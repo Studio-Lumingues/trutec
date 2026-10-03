@@ -4126,3 +4126,48 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   content: ''; position: absolute; right: .5rem; top: .5rem; width: 1.1rem; height: 1.1rem; z-index: 3;
   background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff8f0' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='9' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");
 }
+
+/* ===== Menu do usuário na barra do Social (avatar + nome + opções) ===== */
+.sn-user-wrap { position: relative; }
+.sn-user {
+  display: flex; align-items: center; gap: 0.5rem; max-width: 14rem; padding: 0.3rem 0.5rem 0.3rem 0.35rem;
+  background: none; border: 0; border-radius: 2rem; color: #9ab; font: inherit; font-weight: 700;
+  font-size: 0.95rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: color .15s, background .15s;
+}
+.sn-user:hover, .sn-user[aria-expanded="true"] { color: #fff; background: rgba(255,255,255,0.08); }
+.sn-user:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.sn-user-avatar {
+  flex: none; width: 2.1rem; height: 2.1rem; border-radius: 50%; background: #fff8f0;
+  object-fit: cover; object-position: center top; filter: url(#boil-sm);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.35);
+}
+.sn-user-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sn-chev { flex: none; width: 0.9rem; height: 0.9rem; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+.sn-user[aria-expanded="true"] .sn-chev { transform: rotate(180deg); }
+
+.sn-menu {
+  position: absolute; right: 0; top: calc(100% + 0.6rem); z-index: 70; width: 16rem; padding: 0.5rem;
+  background: rgba(24,27,31,0.98); border: 1px solid rgba(255,255,255,0.16); border-radius: 0.8rem;
+  box-shadow: 0 1rem 2.5rem rgba(0,0,0,0.6);
+}
+.sn-menu.hidden { display: none; }
+.sn-menu-title { padding: 0.35rem 0.6rem 0.25rem; font-size: 0.8rem; color: #9ab; }
+.sn-sep { height: 1px; margin: 0.4rem 0; background: rgba(255,255,255,0.12); }
+.sn-item {
+  display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.6rem; box-sizing: border-box;
+  background: none; border: 0; border-radius: 0.5rem; color: var(--cream); font: inherit; font-size: 1rem;
+  text-align: left; text-decoration: none; cursor: pointer;
+}
+.sn-item[hidden] { display: none; }
+.sn-item:hover:not(:disabled), .sn-item:focus-visible { background: rgba(255,255,255,0.1); outline: none; }
+.sn-item:disabled { opacity: 0.45; cursor: default; }
+.sn-danger { color: #ff9b8f; }
+.sn-char-icon {
+  flex: none; width: 2.2rem; height: 2.2rem; border-radius: 50%; overflow: hidden; background: #fff8f0;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.3);
+}
+.sn-char-icon.empty { background: rgba(255,255,255,0.06); box-shadow: 0 0 0 1px rgba(255,255,255,0.25); }
+.sn-char-icon img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; filter: url(#boil-sm); pointer-events: none; }
+.sn-char-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sn-char-tag { flex: none; font-size: 0.75rem; opacity: 0.6; }
+@media (max-width: 720px) { .sn-user-name { display: none; } .sn-user { padding-right: 0.4rem; } }

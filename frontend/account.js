@@ -159,6 +159,7 @@
     ready: function () { return readyP; },           // resolve quando já sabemos se está logado
     isReady: function () { return loaded; },
     signInGoogle: signInGoogle,
+    logout: function () { if (sb) sb.auth.signOut().then(function () { location.reload(); }); },
     openModal: open,
     syncCharacter: syncCharacter,
     profile: function () { return profile; }
