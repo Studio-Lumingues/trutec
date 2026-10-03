@@ -3,7 +3,9 @@
 // Layout estilo Letterboxd: barra no topo (logo = voltar, aba Amigos, lupa),
 // card grande à esquerda com o PERFIL (começa mostrando o seu: nome, boneco,
 // estatísticas e a sua coleção) e a seção Amigos à direita.
-// - Coleção: cartazes retangulares (estilo "filmes favoritos" do Letterboxd).
+// - Coleção: 3 espaços (estilo "filmes favoritos" do Letterboxd). No SEU perfil começam
+//   vazios: clique no + e escolha qual boneco da sua coleção (os avatares do editor) fica ali.
+//   Nos perfis dos outros só aparecem os espaços preenchidos.
 //   Clicar num deles abre o boneco bem grande no meio da tela (clique fora,
 //   no X ou Esc fecham). Pra voltar ao seu perfil, é só abrir o Social de novo.
 // - Lupa: abre o campo de busca por @. Consulta GET {backend}/api/profile/<@>
@@ -137,32 +139,149 @@
     if (e.key === 'Escape' && box && !box.classList.contains('hidden')) { e.stopPropagation(); closeBox(); }
   }, true);
 
-  function renderCollection(collection, equipped) {
+  function renderCollection(collection, equipped, editable) {
     slotsEl.innerHTML = '';
     if (!Array.isArray(collection)) { colWrap.hidden = true; return; }
     var any = false;
     for (var i = 0; i < 3; i++) {
       var img = safeImg(collection[i]);
+      var cell = document.createElement('div');
+      cell.className = 'sp-cell';
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'sp-slot' + (img ? '' : ' empty');
-      b.setAttribute('aria-label', 'Boneco ' + (i + 1) + (img ? '' : ' (vazio)'));
+      b.setAttribute('aria-label', 'Espaço ' + (i + 1) + (img ? '' : ' (vazio)'));
       if (img) {
         any = true;
         var im = document.createElement('img');
         im.src = img; im.alt = ''; im.draggable = false;
         b.appendChild(im);
-        if (img === equipped) { b.classList.add('active'); b.title = 'Boneco ' + (i + 1) + ' (em uso)'; }
-        else b.title = 'Ver o boneco ' + (i + 1);
+        if (img === equipped) { b.classList.add('active'); b.title = 'Boneco (em uso)'; }
+        else b.title = 'Ver o boneco';
         b.addEventListener('click', (function (src, btn) {
           return function () { openBox(src, btn); };
         })(img, b));
+      } else if (editable) {
+        b.classList.add('add');
+        b.textContent = '+';
+        b.title = 'Escolher um boneco da sua coleção';
+        b.setAttribute('aria-label', 'Espaço ' + (i + 1) + ' vazio: escolher um boneco');
+        b.addEventListener('click', (function (idx) {
+          return function () { openPicker(idx); };
+        })(i));
       } else {
         b.disabled = true;
       }
-      slotsEl.appendChild(b);
+      cell.appendChild(b);
+      if (editable && img) {
+        var ed = document.createElement('button');
+        ed.type = 'button';
+        ed.className = 'sp-slot-edit';
+        ed.title = 'Trocar ou remover';
+        ed.setAttribute('aria-label', 'Trocar ou remover o boneco do espaço ' + (i + 1));
+        ed.textContent = '\u270e';
+        ed.addEventListener('click', (function (idx) {
+          return function () { openPicker(idx); };
+        })(i));
+        cell.appendChild(ed);
+      }
+      slotsEl.appendChild(cell);
     }
-    colWrap.hidden = !any;
+    colWrap.hidden = !(any || editable);   // no seu perfil os 3 espaços aparecem sempre
+  }
+
+  // ---- vitrine: quais bonecos da SUA coleção aparecem nos 3 espaços do perfil ----
+  // Guardamos só o número do avatar (0..2) de cada espaço; a imagem é lida na hora do
+  // editor de avatar, então se você refizer o boneco, o perfil acompanha.
+  var SHOW_KEY = 'trutec_showcase';
+  function readShowcase() {
+    var out = [null, null, null], arr = null;
+    try { arr = JSON.parse(localStorage.getItem(SHOW_KEY)); } catch (e) {}
+    if (Array.isArray(arr)) for (var i = 0; i < 3; i++) out[i] = (arr[i] === 0 || arr[i] === 1 || arr[i] === 2) ? arr[i] : null;
+    return out;
+  }
+  function writeShowcase(sc) { try { localStorage.setItem(SHOW_KEY, JSON.stringify(sc)); } catch (e) {} }
+  function ownAvatars() {          // os até 3 avatares criados no editor (png ou null)
+    var out = [null, null, null];
+    try {
+      var arr = JSON.parse(localStorage.getItem('trutec_avatar_slots'));
+      if (Array.isArray(arr)) for (var i = 0; i < 3; i++) out[i] = arr[i] && safeImg(arr[i].img) ? arr[i].img : null;
+    } catch (e) {}
+    return out;
+  }
+  function showcaseImages() {
+    var av = ownAvatars();
+    return readShowcase().map(function (ix) { return ix === null ? null : av[ix]; });
+  }
+
+  var pickModal = null, pickGrid = null, pickHint = null, pickClear = null, pickIdx = -1;
+  function buildPicker() {
+    if (pickModal) return;
+    pickModal = document.createElement('div');
+    pickModal.className = 'settings-modal hidden';
+    pickModal.setAttribute('role', 'dialog');
+    pickModal.setAttribute('aria-modal', 'true');
+    pickModal.setAttribute('aria-labelledby', 'sp-pick-title');
+    pickModal.innerHTML =
+      '<div class="settings-card sp-pick-card">' +
+        '<h2 id="sp-pick-title">Escolher boneco</h2>' +
+        '<p class="modal-hint" id="sp-pick-hint"></p>' +
+        '<div class="sp-pick-grid" id="sp-pick-grid"></div>' +
+        '<div class="modal-actions">' +
+          '<button type="button" class="btn btn-secondary" id="sp-pick-clear">Deixar vazio</button>' +
+          '<button type="button" class="btn btn-primary" id="sp-pick-close">Fechar</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(pickModal);
+    pickGrid = pickModal.querySelector('#sp-pick-grid');
+    pickHint = pickModal.querySelector('#sp-pick-hint');
+    pickClear = pickModal.querySelector('#sp-pick-clear');
+    pickClear.addEventListener('click', function () { setShowcase(pickIdx, null); });
+    pickModal.querySelector('#sp-pick-close').addEventListener('click', closePicker);
+    pickModal.addEventListener('click', function (e) { if (e.target === pickModal) closePicker(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && pickModal && !pickModal.classList.contains('hidden')) { e.stopPropagation(); closePicker(); }
+    }, true);
+  }
+  function closePicker() { if (pickModal) pickModal.classList.add('hidden'); }
+  function openPicker(slotIdx) {
+    buildPicker();
+    pickIdx = slotIdx;
+    var av = ownAvatars(), sc = readShowcase(), n = 0;
+    pickGrid.innerHTML = '';
+    for (var i = 0; i < 3; i++) {
+      if (!av[i]) continue;
+      n++;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sp-slot' + (sc[slotIdx] === i ? ' active' : '');
+      var im = document.createElement('img');
+      im.src = av[i]; im.alt = ''; im.draggable = false;
+      b.appendChild(im);
+      var usedElsewhere = sc.some(function (v, k) { return v === i && k !== slotIdx; });
+      b.setAttribute('aria-label', 'Avatar ' + (i + 1) + (usedElsewhere ? ' (já está em outro espaço)' : ''));
+      if (usedElsewhere) { b.disabled = true; b.classList.add('used'); b.title = 'Já está em outro espaço'; }
+      else {
+        b.title = 'Colocar o avatar ' + (i + 1) + ' neste espaço';
+        b.addEventListener('click', (function (ix) { return function () { setShowcase(pickIdx, ix); }; })(i));
+      }
+      pickGrid.appendChild(b);
+    }
+    pickHint.textContent = n
+      ? 'Escolha qual boneco da sua coleção aparece neste espaço do perfil.'
+      : 'Você ainda não criou nenhum boneco. Crie um em \u201cAvatar\u201d, na tela inicial, e volte aqui.';
+    pickClear.hidden = sc[slotIdx] === null;
+    pickModal.classList.remove('hidden');
+    var first = pickGrid.querySelector('button:not(:disabled)');
+    (first || pickModal.querySelector('#sp-pick-close')).focus();
+  }
+  function setShowcase(slotIdx, avatarIdx) {
+    var sc = readShowcase();
+    sc[slotIdx] = avatarIdx;
+    writeShowcase(sc);
+    closePicker();
+    if (!viewingOther) paint(myData());
+    if (window.TruAccount && TruAccount.syncCharacter) TruAccount.syncCharacter();   // manda pro perfil público
   }
 
   // d = { name, handle, since, wins, losses, avatar, collection, other }
@@ -180,7 +299,7 @@
     winsEl.textContent = wins;
     lossesEl.textContent = losses;
     rateEl.textContent = total ? Math.round(wins / total * 100) + '%' : '—';
-    renderCollection(d.collection, safeImg(d.avatar));
+    renderCollection(d.collection, safeImg(d.avatar), !d.other);
   }
 
   // ---- o seu perfil (dados locais do aparelho) ----
@@ -212,16 +331,12 @@
     var inp = document.getElementById('input-name');
     if (inp && inp.value.trim()) name = inp.value.trim();
     var st = window.TruStats ? TruStats.get() : { wins: 0, losses: 0 };
-    var avatar = null, slots = null;
+    var avatar = null;
     try { avatar = localStorage.getItem('trutec_meu_personagem'); } catch (e) {}
-    try {
-      var arr = JSON.parse(localStorage.getItem('trutec_avatar_slots'));
-      if (Array.isArray(arr)) slots = [0, 1, 2].map(function (i) { return arr[i] && arr[i].img ? arr[i].img : null; });
-    } catch (e) {}
     return {
       name: readExtra().displayName || name || 'Jogador', bio: readExtra().bio,
       handle: myHandle(), since: mySince(), wins: st.wins, losses: st.losses,
-      avatar: avatar, collection: slots, other: false
+      avatar: avatar, collection: showcaseImages(), other: false
     };
   }
   // ---- menu do usuário na barra (avatar + nome + opções, estilo Letterboxd) ----

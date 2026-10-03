@@ -112,16 +112,18 @@
       }
     }
 
-    // coleção (3 vagas)
+    // vitrine do perfil (3 espaços): guarda o número do avatar de cada espaço; aqui vira a imagem
+    var showRaw = null;
+    try { showRaw = localStorage.getItem('trutec_showcase'); } catch (e) {}
+    if (showRaw === null) return;                 // nunca mexeu na vitrine: nada pra enviar
     var col = [null, null, null];
     try {
-      var arr = JSON.parse(slotsRaw);
-      if (Array.isArray(arr)) col = [0, 1, 2].map(function (i) {
-        var im = arr[i] && arr[i].img;
+      var sc = JSON.parse(showRaw), arr = JSON.parse(slotsRaw);
+      if (Array.isArray(sc) && Array.isArray(arr)) col = [0, 1, 2].map(function (k) {
+        var ix = sc[k], im = (ix === 0 || ix === 1 || ix === 2) && arr[ix] && arr[ix].img;
         return typeof im === 'string' && im.indexOf(PNG) === 0 ? im : null;
       });
     } catch (e) {}
-    if (!col.some(Boolean)) return;
     var csig = col.map(function (x) { return x ? x.length + ':' + x.slice(-20) : '-'; }).join('|') + ':' + profile.handle;
     var clast = null;
     try { clast = localStorage.getItem('trutec-col-synced'); } catch (e) {}
