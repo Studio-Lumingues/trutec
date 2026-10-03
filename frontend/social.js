@@ -5,7 +5,7 @@
 // estatísticas e a sua coleção) e a seção Amigos à direita.
 // - Coleção: 3 espaços (estilo "filmes favoritos" do Letterboxd). No SEU perfil começam
 //   vazios: clique no + e escolha qual boneco da sua coleção (os avatares do editor) fica ali.
-//   Nos perfis dos outros só aparecem os espaços preenchidos.
+//   Nos perfis dos outros os 3 espaços também aparecem sempre (vazios, se não houver nada).
 //   Clicar num deles abre o boneco bem grande no meio da tela (clique fora,
 //   no X ou Esc fecham). Pra voltar ao seu perfil, é só abrir o Social de novo.
 // - Lupa: abre o campo de busca por @. Consulta GET {backend}/api/profile/<@>
@@ -15,7 +15,7 @@
 //                          character: "data:image/png;base64,...",   // em uso
 //                          collection: [png|null, png|null, png|null] // opcional
 //                        } }
-// Se o servidor não manda "collection", a seção Coleção fica escondida.
+// Se o servidor não manda "collection", a seção Coleção aparece com os 3 espaços vazios.
 // Depende do showScreen() do client.js (por isso carrega depois dele).
 // ============================================================================
 (function () {
@@ -141,7 +141,7 @@
 
   function renderCollection(collection, equipped, editable) {
     slotsEl.innerHTML = '';
-    if (!Array.isArray(collection)) { colWrap.hidden = true; return; }
+    if (!Array.isArray(collection)) collection = [];   // sem dados do servidor: os 3 espaços aparecem vazios
     var any = false;
     for (var i = 0; i < 3; i++) {
       var img = safeImg(collection[i]);
@@ -187,7 +187,7 @@
       }
       slotsEl.appendChild(cell);
     }
-    colWrap.hidden = !(any || editable);   // no seu perfil os 3 espaços aparecem sempre
+    colWrap.hidden = false;   // estética: TODO perfil mostra os 3 retângulos, mesmo vazios
   }
 
   // ---- vitrine: quais bonecos da SUA coleção aparecem nos 3 espaços do perfil ----

@@ -4406,3 +4406,6 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   #acc-claim .modal-hint { font-size: 1.1rem; }
   #acc-claim .acc-field .modal-input, #acc-claim .acc-at { font-size: 1.45rem; }
 }
+
+/* perfil de outra pessoa com espaço vazio: retângulo tracejado normal (não esmaecido) */
+.sp-slot.empty:disabled { opacity: 1; cursor: default; }

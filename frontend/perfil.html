@@ -35,6 +35,11 @@
     color: inherit; font: inherit; font-size: 1.05rem; cursor: pointer; text-decoration: none; text-align: center; }
   .btn.primary { background: #fff8f0; color: #0a0a0a; border-color: #fff8f0; }
   .btn:hover { filter: brightness(1.15); }
+  .col-title { font-size: .8rem; opacity: .7; text-align: left; margin: 0 0 .4rem; }
+  .col { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-bottom: 1.1rem; }
+  .slot { position: relative; aspect-ratio: 2 / 3; overflow: hidden; border-radius: .3rem; border: 1px dashed rgba(255,248,240,.22); background: rgba(255,248,240,.06); }
+  .slot.filled { border-style: solid; background: #fff8f0; }
+  .slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center top; }
   .msg { padding: 2.5rem 1.25rem; text-align: center; }
 </style>
 </head>
@@ -69,6 +74,7 @@
         '<div class="top"><div class="checker"></div><img alt="" /></div>' +
         '<div class="body"><h1></h1><div class="handle"></div><div class="since"></div><p class="bio"></p>' +
         '<div class="stats"><div class="stat"><b id="w"></b><span>Vitórias</span></div><div class="stat"><b id="l"></b><span>Derrotas</span></div><div class="stat"><b id="r"></b><span>Aproveit.</span></div></div>' +
+        '<div class="col-title">Coleção</div><div class="col" id="col"></div>' +
         '<div class="actions"><button class="btn" id="copy" type="button">Copiar link</button><a class="btn primary" href="/">Jogar</a></div></div>';
       card.querySelector('img').src = img;
       card.querySelector('h1').textContent = p.displayName || ('@' + p.handle);
@@ -78,6 +84,17 @@
       document.getElementById('w').textContent = p.wins;
       document.getElementById('l').textContent = p.losses;
       document.getElementById('r').textContent = rate;
+      var colEl = document.getElementById('col');
+      for (var i = 0; i < 3; i++) {
+        var src = p.collection && p.collection[i];
+        var slot = document.createElement('div');
+        slot.className = 'slot';
+        if (typeof src === 'string' && src.indexOf('data:image/png;base64,') === 0) {
+          slot.className += ' filled';
+          var im = document.createElement('img'); im.alt = ''; im.src = src; slot.appendChild(im);
+        }
+        colEl.appendChild(slot);   // os 3 retângulos aparecem sempre, mesmo vazios
+      }
       var b = document.getElementById('copy');
       b.addEventListener('click', function () {
         var done = function () { b.textContent = 'Copiado!'; setTimeout(function () { b.textContent = 'Copiar link'; }, 1500); };
