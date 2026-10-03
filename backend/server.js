@@ -121,6 +121,60 @@ app.put('/api/me/profile', wrap(async (req, res) => {
   res.json({ ok: true, profile: await db.byId(u.id) });
 }));
 
+// ---- INBOX: mensagens entre jogadores (tópico + assunto + texto) ----
+// Enviar exige login e @. Quem recebe vê na Inbox (tela Social).
+app.post('/api/messages', wrap(async (req, res) => {
+  const u = await userOf(req);
+  if (!u) return res.status(401).json({ ok: false, error: 'Faça login para enviar mensagens.' });
+  const me = await db.byId(u.id);
+  if (!me) return res.status(400).json({ ok: false, error: 'Escolha seu @ primeiro.' });
+  const b = req.body || {};
+  const toHandle = db.normHandle(b.to);
+  const topic = db.cleanText(b.topic, 40, false);
+  const subject = db.cleanText(b.subject, 80, false);
+  const body = db.cleanText(b.body, 500, true);
+  if (!/^[a-z0-9_]{3,16}$/.test(toHandle)) return res.status(400).json({ ok: false, error: 'Destinatário inválido.' });
+  if (!topic) return res.status(400).json({ ok: false, error: 'Escreva o tópico.' });
+  if (!subject) return res.status(400).json({ ok: false, error: 'Escreva o assunto.' });
+  if (!body) return res.status(400).json({ ok: false, error: 'Escreva a mensagem.' });
+  const to = await db.byHandle(toHandle);
+  if (!to) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });
+  if (to.id === u.id) return res.status(400).json({ ok: false, error: 'Você não pode mandar mensagem pra si mesmo.' });
+  if ((await db.sentRecently(u.id, 60)) >= 5) return res.status(429).json({ ok: false, error: 'Calma! Você enviou muitas mensagens. Tente em um minuto.' });
+  await db.sendMessage(u.id, to.id, topic, subject, body);
+  res.json({ ok: true });
+}));
+
+app.get('/api/messages', wrap(async (req, res) => {
+  const u = await userOf(req);
+  if (!u) return res.status(401).json({ ok: false, error: 'Faça login.' });
+  res.json({ ok: true, messages: await db.inboxOf(u.id, 100) });
+}));
+
+app.get('/api/messages/unread', wrap(async (req, res) => {
+  const u = await userOf(req);
+  if (!u) return res.status(401).json({ ok: false, error: 'Faça login.' });
+  res.json({ ok: true, count: await db.unreadCount(u.id) });
+}));
+
+app.put('/api/messages/:id/read', wrap(async (req, res) => {
+  const u = await userOf(req);
+  if (!u) return res.status(401).json({ ok: false, error: 'Faça login.' });
+  const id = parseInt(req.params.id, 10);
+  if (!isFinite(id)) return res.status(400).json({ ok: false, error: 'Mensagem inválida.' });
+  await db.markRead(u.id, id);
+  res.json({ ok: true });
+}));
+
+app.delete('/api/messages/:id', wrap(async (req, res) => {
+  const u = await userOf(req);
+  if (!u) return res.status(401).json({ ok: false, error: 'Faça login.' });
+  const id = parseInt(req.params.id, 10);
+  if (!isFinite(id)) return res.status(400).json({ ok: false, error: 'Mensagem inválida.' });
+  await db.deleteMessage(u.id, id);
+  res.json({ ok: true });
+}));
+
 app.get('/api/profile/:handle', wrap(async (req, res) => {
   const handle = db.normHandle(req.params.handle);
   if (!/^[a-z0-9_]{3,16}$/.test(handle)) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });

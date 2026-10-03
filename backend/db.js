@@ -114,4 +114,57 @@ async function recordResult(userId, win) {
   if (error) throw error;
 }
 
-module.exports = { enabled, verify, byId, byHandle, create, setCharacter, setProfileInfo, cleanCollection, setCollection, collectionOf, cleanText, recordResult, normHandle, checkHandle };
+// ---------------------------------------------------------------------------
+// INBOX (mensagens entre jogadores) — tabela "messages", veja supabase-inbox.sql
+// ---------------------------------------------------------------------------
+const MSG_COLS = 'id, from_id, to_id, topic, subject, body, read, created_at';
+
+async function sendMessage(fromId, toId, topic, subject, body) {
+  const { error } = await sb.from('messages').insert({ from_id: fromId, to_id: toId, topic, subject, body });
+  if (error) throw error;
+}
+// Mensagens recebidas, com @ e nome de quem enviou.
+async function inboxOf(userId, limit) {
+  const { data, error } = await sb.from('messages').select(MSG_COLS)
+    .eq('to_id', userId).order('created_at', { ascending: false }).limit(limit || 100);
+  if (error) throw error;
+  const rows = data || [];
+  const ids = Array.from(new Set(rows.map((m) => m.from_id)));
+  const senders = {};
+  if (ids.length) {
+    const { data: ps } = await withCols((c) => sb.from('profiles').select(c).in('id', ids));
+    (ps || []).forEach((p) => { senders[p.id] = p; });
+  }
+  return rows.map((m) => {
+    const s = senders[m.from_id];
+    return {
+      id: m.id, topic: m.topic, subject: m.subject, body: m.body, read: !!m.read, createdAt: m.created_at,
+      fromHandle: s ? s.handle : null, fromName: s ? (s.display_name || s.handle) : 'Jogador'
+    };
+  });
+}
+async function unreadCount(userId) {
+  const { count, error } = await sb.from('messages').select('id', { count: 'exact', head: true })
+    .eq('to_id', userId).eq('read', false);
+  if (error) throw error;
+  return count || 0;
+}
+async function markRead(userId, id) {
+  const { error } = await sb.from('messages').update({ read: true }).eq('to_id', userId).eq('id', id);
+  if (error) throw error;
+}
+async function deleteMessage(userId, id) {
+  const { error } = await sb.from('messages').delete().eq('to_id', userId).eq('id', id);
+  if (error) throw error;
+}
+// Limite anti-spam: quantas mensagens esse usuário enviou no último minuto.
+async function sentRecently(userId, seconds) {
+  const since = new Date(Date.now() - seconds * 1000).toISOString();
+  const { count, error } = await sb.from('messages').select('id', { count: 'exact', head: true })
+    .eq('from_id', userId).gte('created_at', since);
+  if (error) throw error;
+  return count || 0;
+}
+
+module.exports = { enabled, verify, byId, byHandle, create, setCharacter, setProfileInfo, cleanCollection, setCollection, collectionOf, cleanText, recordResult, normHandle, checkHandle,
+  sendMessage, inboxOf, unreadCount, markRead, deleteMessage, sentRecently };

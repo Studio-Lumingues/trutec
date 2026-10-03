@@ -36,6 +36,7 @@
   var rateEl = document.getElementById('sp-rate');
   var colWrap = document.getElementById('sp-collection-wrap');
   var slotsEl = document.getElementById('sp-slots');
+  var mailBtn = document.getElementById('sp-mail');
 
   var DEFAULT_AVATAR = 'assets/personagem.svg';
   var PNG = 'data:image/png;base64,';
@@ -340,6 +341,7 @@
     bioEl.textContent = bio;
     bioEl.hidden = !bio;
     viewingOther = !!d.other;
+    if (mailBtn) mailBtn.hidden = !(d.other && d.handle);   // carta só no perfil dos outros
     winsEl.textContent = wins;
     lossesEl.textContent = losses;
     rateEl.textContent = total ? Math.round(wins / total * 100) + '%' : '—';
@@ -605,10 +607,196 @@
     input.value = v.replace(/^@+/, '').replace(/[^A-Za-z0-9_]/g, '').slice(0, 16);
   });
 
+  // ---- INBOX + ENVIAR MENSAGEM ----------------------------------------------
+  // Carta no perfil dos outros -> janela com Tópico, Assunto e Mensagem.
+  // "Inbox" na barra do topo -> lista das mensagens recebidas (com contador de não lidas).
+  var tabFriends = document.getElementById('social-tab-friends');
+  var tabInbox = document.getElementById('social-tab-inbox');
+  var badgeEl = document.getElementById('inbox-badge');
+  var paneFriends = document.getElementById('social-pane-friends');
+  var paneInbox = document.getElementById('social-pane-inbox');
+  var inboxList = document.getElementById('inbox-list');
+  var inboxItems = [];
+  var inboxOn = false;
+
+  function loggedIn() { return !!(window.TruAccount && TruAccount.profile && TruAccount.profile()); }
+  function mailApi(path, method, body) {
+    return window.TruAccount && TruAccount.api ? TruAccount.api(path, method, body) : Promise.resolve({ ok: false, error: 'Conta indisponível.' });
+  }
+
+  function setBadge(n) {
+    n = n > 0 ? n : 0;
+    badgeEl.textContent = n > 99 ? '99+' : String(n);
+    badgeEl.hidden = !n;
+  }
+  function refreshBadge() {
+    if (!loggedIn()) return setBadge(0);
+    mailApi('/api/messages/unread').then(function (r) { if (r && r.ok) setBadge(r.count); });
+  }
+
+  function setPane(which) {
+    inboxOn = which === 'inbox';
+    paneFriends.hidden = inboxOn;
+    paneInbox.hidden = !inboxOn;
+    tabFriends.classList.toggle('active', !inboxOn);
+    tabInbox.classList.toggle('active', inboxOn);
+    if (inboxOn) loadInbox();
+  }
+
+  function fmtWhen(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return '';
+    var same = d.toDateString() === new Date().toDateString();
+    return same ? d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  }
+  function inboxEmpty(text, sub) {
+    inboxList.innerHTML = '';
+    var box = document.createElement('div');
+    box.className = 'social-empty';
+    var p = document.createElement('p'); p.textContent = text; box.appendChild(p);
+    if (sub) { var s = document.createElement('p'); s.className = 'social-empty-sub'; s.textContent = sub; box.appendChild(s); }
+    inboxList.appendChild(box);
+  }
+  function renderInbox() {
+    if (!inboxItems.length) return inboxEmpty('Sua inbox está vazia.', 'Quando alguém te mandar uma mensagem, ela aparece aqui.');
+    inboxList.innerHTML = '';
+    inboxItems.forEach(function (m) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'inbox-item' + (m.read ? '' : ' unread');
+      var top = document.createElement('div'); top.className = 'ii-top';
+      var from = document.createElement('span'); from.className = 'ii-from';
+      from.textContent = m.fromName + (m.fromHandle ? ' @' + m.fromHandle : '');
+      var when = document.createElement('span'); when.className = 'ii-when'; when.textContent = fmtWhen(m.createdAt);
+      top.appendChild(from); top.appendChild(when);
+      var tp = document.createElement('div'); tp.className = 'ii-topic'; tp.textContent = m.topic;
+      var sb = document.createElement('div'); sb.className = 'ii-subject'; sb.textContent = m.subject;
+      row.appendChild(top); row.appendChild(tp); row.appendChild(sb);
+      row.addEventListener('click', function () { openRead(m); });
+      inboxList.appendChild(row);
+    });
+  }
+  function loadInbox(silent) {
+    if (!loggedIn()) return inboxEmpty('Entre na sua conta pra ver a inbox.', 'Use o botão de conta na tela inicial e escolha seu @.');
+    if (!silent) inboxEmpty('Carregando…');
+    mailApi('/api/messages').then(function (r) {
+      if (!inboxOn) return;
+      if (!r || !r.ok) return inboxEmpty((r && r.error) || 'Não deu pra carregar a inbox.');
+      inboxItems = r.messages || [];
+      renderInbox();
+      setBadge(inboxItems.filter(function (m) { return !m.read; }).length);
+    });
+  }
+
+  // -- ler uma mensagem --
+  var rdModal = document.getElementById('mail-read-modal');
+  var rdTopic = document.getElementById('mr-topic');
+  var rdSubject = document.getElementById('mr-subject');
+  var rdFrom = document.getElementById('mr-from');
+  var rdBody = document.getElementById('mr-body');
+  var rdCur = null;
+  function openRead(m) {
+    rdCur = m;
+    rdTopic.textContent = m.topic;
+    rdSubject.textContent = m.subject;
+    rdFrom.textContent = 'De ' + m.fromName + (m.fromHandle ? ' (@' + m.fromHandle + ')' : '') + ' · ' + fmtWhen(m.createdAt);
+    rdBody.textContent = m.body;
+    document.getElementById('mr-reply').hidden = !m.fromHandle;
+    rdModal.classList.remove('hidden');
+    if (!m.read) {
+      m.read = true;
+      renderInbox();
+      setBadge(inboxItems.filter(function (x) { return !x.read; }).length);
+      mailApi('/api/messages/' + m.id + '/read', 'PUT');
+    }
+  }
+  function closeRead() { rdModal.classList.add('hidden'); }
+  document.getElementById('mr-close').addEventListener('click', closeRead);
+  rdModal.addEventListener('click', function (e) { if (e.target === rdModal) closeRead(); });
+  document.getElementById('mr-delete').addEventListener('click', function () {
+    if (!rdCur) return;
+    var id = rdCur.id;
+    inboxItems = inboxItems.filter(function (x) { return x.id !== id; });
+    closeRead();
+    renderInbox();
+    setBadge(inboxItems.filter(function (x) { return !x.read; }).length);
+    mailApi('/api/messages/' + id, 'DELETE');
+  });
+  document.getElementById('mr-reply').addEventListener('click', function () {
+    if (!rdCur || !rdCur.fromHandle) return;
+    var m = rdCur;
+    closeRead();
+    openCompose(m.fromHandle, m.topic, ('Re: ' + m.subject).slice(0, 80));
+  });
+
+  // -- escrever uma mensagem --
+  var cmModal = document.getElementById('mail-modal');
+  var cmTo = document.getElementById('mail-to');
+  var cmTopic = document.getElementById('mail-topic');
+  var cmSubject = document.getElementById('mail-subject');
+  var cmBody = document.getElementById('mail-body');
+  var cmCount = document.getElementById('mail-count');
+  var cmMsg = document.getElementById('mail-msg');
+  var cmSend = document.getElementById('mail-send');
+  var cmHandle = '';
+  function cmUpdateCount() { cmCount.textContent = cmBody.value.length + '/500'; }
+  function openCompose(handle, topic, subject) {
+    if (!loggedIn()) { say('Entre na sua conta e escolha um @ pra enviar mensagens.', true); return; }
+    cmHandle = handle;
+    cmTo.textContent = 'Para @' + handle;
+    cmTopic.value = topic || '';
+    cmSubject.value = subject || '';
+    cmBody.value = '';
+    cmMsg.textContent = '';
+    cmMsg.style.color = '';
+    cmSend.disabled = false;
+    cmUpdateCount();
+    cmModal.classList.remove('hidden');
+    (topic ? cmBody : cmTopic).focus();
+  }
+  function closeCompose() { cmModal.classList.add('hidden'); }
+  function sendMail() {
+    var topic = cmTopic.value.trim(), subject = cmSubject.value.trim(), body = cmBody.value.trim();
+    cmMsg.style.color = '';
+    if (!topic) { cmMsg.textContent = 'Escreva o tópico.'; cmTopic.focus(); return; }
+    if (!subject) { cmMsg.textContent = 'Escreva o assunto.'; cmSubject.focus(); return; }
+    if (!body) { cmMsg.textContent = 'Escreva a mensagem.'; cmBody.focus(); return; }
+    cmSend.disabled = true;
+    cmMsg.textContent = 'Enviando…';
+    mailApi('/api/messages', 'POST', { to: cmHandle, topic: topic, subject: subject, body: body }).then(function (r) {
+      cmSend.disabled = false;
+      if (!r || !r.ok) { cmMsg.textContent = (r && r.error) || 'Não deu pra enviar.'; return; }
+      closeCompose();
+      say('Mensagem enviada para @' + cmHandle + '!');
+      setTimeout(function () { if (msg.textContent.indexOf('Mensagem enviada') === 0) say(''); }, 3500);
+    });
+  }
+  cmSend.addEventListener('click', sendMail);
+  document.getElementById('mail-cancel').addEventListener('click', closeCompose);
+  cmModal.addEventListener('click', function (e) { if (e.target === cmModal) closeCompose(); });
+  cmBody.addEventListener('input', cmUpdateCount);
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (!cmModal.classList.contains('hidden')) closeCompose();
+    else if (!rdModal.classList.contains('hidden')) closeRead();
+  });
+
+  mailBtn.addEventListener('click', function () { if (shownHandle) openCompose(shownHandle); });
+  tabFriends.addEventListener('click', function () { setPane('friends'); });
+  tabInbox.addEventListener('click', function () { setPane('inbox'); });
+  document.addEventListener('truaccount', refreshBadge);
+  setInterval(function () {
+    var scr = document.getElementById('screen-social');
+    if (scr && scr.classList.contains('active') && !document.hidden) { refreshBadge(); if (inboxOn && rdModal.classList.contains('hidden')) loadInbox(true); }
+  }, 60000);
+
   openBtn.addEventListener('click', function () {
     showMe();
     closeSearch();
     input.value = '';
+    setPane('friends');
+    refreshBadge();
     showScreen('screen-social');
   });
   logoBtn.addEventListener('click', function () { closeBox(); closeMenu(); showScreen('screen-lobby'); });
