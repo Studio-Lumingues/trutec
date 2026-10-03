@@ -14,11 +14,20 @@
   // Estado "portão aberto": enquanto a tela de boas-vindas estiver na frente, o guia (tutorial.js)
   // e a música (audio.js) esperam. Eles perguntam via TruGate.blocking() e ouvem o evento 'trugate'.
   var blocking = !!(acc && acc.enabled);       // até saber se vai aparecer a boas-vindas, segura
+  var welcomeOpen = false;                     // tela de boas-vindas visível
   function setBlocking(v) {
     v = !!v;
     if (v === blocking) return;
     blocking = v;
     try { document.dispatchEvent(new Event('trugate')); } catch (e) {}
+  }
+  // logou com Google mas ainda não escolheu o @ (a caixa de criar @ está na frente)
+  function needsHandle() {
+    return !!(acc && acc.isReady() && acc.isSignedIn() && !acc.isLoggedIn());
+  }
+  // o guia e a música só liberam quando nenhuma tela de entrada está na frente
+  function refreshBlocking() {
+    setBlocking(welcomeOpen || needsHandle());
   }
   window.TruGate = { blocking: function () { return blocking; } };
   if (!acc || !acc.enabled) return;            // Supabase não configurado: não trava nada
@@ -59,6 +68,7 @@
       textEl.textContent = 'Entre com o Google para guardar suas vitórias, criar seu avatar e usar o Social. Ou jogue agora como convidado.';
       skipBtn.textContent = 'Jogar como convidado';
       dismissible = false;
+      welcomeOpen = true;
       setBlocking(true);
     } else {
       titleEl.textContent = 'Entre para continuar';
@@ -71,7 +81,7 @@
     modal.classList.remove('hidden');
     googleBtn.focus();
   }
-  function closeGate() { modal.classList.add('hidden'); setBlocking(false); }
+  function closeGate() { modal.classList.add('hidden'); welcomeOpen = false; refreshBlocking(); }
 
   googleBtn.addEventListener('click', function () {
     googleBtn.disabled = true;
@@ -117,13 +127,14 @@
 
   document.addEventListener('truaccount', function () {
     refreshLocks();
-    if (acc.isSignedIn()) { setGuest(false); closeGate(); }
+    if (acc.isSignedIn()) { setGuest(false); closeGate(); }   // closeGate já reavalia o bloqueio
+    else refreshBlocking();
   });
 
   // ---- primeira visita ----
   acc.ready().then(function () {
     refreshLocks();
     if (!acc.isSignedIn() && !isGuest()) openGate('welcome');
-    else setBlocking(false);
+    else refreshBlocking();     // se já está logado mas sem @, o guia continua esperando
   });
 })();
