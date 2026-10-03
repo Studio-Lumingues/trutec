@@ -4552,21 +4552,20 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 @media (max-width: 720px) { .inbox-icon { width: 1.9rem; height: 1.75rem; } }
 
 
-/* ---- Amizade: personagem ao lado do nome, com o sinal em cima da cabeça dele ----
-   O botão tem exatamente o tamanho do desenho (largura automática), então o sinal sempre cola na cabeça.
-   Ajuste fino (tudo aqui em cima do bloco):
+/* ---- Amizade: personagem AO LADO do nome, com o sinal em cima da cabeça dele ----
+   O botão tem exatamente o tamanho do desenho, então o sinal sempre cola na cabeça.
+   Ajuste fino:
      --fr-h        altura do boneco
-     --fr-lift     quanto a base do boneco sobe pra ficar na linha do texto (aumente = boneco sobe)
+     --fr-nudge    desce (+) ou sobe (-) o boneco em relação ao texto
      --fr-badge-x  posição do sinal na largura do boneco (aumente = vai pra direita)
      --fr-badge-y  posição do sinal na altura do boneco (aumente = desce)
      --fr-badge-s  tamanho do sinal */
 .sp-name-row .sp-name { flex: 0 1 auto; }   /* o nome só ocupa o que precisa: o boneco fica colado nele */
-.sp-name-row .sp-actions { margin-left: auto; align-self: center; }
-.sp-friend-btn { --fr-h: 4.4rem; --fr-lift: 0.65rem; --fr-badge-x: 58%; --fr-badge-y: 4%; --fr-badge-s: 1rem;
-  position: relative; flex: none; display: block; width: auto; height: var(--fr-h);
-  align-self: flex-end;                                  /* base do boneco na parte de baixo da linha do nome */
-  margin: calc(2.2rem - var(--fr-h)) 0 var(--fr-lift) 0.45rem;   /* o que sobe acima do texto não aumenta a altura da linha */
-  padding: 0; background: none; border: 0; border-radius: 0.4rem; color: #22c55e; cursor: pointer; transition: transform .12s; transform-origin: center bottom; }
+.sp-name-row .sp-actions { margin-left: auto; }
+.sp-friend-btn { --fr-h: 3.8rem; --fr-nudge: 0rem; --fr-badge-x: 58%; --fr-badge-y: 4%; --fr-badge-s: 1rem;
+  position: relative; top: var(--fr-nudge); flex: none; display: block; width: auto; height: var(--fr-h);
+  align-self: center; margin: 0 0 0 0.1rem;              /* mesma linha do nome, sem sair do card */
+  padding: 0; background: none; border: 0; border-radius: 0.4rem; color: #22c55e; cursor: pointer; transition: transform .12s; }
 .sp-friend-btn[hidden] { display: none; }
 .sp-friend-btn:hover { transform: scale(1.08); }
 .sp-friend-btn:active { transform: scale(0.95); }
