@@ -4459,3 +4459,22 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 .inbox-item.unread { border-left-width: 0.3rem; }
 .inbox-item.unread .ii-preview { opacity: 0.85; }
+
+/* ---- Inbox como TELA inteira (no lugar do perfil/amigos) ---- */
+.social-main[hidden], .inbox-screen[hidden] { display: none; }
+.inbox-screen { align-items: center; }
+.inbox-wrap { width: min(50rem, 100%); display: flex; flex-direction: column; gap: 1.25rem; margin: 0 auto; }
+.inbox-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.18); }
+.inbox-title { margin: 0; font-size: 2.6rem; line-height: 1.1; color: var(--cream); }
+.inbox-sub { margin: 0; font-size: 1rem; opacity: 0.65; }
+.inbox-sub:empty { display: none; }
+.inbox-screen .inbox-item { padding: 1rem 1.25rem 1rem 1rem; gap: 1.1rem; }
+.inbox-screen .inbox-item .ii-avatar { width: 5.2rem; height: 5.2rem; border-radius: 0.9rem; }
+.inbox-screen .inbox-item .ii-subject { font-size: 1.4rem; }
+.inbox-screen .inbox-item .ii-preview { font-size: 1rem; }
+.inbox-screen .social-empty { padding: 4rem 1rem; }
+@media (max-width: 720px) {
+  .inbox-title { font-size: 2rem; }
+  .inbox-screen .inbox-item .ii-avatar { width: 4.2rem; height: 4.2rem; }
+  .inbox-screen .inbox-item .ii-subject { font-size: 1.2rem; }
+}

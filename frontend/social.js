@@ -453,6 +453,7 @@
   }
 
   function showMe() {
+    if (inboxOn) setPane('friends');   // saindo da tela da Inbox
     refreshUser();
     reqId++;                 // cancela busca em andamento
     hideLoading(true);
@@ -576,6 +577,7 @@
     var handle = normalize(raw);
     if (!handle) return showNotice('Digite o @ de alguém pra ver o perfil.');
     if (!/^[a-z0-9_]{3,16}$/.test(handle)) return showNotice('O @ tem de 3 a 16 letras, números ou _.');
+    if (inboxOn) setPane('friends');   // buscar alguém sai da tela da Inbox e mostra o perfil
     var id = ++reqId;
     say('');
     showLoading();
@@ -626,6 +628,8 @@
   var paneFriends = document.getElementById('social-pane-friends');
   var paneInbox = document.getElementById('social-pane-inbox');
   var inboxList = document.getElementById('inbox-list');
+  var inboxSub = document.getElementById('inbox-sub');
+  var mainProfile = document.getElementById('social-main-profile');
   var inboxItems = [];
   var inboxOn = false;
 
@@ -647,7 +651,9 @@
   function setPane(which) {
     inboxOn = which === 'inbox';
     paneFriends.hidden = inboxOn;
+    if (mainProfile) mainProfile.hidden = inboxOn;   // a Inbox é uma tela inteira: some o perfil/amigos
     paneInbox.hidden = !inboxOn;
+    if (inboxOn) paneInbox.scrollTop = 0;
     tabFriends.classList.toggle('active', !inboxOn);
     tabInbox.classList.toggle('active', inboxOn);
     if (inboxOn) loadInbox();
@@ -661,6 +667,7 @@
                 : d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
   }
   function inboxEmpty(text, sub) {
+    if (inboxSub) inboxSub.textContent = '';
     inboxList.innerHTML = '';
     var box = document.createElement('div');
     box.className = 'social-empty';
@@ -686,6 +693,9 @@
       });
   }
   function renderInbox() {
+    var unread = inboxItems.filter(function (x) { return !x.read; }).length;
+    if (inboxSub) inboxSub.textContent = !inboxItems.length ? '' :
+      inboxItems.length + (inboxItems.length === 1 ? ' mensagem' : ' mensagens') + (unread ? ' · ' + unread + (unread === 1 ? ' não lida' : ' não lidas') : '');
     if (!inboxItems.length) return inboxEmpty('Sua inbox está vazia.', 'Quando alguém te mandar uma mensagem, ela aparece aqui.');
     inboxList.innerHTML = '';
     inboxItems.forEach(function (m) {

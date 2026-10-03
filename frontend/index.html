@@ -698,7 +698,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       </nav>
     </header>
 
-    <main class="social-main">
+    <main class="social-main" id="social-main-profile">
       <!-- card grandão: o seu perfil (ou o de quem foi pesquisado) -->
       <aside class="social-card" id="social-profile" aria-label="Perfil">
         <div class="sp-top">
@@ -744,11 +744,18 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
             </div>
           </div>
         </div>
-        <div id="social-pane-inbox" hidden>
-          <h3 class="social-section-title">Inbox</h3>
-          <div class="inbox-list" id="inbox-list"></div>
-        </div>
       </section>
+    </main>
+
+    <!-- tela da INBOX: ocupa o lugar do perfil/amigos quando a aba Inbox está aberta -->
+    <main class="social-main inbox-screen" id="social-pane-inbox" aria-label="Inbox" hidden>
+      <div class="inbox-wrap">
+        <div class="inbox-head">
+          <h2 class="inbox-title">Inbox</h2>
+          <p class="inbox-sub" id="inbox-sub"></p>
+        </div>
+        <div class="inbox-list" id="inbox-list"></div>
+      </div>
     </main>
   </div>
 
