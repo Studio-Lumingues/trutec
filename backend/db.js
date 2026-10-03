@@ -166,5 +166,70 @@ async function sentRecently(userId, seconds) {
   return count || 0;
 }
 
+// ---------------------------------------------------------------------------
+// AMIZADES — tabela "friendships", veja supabase-amizades.sql
+// status: 'none' | 'pending_out' (eu pedi) | 'pending_in' (me pediram) | 'friends'
+// ---------------------------------------------------------------------------
+async function friendLink(a, b) {
+  const { data, error } = await sb.from('friendships').select('id, requester, addressee, status')
+    .or(`and(requester.eq.${a},addressee.eq.${b}),and(requester.eq.${b},addressee.eq.${a})`).maybeSingle();
+  if (error) throw error;
+  return data || null;
+}
+function friendStateOf(link, me) {
+  if (!link) return 'none';
+  if (link.status === 'accepted') return 'friends';
+  return link.requester === me ? 'pending_out' : 'pending_in';
+}
+async function friendState(me, other) { return friendStateOf(await friendLink(me, other), me); }
+async function requestFriend(me, other) {
+  const link = await friendLink(me, other);
+  if (link) {
+    if (link.status === 'pending' && link.requester === other) return acceptFriend(me, other); // os dois pediram: vira amizade
+    return friendStateOf(link, me);
+  }
+  const { error } = await sb.from('friendships').insert({ requester: me, addressee: other, status: 'pending' });
+  if (error && error.code !== '23505') throw error;
+  return friendState(me, other);
+}
+async function acceptFriend(me, other) {
+  const { error } = await sb.from('friendships').update({ status: 'accepted' })
+    .eq('requester', other).eq('addressee', me).eq('status', 'pending');
+  if (error) throw error;
+  return friendState(me, other);
+}
+// cancelar pedido, recusar pedido ou remover amigo: tudo apaga a linha do par
+async function removeFriendship(me, other) {
+  const link = await friendLink(me, other);
+  if (!link) return 'none';
+  const { error } = await sb.from('friendships').delete().eq('id', link.id);
+  if (error) throw error;
+  return 'none';
+}
+// Lista de amigos e de pedidos recebidos (sem o avatar, que é pesado: a lista usa o boneco padrão).
+async function friendsOf(userId) {
+  const { data, error } = await sb.from('friendships').select('requester, addressee, status')
+    .or(`requester.eq.${userId},addressee.eq.${userId}`).limit(300);
+  if (error) throw error;
+  const rows = data || [];
+  const ids = Array.from(new Set(rows.map((r) => (r.requester === userId ? r.addressee : r.requester))));
+  const byIdMap = {};
+  if (ids.length) {
+    const { data: ps } = await sb.from('profiles').select('id, handle, display_name').in('id', ids);
+    (ps || []).forEach((p) => { byIdMap[p.id] = p; });
+  }
+  const card = (id) => { const p = byIdMap[id]; return p ? { handle: p.handle, displayName: p.display_name || null } : null; };
+  const friends = [], requests = [];
+  rows.forEach((r) => {
+    const other = r.requester === userId ? r.addressee : r.requester;
+    const c = card(other);
+    if (!c) return;
+    if (r.status === 'accepted') friends.push(c);
+    else if (r.addressee === userId) requests.push(c);
+  });
+  return { friends, requests };
+}
+
 module.exports = { enabled, verify, byId, byHandle, create, setCharacter, setProfileInfo, cleanCollection, setCollection, collectionOf, cleanText, recordResult, normHandle, checkHandle,
-  sendMessage, inboxOf, unreadCount, markRead, deleteMessage, sentRecently };
+  sendMessage, inboxOf, unreadCount, markRead, deleteMessage, sentRecently,
+  friendState, requestFriend, acceptFriend, removeFriendship, friendsOf };

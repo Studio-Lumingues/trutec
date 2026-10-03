@@ -174,6 +174,43 @@ app.delete('/api/messages/:id', wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// ---- AMIZADES: pedir, aceitar, cancelar/recusar/remover e listar ----
+async function friendCtx(req, res, rawHandle) {
+  const u = await userOf(req);
+  if (!u) { res.status(401).json({ ok: false, error: 'Faça login.' }); return null; }
+  const me = await db.byId(u.id);
+  if (!me) { res.status(400).json({ ok: false, error: 'Escolha seu @ primeiro.' }); return null; }
+  const handle = db.normHandle(rawHandle);
+  if (!/^[a-z0-9_]{3,16}$/.test(handle)) { res.status(400).json({ ok: false, error: 'Jogador inválido.' }); return null; }
+  const other = await db.byHandle(handle);
+  if (!other) { res.status(404).json({ ok: false, error: 'Perfil não encontrado.' }); return null; }
+  return { me, other, self: other.id === me.id };
+}
+app.get('/api/friends', wrap(async (req, res) => {
+  const u = await userOf(req);
+  if (!u) return res.status(401).json({ ok: false, error: 'Faça login.' });
+  res.json(Object.assign({ ok: true }, await db.friendsOf(u.id)));
+}));
+app.get('/api/friends/status/:handle', wrap(async (req, res) => {
+  const c = await friendCtx(req, res, req.params.handle); if (!c) return;
+  res.json({ ok: true, status: c.self ? 'self' : await db.friendState(c.me.id, c.other.id) });
+}));
+app.post('/api/friends/request', wrap(async (req, res) => {
+  const c = await friendCtx(req, res, (req.body || {}).to); if (!c) return;
+  if (c.self) return res.status(400).json({ ok: false, error: 'Você não pode adicionar a si mesmo.' });
+  res.json({ ok: true, status: await db.requestFriend(c.me.id, c.other.id) });
+}));
+app.post('/api/friends/accept', wrap(async (req, res) => {
+  const c = await friendCtx(req, res, (req.body || {}).to); if (!c) return;
+  if (c.self) return res.status(400).json({ ok: false, error: 'Pedido inválido.' });
+  res.json({ ok: true, status: await db.acceptFriend(c.me.id, c.other.id) });
+}));
+app.delete('/api/friends/:handle', wrap(async (req, res) => {
+  const c = await friendCtx(req, res, req.params.handle); if (!c) return;
+  if (c.self) return res.status(400).json({ ok: false, error: 'Pedido inválido.' });
+  res.json({ ok: true, status: await db.removeFriendship(c.me.id, c.other.id) });
+}));
+
 app.get('/api/profile/:handle', wrap(async (req, res) => {
   const handle = db.normHandle(req.params.handle);
   if (!/^[a-z0-9_]{3,16}$/.test(handle)) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });

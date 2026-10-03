@@ -40,6 +40,7 @@
   var moreWrap = document.getElementById('sp-more-wrap');
   var moreBtn = document.getElementById('sp-more');
   var moreMenu = document.getElementById('sp-more-menu');
+  var friendBtn = document.getElementById('sp-friend');   // personagem + sinal (adicionar / pendente / remover amigo)
   function closeMore() {
     if (!moreMenu) return;
     moreMenu.classList.add('hidden');
@@ -351,6 +352,7 @@
     viewingOther = !!d.other;
     if (mailBtn) mailBtn.hidden = !(d.other && d.handle);   // carta só no perfil dos outros
     if (moreWrap) moreWrap.hidden = !(d.other && d.handle);   // ⋯ (bloquear/denunciar) só no perfil dos outros
+    if (friendBtn) { friendBtn.hidden = true; if (d.other && d.handle) loadFriendState(d.handle); }   // amizade só no perfil dos outros
     closeMore();
     winsEl.textContent = wins;
     lossesEl.textContent = losses;
@@ -840,6 +842,156 @@
     else if (!rdModal.classList.contains('hidden')) closeRead();
   });
 
+  // ---- AMIZADES -------------------------------------------------------------
+  // Botão ao lado do nome: personagem com um sinal na cabeça.
+  //   nenhum pedido  -> "+"            clique: envia o pedido
+  //   pedido enviado -> relógio amarelo clique: pergunta se quer CANCELAR o pedido
+  //   já são amigos  -> "−" vermelho    clique: pergunta se quer REMOVER o amigo
+  //   te pediram     -> "+" verde       clique: aceita
+  var friendBadge = document.getElementById('sp-friend-badge');
+  var fState = 'none', fBusy = false;
+  var F_ICON = {
+    plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+    minus: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>',
+    clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
+  };
+  var F_LABEL = {
+    none: 'Adicionar amigo',
+    pending_out: 'Solicitação pendente (clique para cancelar)',
+    pending_in: 'Aceitar solicitação de amizade',
+    friends: 'Remover amigo'
+  };
+  function paintFriend(state) {
+    fState = state;
+    if (!friendBtn) return;
+    if (!F_LABEL[state]) { friendBtn.hidden = true; return; }   // 'self' ou desconhecido
+    friendBtn.hidden = false;
+    friendBtn.dataset.state = state;
+    friendBtn.title = F_LABEL[state];
+    friendBtn.setAttribute('aria-label', F_LABEL[state]);
+    friendBadge.innerHTML = state === 'friends' ? F_ICON.minus : state === 'pending_out' ? F_ICON.clock : F_ICON.plus;
+  }
+  function loadFriendState(handle) {
+    if (!loggedIn()) return;
+    mailApi('/api/friends/status/' + encodeURIComponent(handle)).then(function (r) {
+      if (handle !== shownHandle || !viewingOther) return;   // já trocou de perfil
+      if (r && r.ok) paintFriend(r.status);
+    });
+  }
+  function flash(text) {
+    say(text);
+    setTimeout(function () { if (msg.textContent === text) say(''); }, 3500);
+  }
+
+  // janela "tem certeza?"
+  var cfModal = document.getElementById('confirm-modal');
+  var cfTitle = document.getElementById('confirm-title');
+  var cfText = document.getElementById('confirm-text');
+  var cfYes = document.getElementById('confirm-yes');
+  var cfNo = document.getElementById('confirm-no');
+  var cfAction = null;
+  function askConfirm(title, text, yesLabel, onYes) {
+    cfTitle.textContent = title;
+    cfText.textContent = text;
+    cfYes.textContent = yesLabel;
+    cfAction = onYes;
+    cfModal.classList.remove('hidden');
+    cfNo.focus();   // o foco começa em "Voltar": Enter sem querer não apaga nada
+  }
+  function closeConfirm() { cfAction = null; cfModal.classList.add('hidden'); }
+  cfNo.addEventListener('click', closeConfirm);
+  cfYes.addEventListener('click', function () { var fn = cfAction; closeConfirm(); if (fn) fn(); });
+  cfModal.addEventListener('click', function (e) { if (e.target === cfModal) closeConfirm(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !cfModal.classList.contains('hidden')) closeConfirm();
+  });
+
+  function friendCall(handle, path, method, body, okText) {
+    if (fBusy) return;
+    fBusy = true; friendBtn.disabled = true;
+    mailApi(path, method, body).then(function (r) {
+      fBusy = false; friendBtn.disabled = false;
+      if (!r || !r.ok) { say((r && r.error) || 'Não deu pra concluir. Tente de novo.', true); return; }
+      if (handle === shownHandle) paintFriend(r.status);
+      if (okText) flash(okText);
+      loadFriends();
+    });
+  }
+  if (friendBtn) friendBtn.addEventListener('click', function () {
+    var h = shownHandle;
+    if (!h) return;
+    if (!loggedIn()) { say('Entre na sua conta e escolha um @ pra adicionar amigos.', true); return; }
+    if (fState === 'none') {
+      friendCall(h, '/api/friends/request', 'POST', { to: h }, 'Solicitação enviada para @' + h + '!');
+    } else if (fState === 'pending_in') {
+      friendCall(h, '/api/friends/accept', 'POST', { to: h }, 'Agora você e @' + h + ' são amigos!');
+    } else if (fState === 'pending_out') {
+      askConfirm('Cancelar solicitação?', 'Tem certeza que quer cancelar o pedido de amizade enviado para @' + h + '?', 'Sim, cancelar', function () {
+        friendCall(h, '/api/friends/' + encodeURIComponent(h), 'DELETE', null, 'Solicitação cancelada.');
+      });
+    } else if (fState === 'friends') {
+      askConfirm('Remover amigo?', 'Tem certeza que quer remover @' + h + ' da sua lista de amigos?', 'Sim, remover', function () {
+        friendCall(h, '/api/friends/' + encodeURIComponent(h), 'DELETE', null, '@' + h + ' foi removido dos seus amigos.');
+      });
+    }
+  });
+
+  // lista na aba Amigos: pedidos recebidos (Aceitar / Recusar) + amigos (clique abre o perfil)
+  var friendsEl = document.getElementById('social-friends');
+  var friendsEmpty = friendsEl ? friendsEl.innerHTML : '';
+  function friendRow(f, withButtons) {
+    var row = document.createElement('div');
+    row.className = 'fr-row';
+    var open = document.createElement('button');
+    open.type = 'button'; open.className = 'fr-open';
+    var im = document.createElement('img'); im.src = DEFAULT_AVATAR; im.alt = ''; im.draggable = false;
+    var box = document.createElement('span'), nm = document.createElement('span'), hd = document.createElement('span');
+    nm.className = 'fr-name'; nm.textContent = f.displayName || f.handle;
+    hd.className = 'fr-handle'; hd.textContent = '@' + f.handle;
+    box.style.minWidth = '0'; box.appendChild(nm); box.appendChild(hd);
+    open.appendChild(im); open.appendChild(box);
+    open.addEventListener('click', function () { search(f.handle); });
+    row.appendChild(open);
+    if (withButtons) {
+      var btns = document.createElement('div'); btns.className = 'fr-btns';
+      var ok = document.createElement('button'); ok.type = 'button'; ok.className = 'btn btn-primary'; ok.textContent = 'Aceitar';
+      var no = document.createElement('button'); no.type = 'button'; no.className = 'btn btn-secondary'; no.textContent = 'Recusar';
+      ok.addEventListener('click', function () {
+        ok.disabled = no.disabled = true;
+        mailApi('/api/friends/accept', 'POST', { to: f.handle }).then(function () {
+          if (f.handle === shownHandle) loadFriendState(f.handle);
+          loadFriends();
+        });
+      });
+      no.addEventListener('click', function () {
+        ok.disabled = no.disabled = true;
+        mailApi('/api/friends/' + encodeURIComponent(f.handle), 'DELETE').then(function () {
+          if (f.handle === shownHandle) loadFriendState(f.handle);
+          loadFriends();
+        });
+      });
+      btns.appendChild(ok); btns.appendChild(no); row.appendChild(btns);
+    }
+    return row;
+  }
+  function label(text) { var l = document.createElement('div'); l.className = 'fr-label'; l.textContent = text; return l; }
+  function renderFriends(d) {
+    if (!friendsEl) return;
+    var friends = (d && d.friends) || [], reqs = (d && d.requests) || [];
+    if (!friends.length && !reqs.length) { friendsEl.innerHTML = friendsEmpty; return; }
+    friendsEl.textContent = '';
+    if (reqs.length) {
+      friendsEl.appendChild(label('Solicitações (' + reqs.length + ')'));
+      reqs.forEach(function (f) { friendsEl.appendChild(friendRow(f, true)); });
+      if (friends.length) friendsEl.appendChild(label('Seus amigos'));
+    }
+    friends.forEach(function (f) { friendsEl.appendChild(friendRow(f, false)); });
+  }
+  function loadFriends() {
+    if (!loggedIn()) return renderFriends(null);
+    mailApi('/api/friends').then(function (r) { if (r && r.ok) renderFriends(r); });
+  }
+
   mailBtn.addEventListener('click', function () { if (shownHandle) openCompose(shownHandle); });
 
   // ---- menu ⋯ do perfil (Bloquear / Denunciar): por enquanto só visual, os botões ainda não fazem nada ----
@@ -857,9 +1009,9 @@
     document.addEventListener('click', closeMore);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMore(); });
   }
-  tabFriends.addEventListener('click', function () { setPane('friends'); });
+  tabFriends.addEventListener('click', function () { setPane('friends'); loadFriends(); });
   tabInbox.addEventListener('click', function () { setPane('inbox'); });
-  document.addEventListener('truaccount', refreshBadge);
+  document.addEventListener('truaccount', function () { refreshBadge(); loadFriends(); });
   setInterval(function () {
     var scr = document.getElementById('screen-social');
     if (scr && scr.classList.contains('active') && !document.hidden) { refreshBadge(); if (inboxOn && rdModal.classList.contains('hidden')) loadInbox(true); }
@@ -871,6 +1023,7 @@
     input.value = '';
     setPane('friends');
     refreshBadge();
+    loadFriends();
     showScreen('screen-social');
   });
   logoBtn.addEventListener('click', function () { closeBox(); closeMenu(); showScreen('screen-lobby'); });
