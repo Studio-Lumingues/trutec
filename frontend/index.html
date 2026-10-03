@@ -752,16 +752,42 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       <div class="inbox-wrap">
         <div class="inbox-head">
           <div class="inbox-title-row">
+            <h2 class="inbox-title">Inbox</h2>
             <span class="inbox-icon" aria-hidden="true">
-              <svg viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
-                <path class="mb-post" d="M34 44 V66 M23 66 H45"/>
-                <path class="mb-box" d="M13 44 V32 C13 22 21 16 31 16 H37 C47 16 55 22 55 32 V44 Z"/>
-                <path class="mb-slot" d="M24 34 H44"/>
-                <g class="mb-flag"><path d="M58 36 V14 M58 14 H67 V21 H58"/></g>
-                <g class="mb-letter"><path d="M23 1 H45 V12 H23 Z M23 1 L34 8 L45 1"/></g>
+              <svg viewBox="0 0 92 84" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <!-- contorno de "adesivo" creme em volta do desenho, pra destacar no fundo escuro -->
+                  <filter id="mb-sticker" x="-10%" y="-10%" width="120%" height="120%">
+                    <feMorphology in="SourceAlpha" operator="dilate" radius="2.4" result="d"/>
+                    <feFlood flood-color="#fff8f0"/>
+                    <feComposite in2="d" operator="in" result="o"/>
+                    <feMerge><feMergeNode in="o"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                </defs>
+                <g filter="url(#mb-sticker)">
+                  <!-- carta: desenhada ANTES da caixa, então some "dentro" dela ao descer -->
+                  <g class="mb-letter">
+                    <path class="mb-paper" d="M26 2 H52 V21 H26 Z"/>
+                    <path class="mb-line" d="M26 2 L39 13 L52 2"/>
+                  </g>
+                  <!-- poste -->
+                  <path class="mb-wood" d="M35 54 H45 V80 H35 Z"/>
+                  <path class="mb-line" d="M26 80 H54"/>
+                  <!-- caixa -->
+                  <g class="mb-box">
+                    <path class="mb-body" d="M8 56 V38 C8 25 19 16 32 16 H50 C63 16 74 25 74 38 V56 Z"/>
+                    <path class="mb-shine" d="M17 36 C19 28 25 24 33 23 M17 43 V46"/>
+                    <path class="mb-slot" d="M25 37 H53"/>
+                    <circle class="mb-knob" cx="63" cy="44" r="3.2"/>
+                  </g>
+                  <!-- bandeirinha (começa baixada, levanta quando chega carta) -->
+                  <g class="mb-flag">
+                    <path class="mb-pole" d="M74 50 V22"/>
+                    <path class="mb-cloth" d="M74 22 H88 V33 H74 Z"/>
+                  </g>
+                </g>
               </svg>
             </span>
-            <h2 class="inbox-title">Inbox</h2>
           </div>
           <p class="inbox-sub" id="inbox-sub"></p>
         </div>

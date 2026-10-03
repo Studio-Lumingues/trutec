@@ -4512,32 +4512,45 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .inbox-loading { display: flex; align-items: center; justify-content: center; padding: 5rem 1rem; }
 .inbox-loading .game-intro-spinner { width: 4.5rem; height: 4.5rem; }
 
-/* ---- Caixinha de correio animada ao lado do título da Inbox ---- */
-.inbox-title-row { display: flex; align-items: center; gap: 0.9rem; min-width: 0; }
-.inbox-icon { flex: none; display: block; width: 3.8rem; height: 3.8rem; filter: url(#boil-sm); }   /* mesmo tremido "hand drawn" */
+/* ---- Caixinha de correio animada, à direita do título da Inbox ---- */
+.inbox-title-row { display: flex; align-items: center; gap: 1rem; min-width: 0; }
+.inbox-icon { flex: none; display: block; width: 5rem; height: 4.6rem; filter: url(#boil-sm); }   /* mesmo tremido "hand drawn" */
 .inbox-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.inbox-icon path { fill: none; stroke: #fff8f0; stroke-width: 3.6; stroke-linecap: round; stroke-linejoin: round; }
-.inbox-icon .mb-slot { stroke-width: 3; opacity: 0.7; }
-.inbox-icon .mb-flag, .inbox-icon .mb-letter { transform-box: view-box; }
-.inbox-icon .mb-flag { transform-origin: 58px 38px; animation: mbFlag 3.6s ease-in-out infinite; }
-.inbox-icon .mb-flag path { stroke: #ff4d4d; }
-.inbox-icon .mb-letter { animation: mbLetter 3.6s ease-in infinite; }
-@keyframes mbLetter {
-  0%   { transform: translateY(-6px); opacity: 0; }
-  15%  { transform: translateY(0);    opacity: 1; }
-  50%  { transform: translateY(14px); opacity: 1; }
-  60%  { transform: translateY(20px); opacity: 0; }
-  100% { transform: translateY(20px); opacity: 0; }
+.inbox-icon path, .inbox-icon circle { stroke: #040303; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+.inbox-icon .mb-body  { fill: #ff2e63; }
+.inbox-icon .mb-wood  { fill: #d9b98a; }
+.inbox-icon .mb-paper { fill: #fff8f0; }
+.inbox-icon .mb-cloth { fill: #ffd23f; }
+.inbox-icon .mb-knob  { fill: #fff8f0; stroke-width: 2.4; }
+.inbox-icon .mb-line, .inbox-icon .mb-pole { fill: none; }
+.inbox-icon .mb-slot  { fill: none; stroke-width: 4.2; }
+.inbox-icon .mb-shine { fill: none; stroke: rgba(255,255,255,0.7); stroke-width: 2.6; }
+.inbox-icon .mb-letter, .inbox-icon .mb-flag, .inbox-icon .mb-box { transform-box: view-box; }
+.inbox-icon .mb-letter { animation: mbLetter 3.8s ease-in infinite; }
+.inbox-icon .mb-flag   { transform-origin: 74px 50px; animation: mbFlag 3.8s ease-in-out infinite; }
+.inbox-icon .mb-box    { transform-origin: 41px 56px; animation: mbBump 3.8s ease-out infinite; }
+@keyframes mbLetter {          /* a carta aparece em cima e desce até sumir atrás da caixa */
+  0%   { transform: translateY(-22px); opacity: 0; }
+  12%  { transform: translateY(-14px); opacity: 1; }
+  48%  { transform: translateY(26px);  opacity: 1; }
+  100% { transform: translateY(26px);  opacity: 1; }
 }
-@keyframes mbFlag {          /* baixa; quando a carta entra, a bandeirinha levanta com um balanço */
-  0%, 55% { transform: rotate(100deg); }
-  66%     { transform: rotate(-12deg); }
-  72%     { transform: rotate(6deg); }
-  78%, 92% { transform: rotate(0deg); }
-  100%    { transform: rotate(100deg); }
+@keyframes mbBump {            /* a caixa dá uma "engolida" quando a carta entra */
+  0%, 44%  { transform: scale(1, 1); }
+  50%      { transform: scale(1.05, 0.93); }
+  58%      { transform: scale(0.98, 1.04); }
+  66%, 100% { transform: scale(1, 1); }
+}
+@keyframes mbFlag {            /* baixada -> levanta com balanço -> fica -> baixa de novo */
+  0%, 50%  { transform: rotate(180deg); }
+  60%      { transform: rotate(-16deg); }
+  66%      { transform: rotate(7deg); }
+  72%, 90% { transform: rotate(0deg); }
+  100%     { transform: rotate(180deg); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .inbox-icon .mb-flag { animation: none; transform: rotate(0deg); }
-  .inbox-icon .mb-letter { animation: none; opacity: 0; }
+  .inbox-icon .mb-letter, .inbox-icon .mb-flag, .inbox-icon .mb-box { animation: none; }
+  .inbox-icon .mb-letter { opacity: 0; }
+  .inbox-icon .mb-flag { transform: rotate(0deg); }
 }
-@media (max-width: 720px) { .inbox-icon { width: 3rem; height: 3rem; } }
+@media (max-width: 720px) { .inbox-icon { width: 4rem; height: 3.7rem; } }
