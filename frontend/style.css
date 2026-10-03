@@ -4362,3 +4362,52 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 #gate-modal .gate-card #gate-skip { background: transparent; border: 2px solid rgba(255,248,240,0.55); color: var(--cream); }
 #gate-modal .gate-card #gate-skip:hover { background: rgba(255,248,240,0.12); border-color: var(--cream); }
 @media (max-width: 40rem) { #gate-modal .gate-card { padding: 1.6rem 1.25rem 1.4rem; } }
+
+
+/* ---- Caixa de escolher o @ (account.js, passo "claim") ---- */
+#account-modal:has(#acc-claim:not([hidden])) #acc-title { display: none; }   /* o título do passo é o próprio "Escolha seu @" */
+#account-modal:has(#acc-claim:not([hidden])) .settings-card {
+  width: min(30rem, 100%);
+  padding: 2.2rem 2.2rem 1.6rem;
+  text-align: center;
+}
+#acc-claim .acc-claim-title { margin: 0 0 0.6rem; font-size: 2.2rem; text-align: center; }
+#acc-claim .modal-hint { margin: 0 0 1.5rem; font-size: 1.2rem; line-height: 1.4; opacity: 0.8; }
+#acc-claim .acc-field {
+  display: flex; align-items: center;
+  border-radius: 0.9rem;
+  border: 2px solid rgba(255,248,240,0.3);
+  background: rgba(0,0,0,0.35);
+  transition: border-color .15s, box-shadow .15s;
+}
+#acc-claim .acc-field:focus-within { border-color: var(--cream); box-shadow: 0 0 0 0.25rem rgba(255,248,240,0.14); }
+#acc-claim .acc-at { padding: 0 0 0 1.1rem; font-size: 1.7rem; font-weight: 700; opacity: 0.55; line-height: 1; }
+#acc-claim .acc-field .modal-input {
+  flex: 1; min-width: 0;
+  border: 0; background: transparent; box-shadow: none; outline: none;
+  padding: 1rem 1.1rem 1rem 0.35rem;
+  font: inherit; font-size: 1.7rem; letter-spacing: 0.02em;
+  text-align: left;
+}
+#acc-claim .acc-field .modal-input::placeholder { color: var(--cream); opacity: 0.3; }
+#acc-claim .acc-rules {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 0.8rem;
+  margin: 0.6rem 0.2rem 1.4rem;
+  font-size: 0.95rem; text-align: left; opacity: 0.6;
+}
+#acc-claim .acc-rules b { flex: none; font-weight: 700; font-variant-numeric: tabular-nums; }
+#acc-claim #acc-save { width: 100%; font-size: 1.3rem; padding: 0.95rem 1.2rem; }
+#account-modal:has(#acc-claim:not([hidden])) #acc-error { min-height: 1.2rem; margin-top: 0.8rem; font-size: 1.05rem; }
+/* "Fechar" vira um link discreto nesse passo, pra não competir com o botão principal */
+#account-modal:has(#acc-claim:not([hidden])) #acc-close {
+  width: auto; margin: 0.4rem auto 0; display: block;
+  background: transparent; border: 0; box-shadow: none;
+  font-size: 1rem; font-weight: 500; opacity: 0.6; text-decoration: underline;
+}
+#account-modal:has(#acc-claim:not([hidden])) #acc-close:hover { opacity: 1; }
+@media (max-width: 40rem) {
+  #account-modal:has(#acc-claim:not([hidden])) .settings-card { padding: 1.7rem 1.25rem 1.3rem; }
+  #acc-claim .acc-claim-title { font-size: 1.9rem; }
+  #acc-claim .modal-hint { font-size: 1.1rem; }
+  #acc-claim .acc-field .modal-input, #acc-claim .acc-at { font-size: 1.45rem; }
+}

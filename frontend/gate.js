@@ -125,16 +125,45 @@
     }, true);
   });
 
+  // ---- caixa "Minha conta" / escolher @ ----
+  var accModal = document.getElementById('account-modal');
+  var waitingHandle = false;     // estava escolhendo o @ (logou, mas ainda sem @)
+  function closeAccountModal() {
+    if (!accModal || accModal.classList.contains('hidden')) return;
+    var c = document.getElementById('acc-close');
+    if (c) c.click(); else accModal.classList.add('hidden');
+  }
+
   document.addEventListener('truaccount', function () {
     refreshLocks();
+    var justClaimed = waitingHandle && acc.isLoggedIn();   // acabou de salvar o @
+    waitingHandle = needsHandle();
     if (acc.isSignedIn()) { setGuest(false); closeGate(); }   // closeGate já reavalia o bloqueio
     else refreshBlocking();
+    // depois de criar o @ não mostra "Minha conta": vai direto pro jogo (e pro guia)
+    if (justClaimed) { closeAccountModal(); setTimeout(closeAccountModal, 60); }
   });
+
+  // tela de escolher o @: só aceita caracteres válidos, mostra o contador e já foca o campo
+  var handleInput = document.getElementById('acc-handle');
+  var countEl = document.getElementById('acc-count');
+  function paintCount() { if (countEl && handleInput) countEl.textContent = handleInput.value.length + '/16'; }
+  if (handleInput) {
+    handleInput.addEventListener('input', function () {
+      var v = handleInput.value.toLowerCase().replace(/^@+/, '').replace(/[^a-z0-9_]/g, '');
+      if (v !== handleInput.value) handleInput.value = v;
+      paintCount();
+    });
+    var claimBox = document.getElementById('acc-claim');
+    if (claimBox) new MutationObserver(function () {
+      if (!claimBox.hidden) { paintCount(); setTimeout(function () { handleInput.focus(); }, 60); }
+    }).observe(claimBox, { attributes: true, attributeFilter: ['hidden'] });
+  }
 
   // ---- primeira visita ----
   acc.ready().then(function () {
     refreshLocks();
     if (!acc.isSignedIn() && !isGuest()) openGate('welcome');
-    else refreshBlocking();     // se já está logado mas sem @, o guia continua esperando
+    else { waitingHandle = needsHandle(); refreshBlocking(); }   // logado mas sem @: o guia continua esperando
   });
 })();

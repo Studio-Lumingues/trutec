@@ -241,8 +241,13 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       </div>
 
       <div id="acc-claim" hidden>
-        <p class="modal-hint">Escolha seu @ (3 a 16 caracteres: letras minúsculas, números e _).</p>
-        <input id="acc-handle" class="modal-input" maxlength="16" placeholder="seu_arroba" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        <h2 class="acc-claim-title">Escolha seu @</h2>
+        <p class="modal-hint">É assim que seus amigos vão te encontrar no jogo.</p>
+        <label class="acc-field" for="acc-handle">
+          <span class="acc-at" aria-hidden="true">@</span>
+          <input id="acc-handle" class="modal-input" maxlength="16" placeholder="seu_arroba" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        </label>
+        <div class="acc-rules"><span>3 a 16 caracteres: letras minúsculas, números e _</span><b id="acc-count">0/16</b></div>
         <button id="acc-save" type="button" class="btn btn-primary">Salvar @</button>
       </div>
 
