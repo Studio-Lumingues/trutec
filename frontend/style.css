@@ -4167,3 +4167,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 #screen-social .social-tab.active { color: #9ab; }
 #screen-social .social-tab.active:hover { color: #fff; }
 .sn-user { font-weight: 400; font-synthesis: none; }
+
+/* Amigos sem negrito; ponte invisível para o mouse não perder o menu ao descer */
+#screen-social .social-tab { font-weight: 400; font-synthesis: none; }
+.sn-menu::before { content: ''; position: absolute; left: 0; right: 0; top: -0.8rem; height: 0.8rem; }

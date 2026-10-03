@@ -189,27 +189,32 @@
     var handle = prof ? prof.handle : '';
     uName.textContent = handle || me.name;
     uAvatar.src = safeImg(me.avatar) || DEFAULT_AVATAR;
-    var pub = document.getElementById('sn-public');
-    pub.hidden = !handle;
-    if (handle) pub.href = '/@' + handle;
-    document.getElementById('sn-copy').hidden = !handle;
   }
   if (uBtn && uMenu) {
-    uBtn.addEventListener('click', function (e) { e.stopPropagation(); if (menuOpen()) closeMenu(); else openMenu(); });
+    var lastPtr = 'mouse';
+    uBtn.addEventListener('pointerdown', function (e) { lastPtr = e.pointerType || 'mouse'; });
+    uBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (!menuOpen()) openMenu();
+      else if (lastPtr !== 'mouse' || e.detail === 0) closeMenu();   // mouse: já abriu no hover, clique não fecha
+    });
     document.addEventListener('click', function (e) { if (menuOpen() && !uWrap.contains(e.target)) closeMenu(); });
+    // mouse em cima abre sozinho; ao sair fecha depois de um instante (só com mouse, no toque vale o clique)
+    var hoverTimer = 0;
+    uWrap.addEventListener('pointerenter', function (e) {
+      if (e.pointerType !== 'mouse') return;
+      clearTimeout(hoverTimer);
+      if (!menuOpen()) openMenu();
+    });
+    uWrap.addEventListener('pointerleave', function (e) {
+      if (e.pointerType !== 'mouse') return;
+      clearTimeout(hoverTimer);
+      hoverTimer = setTimeout(closeMenu, 180);
+    });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && menuOpen()) { closeMenu(); uBtn.focus(); }
     });
     document.getElementById('sn-me').addEventListener('click', function () { closeMenu(); closeSearch(); input.value = ''; showMe(); });
-    document.getElementById('sn-public').addEventListener('click', closeMenu);
-    document.getElementById('sn-copy').addEventListener('click', function () {
-      var p = window.TruAccount && TruAccount.profile(), b = this;
-      if (!p || !navigator.clipboard) return;
-      navigator.clipboard.writeText(location.origin + '/@' + p.handle).then(function () {
-        b.textContent = 'Link copiado!';
-        setTimeout(function () { b.textContent = 'Copiar link'; closeMenu(); }, 900);
-      }).catch(function () {});
-    });
     document.getElementById('sn-logout').addEventListener('click', function () {
       if (window.TruAccount && TruAccount.logout) TruAccount.logout();
     });
