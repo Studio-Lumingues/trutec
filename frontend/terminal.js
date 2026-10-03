@@ -244,6 +244,7 @@
     ['settings', '', 'abre as configurações'],
     ['desenhar', '', 'desenha o boneco sem limite de tempo e baixa em JPG'],
     ['tutorial', '', 'o Jailson te ensina a jogar (tela inicial)'],
+    ['cadastro', '', 'abre a tela de escolher o @ (modo teste, não salva nada)'],
     ['colors', '', 'paleta de cores do terminal'],
     ['ls', '', 'lista os arquivos do projeto'],
     ['whoami', '', 'quem é você'],
@@ -819,6 +820,18 @@
       out(c('g', '✔ ') + 'chamando o Jailson… ' + c('d', '(Esc pula o tutorial)'));
       setTimeout(function () { hideWin(); setTimeout(function () { TruTutorial.start(); }, 200); }, 250);
     },
+
+    cadastro: function () {
+      if (!window.TruSignupPreview) return out(c('r', 'tela de cadastro indisponível.'));
+      out(c('g', '✔ ') + 'abrindo a tela de cadastro… ' + c('d', '(modo teste: nada é salvo · Esc fecha e volta pro terminal)'));
+      setTimeout(function () {
+        hideWin();                                   // tira o terminal da frente
+        setTimeout(function () {
+          if (!TruSignupPreview.open(function () { showWin(); })) showWin();   // ao fechar, o terminal volta
+        }, 200);
+      }, 250);
+    },
+    arroba: function () { return COMMANDS.cadastro(); },
 
     desenhar: function () {
       if (drawUi) return out(c('y', 'o editor de desenho já está aberto.'));

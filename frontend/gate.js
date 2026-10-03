@@ -30,6 +30,59 @@
     setBlocking(welcomeOpen || needsHandle());
   }
   window.TruGate = { blocking: function () { return blocking; } };
+  // ---- TESTE da tela de escolher o @ (comando `cadastro` do terminal) ----
+  // Abre a mesma caixa, mas em "modo teste": nada é salvo, e Esc / clique fora / Fechar saem.
+  var pv = null;   // { prev: estado anterior dos blocos, onClose }
+  var PV_IDS = ['acc-loading', 'acc-out', 'acc-claim', 'acc-in'];
+  function closePreview() {
+    if (!pv) return;
+    var m = document.getElementById('account-modal'), p = pv;
+    pv = null;
+    if (m) {
+      m.classList.add('hidden');
+      m.classList.remove('acc-preview');
+      PV_IDS.forEach(function (id) { var el = document.getElementById(id); if (el) el.hidden = p.prev[id]; });
+    }
+    var err = document.getElementById('acc-error'); if (err) err.textContent = '';
+    if (p.onClose) p.onClose();
+  }
+  window.TruSignupPreview = {
+    open: function (onClose) {
+      var m = document.getElementById('account-modal');
+      var claim = document.getElementById('acc-claim');
+      if (!m || !claim || pv) return false;
+      var prev = {};
+      PV_IDS.forEach(function (id) { var el = document.getElementById(id); prev[id] = el ? el.hidden : true; if (el) el.hidden = (id !== 'acc-claim'); });
+      pv = { prev: prev, onClose: onClose };
+      var input = document.getElementById('acc-handle'), count = document.getElementById('acc-count'), err = document.getElementById('acc-error');
+      if (input) input.value = '';
+      if (count) count.textContent = '0/16';
+      if (err) err.textContent = '';
+      m.classList.add('acc-preview');
+      m.classList.remove('hidden');
+      if (input) setTimeout(function () { input.focus(); }, 60);
+      return true;
+    },
+    close: closePreview
+  };
+  (function () {
+    var m = document.getElementById('account-modal');
+    if (!m) return;
+    var save = document.getElementById('acc-save');
+    // em teste, "Salvar" não chama o servidor
+    if (save) save.addEventListener('click', function (e) {
+      if (!pv) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      var err = document.getElementById('acc-error');
+      if (err) err.textContent = 'Modo de teste: nada foi salvo.';
+      setTimeout(closePreview, 900);
+    }, true);
+    var close = document.getElementById('acc-close');
+    if (close) close.addEventListener('click', function (e) { if (pv) { e.stopImmediatePropagation(); closePreview(); } }, true);
+    m.addEventListener('click', function (e) { if (pv && e.target === m) closePreview(); });
+    document.addEventListener('keydown', function (e) { if (pv && e.key === 'Escape') closePreview(); });
+  })();
+
   if (!acc || !acc.enabled) return;            // Supabase não configurado: não trava nada
 
   var GUEST_KEY = 'trutec-guest';
