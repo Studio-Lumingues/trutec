@@ -443,6 +443,7 @@
   function showMe() {
     refreshUser();
     reqId++;                 // cancela busca em andamento
+    hideLoading(true);
     closeBox();
     shownHandle = myHandle();   // o seu @ também pode ter o link copiado
     say('');
@@ -498,33 +499,72 @@
     });
   }
 
+  // ---- tela de carregamento por cima do card (escurece + círculo girando) ----
+  // Aparece enquanto a busca roda. Achou: o perfil novo já foi pintado por baixo e o fade
+  // revela ele. Não achou: aparece o aviso e o fade revela o perfil que já estava.
+  var cardEl = document.getElementById('social-profile');
+  var loadEl = null, loadSince = 0, loadTimer = 0;
+  var LOAD_MIN_MS = 450;     // tempo mínimo na tela, pra não piscar quando o servidor responde rápido
+  function buildLoading() {
+    if (loadEl || !cardEl) return;
+    loadEl = document.createElement('div');
+    loadEl.className = 'sp-loading';
+    loadEl.setAttribute('aria-hidden', 'true');
+    loadEl.innerHTML =
+      '<div class="game-intro-spinner">' +
+        '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+          '<path d="M50 12 A38 38 0 0 1 86 38" /><path d="M50 88 A38 38 0 0 1 14 62" />' +
+        '</svg>' +
+      '</div>';
+    cardEl.appendChild(loadEl);
+  }
+  function showLoading() {
+    buildLoading();
+    if (!loadEl) return;
+    clearTimeout(loadTimer);
+    loadSince = Date.now();
+    cardEl.setAttribute('aria-busy', 'true');
+    loadEl.classList.add('show');
+  }
+  function hideLoading(now) {
+    if (!loadEl) return;
+    clearTimeout(loadTimer);
+    var wait = now ? 0 : Math.max(0, LOAD_MIN_MS - (Date.now() - loadSince));
+    loadTimer = setTimeout(function () {
+      cardEl.removeAttribute('aria-busy');
+      loadEl.classList.remove('show');
+    }, wait);
+  }
+
   // ---- busca ----
   function search(raw) {
     var handle = normalize(raw);
     if (!handle) return say('Digite o @ de alguém pra ver o perfil.');
     if (!/^[a-z0-9_]{3,16}$/.test(handle)) return say('O @ tem de 3 a 16 letras, números ou _.', true);
     var id = ++reqId;
-    say('Procurando @' + handle + '…');
+    say('');
+    showLoading();
     fetch(RESOLVED_BACKEND_URL + '/api/profile/' + encodeURIComponent(handle))
       .then(function (r) { return r.json(); })
       .then(function (r) {
         if (id !== reqId) return;
-        if (!r || !r.ok || !r.profile) return say((r && r.error) || 'Ninguém com esse @ foi encontrado.', true);
-        var p = r.profile, since = '';
-        if (p.createdAt) {
-          var d = new Date(p.createdAt);
-          if (!isNaN(d)) since = 'Jogando desde ' + d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+        if (!r || !r.ok || !r.profile) {
+          say((r && r.error) || 'Perfil não encontrado.', true);
+          return hideLoading();                    // fade out: volta o perfil que já estava
         }
+        var p = r.profile;
         say('');
         shownHandle = String(p.handle || handle);
         paint({
-          name: p.displayName || p.name || shownHandle, bio: p.bio, handle: shownHandle, since: since, wins: p.wins, losses: p.losses,
+          name: p.displayName || p.name || shownHandle, bio: p.bio, handle: shownHandle, wins: p.wins, losses: p.losses,
           avatar: p.character, collection: p.collection, other: true
         });
+        hideLoading();                             // fade out: revela o perfil novo
       })
       .catch(function () {
         if (id !== reqId) return;
         say('Servidor indisponível. Tente de novo em instantes.', true);
+        hideLoading();
       });
   }
 

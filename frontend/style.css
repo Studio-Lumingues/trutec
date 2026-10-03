@@ -4265,3 +4265,14 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
    Com a barra, o card ficava mais estreito que a barra do topo e a lupa passava da borda do card. */
 .social-main { scrollbar-width: none; }
 .social-main::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* ---- Social: tela de carregamento por cima do card durante a busca ---- */
+.social-card { position: relative; }
+.sp-loading {
+  position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
+  background: rgba(8, 8, 8, 0.84); opacity: 0; pointer-events: none;
+  transition: opacity .4s ease;                 /* fade out */
+}
+.sp-loading.show { opacity: 1; pointer-events: auto; transition: opacity .15s ease; }
+.sp-loading .game-intro-spinner { width: 4.5rem; height: 4.5rem; }
+@media (prefers-reduced-motion: reduce) { .sp-loading, .sp-loading.show { transition: none; } }
