@@ -4514,7 +4514,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 
 /* ---- Caixinha de correio animada: pequena, ao lado do título, como parte do texto ---- */
 .inbox-title-row { display: flex; align-items: baseline; gap: 0.5rem; min-width: 0; }   /* ícone assenta na linha do texto, como parte dele */
-.inbox-icon { flex: none; display: block; width: 2.3rem; height: 2.1rem; }   /* sem o tremido "hand drawn" */
+.inbox-icon { --mb-drop: 0.4rem; flex: none; display: block; width: 2.3rem; height: 2.1rem; position: relative; top: var(--mb-drop); }   /* --mb-drop: quanto desce em relação à linha do texto */   /* sem o tremido "hand drawn" */
 .inbox-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .inbox-icon path, .inbox-icon circle { stroke: #040303; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 .inbox-icon .mb-body, .inbox-icon .mb-wood, .inbox-icon .mb-paper, .inbox-icon .mb-cloth, .inbox-icon .mb-knob { fill: #fff8f0; }  /* creme do fundo do TruTEC */
