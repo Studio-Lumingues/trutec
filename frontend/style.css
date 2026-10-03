@@ -4562,7 +4562,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
      --fr-badge-s  tamanho do sinal */
 .sp-name-row .sp-name { flex: 0 1 auto; }   /* o nome só ocupa o que precisa: o boneco fica colado nele */
 .sp-name-row .sp-actions { margin-left: auto; }
-.sp-friend-btn { --fr-h: 3.2rem; --fr-nudge: -0.6rem; --fr-badge-x: 58%; --fr-badge-y: 4%; --fr-badge-s: 1rem;
+.sp-friend-btn { --fr-h: 2.8rem; --fr-nudge: -0.5rem; --fr-badge-x: 58%; --fr-badge-y: -8%; --fr-badge-s: 1rem;
   position: relative; top: var(--fr-nudge); flex: none; display: block; width: auto; height: var(--fr-h);
   align-self: center; margin: 0 0 0 0.1rem;              /* mesma linha do nome, sem sair do card */
   padding: 0; background: none; border: 0; border-radius: 0.4rem; color: #22c55e; cursor: pointer; transition: transform .12s; }
