@@ -4279,7 +4279,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .sp-loading.show {
   opacity: 1; pointer-events: auto;
   -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);   /* borra o card por baixo */
-  transition: opacity .15s ease, backdrop-filter .15s ease, -webkit-backdrop-filter .15s ease;
+  transition: opacity .5s ease, backdrop-filter .5s ease, -webkit-backdrop-filter .5s ease;   /* fade in */
 }
 .sp-loading .game-intro-spinner { width: 4.5rem; height: 4.5rem; }
 .sp-loading-msg { display: none; margin: 0; font-size: 1.6rem; line-height: 1.25; color: #fff8f0; }
