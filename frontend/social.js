@@ -71,15 +71,56 @@
     box.setAttribute('aria-modal', 'true');
     box.setAttribute('aria-label', 'Boneco ampliado');
     box.innerHTML = '<button type="button" class="sp-lightbox-close" aria-label="Fechar">\u00d7</button>' +
-      '<img class="sp-lightbox-img" alt="" draggable="false" />';
+      '<div class="sp-stage"><div class="sp-tilt" id="sp-tilt">' +
+      '<img class="sp-lightbox-img" alt="" draggable="false" />' +
+      '<div class="sp-glare" aria-hidden="true"></div></div></div>';
     document.body.appendChild(box);
     boxImg = box.querySelector('img');
     box.addEventListener('click', closeBox);          // clicar em qualquer lugar fecha
+    setupTilt();
+  }
+
+  // efeito 3D: o cartaz inclina conforme o mouse e uma luz acompanha o ponteiro
+  var tilt = null;
+  function setupTilt() {
+    tilt = box.querySelector('.sp-tilt');
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var MAX = 16, raf = 0, px = 0, py = 0;
+    function apply() {
+      raf = 0;
+      var r = tilt.getBoundingClientRect();
+      if (!r.width) return;
+      var nx = Math.max(-1, Math.min(1, (px - (r.left + r.width / 2)) / (r.width / 2)));
+      var ny = Math.max(-1, Math.min(1, (py - (r.top + r.height / 2)) / (r.height / 2)));
+      var gx = Math.max(0, Math.min(100, (px - r.left) / r.width * 100));
+      var gy = Math.max(0, Math.min(100, (py - r.top) / r.height * 100));
+      tilt.style.setProperty('--rx', (-ny * MAX).toFixed(2) + 'deg');
+      tilt.style.setProperty('--ry', (nx * MAX).toFixed(2) + 'deg');
+      tilt.style.setProperty('--gx', gx.toFixed(1) + '%');
+      tilt.style.setProperty('--gy', gy.toFixed(1) + '%');
+      tilt.style.setProperty('--sx', (-nx * 1.6).toFixed(2) + 'rem');
+      tilt.style.setProperty('--sy', (1.5 - ny * 1.2).toFixed(2) + 'rem');
+      tilt.classList.add('lit');
+    }
+    box.addEventListener('pointermove', function (e) {
+      px = e.clientX; py = e.clientY;
+      tilt.classList.add('moving');
+      if (!raf) raf = requestAnimationFrame(apply);
+    });
+    function reset() {
+      tilt.classList.remove('moving', 'lit');
+      tilt.style.setProperty('--rx', '0deg'); tilt.style.setProperty('--ry', '0deg');
+      tilt.style.setProperty('--sx', '0rem'); tilt.style.setProperty('--sy', '1.5rem');
+    }
+    box.addEventListener('pointerleave', reset);
+    box.addEventListener('pointerup', function (e) { if (e.pointerType !== 'mouse') reset(); });
+    box._resetTilt = reset;
   }
   function openBox(src, from) {
     buildBox();
     boxImg.src = src;
     boxFrom = from;
+    if (box._resetTilt) box._resetTilt();
     box.classList.remove('hidden');
     box.querySelector('button').focus();
   }
