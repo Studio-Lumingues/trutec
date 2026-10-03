@@ -3982,7 +3982,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   padding: 0.4rem 0.6rem 0.4rem 0.15rem; font: inherit; font-size: 0.9rem; font-weight: 400;
 }
 .social-input input::placeholder { color: rgba(153,170,187,0.8); }
-.social-input:focus-within input, .social-input:focus-within .social-at { color: #667583; }
+.social-input:focus-within input, .social-input:focus-within .social-at { color: #525e69; }
 
 .social-main {
   flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: stretch; gap: 1.5rem;
