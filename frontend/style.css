@@ -4204,3 +4204,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 
 /* boneco ampliado também treme "hand drawn" (filtro grande, pois a imagem é grande) */
 .sp-lightbox-img { filter: url(#boil-lg); }
+
+/* o fundo creme fica no cartaz (parado); só o desenho do boneco treme */
+.sp-tilt { background: #fff8f0; overflow: hidden; }
+.sp-tilt .sp-lightbox-img { background: transparent; border-radius: 0; }
