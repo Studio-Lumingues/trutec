@@ -280,20 +280,20 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
 
   <!-- ===================== ENVIAR MENSAGEM (carta no perfil) ===================== -->
   <div id="mail-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="mail-title">
-    <div class="settings-card pe-card">
-      <h2 id="mail-title">Nova mensagem</h2>
-      <p class="modal-hint" id="mail-to"></p>
-      <label class="pe-label" for="mail-topic">Tópico</label>
-      <input id="mail-topic" class="modal-input" maxlength="40" placeholder="Ex.: Desafio, Parceria, Dúvida" autocomplete="off" spellcheck="false" />
-      <label class="pe-label" for="mail-subject">Assunto</label>
-      <input id="mail-subject" class="modal-input" maxlength="80" placeholder="Sobre o que é a mensagem?" autocomplete="off" spellcheck="false" />
-      <label class="pe-label" for="mail-body">Mensagem</label>
-      <textarea id="mail-body" class="modal-input pe-bio" maxlength="500" rows="5" placeholder="Escreva sua mensagem"></textarea>
-      <div class="pe-count" id="mail-count">0/500</div>
-      <p class="error-text" id="mail-msg"></p>
-      <div class="modal-actions">
-        <button id="mail-cancel" type="button" class="btn btn-secondary">Cancelar</button>
-        <button id="mail-send" type="button" class="btn btn-primary">Enviar</button>
+    <div class="settings-card pe-card mail-card">
+      <div class="mail-head">
+        <h2 id="mail-title">Nova mensagem</h2>
+        <p class="mail-to" id="mail-to"></p>
+      </div>
+      <input id="mail-subject" class="mail-subject" maxlength="80" placeholder="Assunto" autocomplete="off" spellcheck="false" aria-label="Assunto" />
+      <textarea id="mail-body" class="mail-body" maxlength="500" placeholder="Escreva sua mensagem…" aria-label="Mensagem"></textarea>
+      <div class="mail-foot">
+        <span class="mail-count" id="mail-count">0/500</span>
+        <p class="error-text" id="mail-msg"></p>
+        <div class="mail-actions">
+          <button id="mail-cancel" type="button" class="btn btn-secondary">Cancelar</button>
+          <button id="mail-send" type="button" class="btn btn-primary">Enviar</button>
+        </div>
       </div>
     </div>
   </div>

@@ -4317,3 +4317,36 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .mr-from { font-size:0.85rem; opacity:0.65; margin-bottom:0.9rem; }
 .mr-body { margin:0 0 1rem; max-height:40vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word; font-size:1.05rem; line-height:1.4; }
 #mail-read-modal .modal-actions .btn[hidden] { display:none; }
+
+/* ---- Janela de escrever mensagem (grande, bege) ---- */
+.inbox-item .ii-topic, .mr-topic { display: none; }
+#mail-modal .mail-card {
+  width: min(62rem, 100%);
+  height: min(36rem, calc(100dvh - 2rem));
+  display: flex; flex-direction: column;
+  padding: 1.25rem 1.75rem 1.25rem;
+  background: var(--cream);
+  color: var(--ink);
+  border: 1px solid rgba(4,3,3,0.2);
+}
+.mail-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.5rem; }
+#mail-modal .mail-card h2 { margin: 0; text-align: left; font-size: 1.5rem; color: var(--ink); }
+.mail-to { margin: 0; font-size: 1rem; opacity: 0.65; }
+.mail-subject, .mail-body {
+  width: 100%; font: inherit; font-size: 1.15rem; color: var(--ink);
+  background: transparent; border: 0; outline: 0; padding: 0.75rem 0;
+}
+.mail-subject { border-bottom: 1px solid rgba(4,3,3,0.2); }
+.mail-subject:focus { border-bottom-color: var(--ink); }
+.mail-subject::placeholder, .mail-body::placeholder { color: rgba(4,3,3,0.45); }
+.mail-body { flex: 1 1 auto; min-height: 0; resize: none; line-height: 1.45; }
+.mail-foot { display: flex; align-items: center; gap: 1rem; padding-top: 0.5rem; border-top: 1px solid rgba(4,3,3,0.12); }
+.mail-count { font-size: 0.85rem; opacity: 0.55; flex: none; }
+.mail-foot .error-text { flex: 1 1 auto; margin: 0; text-align: left; font-size: 0.95rem; }
+.mail-actions { display: flex; gap: 0.625rem; flex: none; }
+.mail-actions .btn { min-width: 8rem; }
+#mail-modal .btn-secondary { color: var(--ink); background: transparent; border: 1px solid rgba(4,3,3,0.35); }
+@media (max-width: 40rem) {
+  #mail-modal .mail-card { height: calc(100dvh - 2rem); padding: 1rem; }
+  .mail-actions .btn { min-width: 0; }
+}

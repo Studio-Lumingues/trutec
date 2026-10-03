@@ -727,13 +727,12 @@
     if (!rdCur || !rdCur.fromHandle) return;
     var m = rdCur;
     closeRead();
-    openCompose(m.fromHandle, m.topic, ('Re: ' + m.subject).slice(0, 80));
+    openCompose(m.fromHandle, ('Re: ' + m.subject).slice(0, 80));
   });
 
   // -- escrever uma mensagem --
   var cmModal = document.getElementById('mail-modal');
   var cmTo = document.getElementById('mail-to');
-  var cmTopic = document.getElementById('mail-topic');
   var cmSubject = document.getElementById('mail-subject');
   var cmBody = document.getElementById('mail-body');
   var cmCount = document.getElementById('mail-count');
@@ -741,11 +740,10 @@
   var cmSend = document.getElementById('mail-send');
   var cmHandle = '';
   function cmUpdateCount() { cmCount.textContent = cmBody.value.length + '/500'; }
-  function openCompose(handle, topic, subject) {
+  function openCompose(handle, subject) {
     if (!loggedIn()) { say('Entre na sua conta e escolha um @ pra enviar mensagens.', true); return; }
     cmHandle = handle;
     cmTo.textContent = 'Para @' + handle;
-    cmTopic.value = topic || '';
     cmSubject.value = subject || '';
     cmBody.value = '';
     cmMsg.textContent = '';
@@ -753,18 +751,17 @@
     cmSend.disabled = false;
     cmUpdateCount();
     cmModal.classList.remove('hidden');
-    (topic ? cmBody : cmTopic).focus();
+    (subject ? cmBody : cmSubject).focus();
   }
   function closeCompose() { cmModal.classList.add('hidden'); }
   function sendMail() {
-    var topic = cmTopic.value.trim(), subject = cmSubject.value.trim(), body = cmBody.value.trim();
+    var subject = cmSubject.value.trim(), body = cmBody.value.trim();
     cmMsg.style.color = '';
-    if (!topic) { cmMsg.textContent = 'Escreva o tópico.'; cmTopic.focus(); return; }
     if (!subject) { cmMsg.textContent = 'Escreva o assunto.'; cmSubject.focus(); return; }
     if (!body) { cmMsg.textContent = 'Escreva a mensagem.'; cmBody.focus(); return; }
     cmSend.disabled = true;
     cmMsg.textContent = 'Enviando…';
-    mailApi('/api/messages', 'POST', { to: cmHandle, topic: topic, subject: subject, body: body }).then(function (r) {
+    mailApi('/api/messages', 'POST', { to: cmHandle, subject: subject, body: body }).then(function (r) {
       cmSend.disabled = false;
       if (!r || !r.ok) { cmMsg.textContent = (r && r.error) || 'Não deu pra enviar.'; return; }
       closeCompose();

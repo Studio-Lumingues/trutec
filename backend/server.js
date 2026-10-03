@@ -130,11 +130,10 @@ app.post('/api/messages', wrap(async (req, res) => {
   if (!me) return res.status(400).json({ ok: false, error: 'Escolha seu @ primeiro.' });
   const b = req.body || {};
   const toHandle = db.normHandle(b.to);
-  const topic = db.cleanText(b.topic, 40, false);
+  const topic = db.cleanText(b.topic, 40, false) || 'Mensagem';
   const subject = db.cleanText(b.subject, 80, false);
   const body = db.cleanText(b.body, 500, true);
   if (!/^[a-z0-9_]{3,16}$/.test(toHandle)) return res.status(400).json({ ok: false, error: 'Destinatário inválido.' });
-  if (!topic) return res.status(400).json({ ok: false, error: 'Escreva o tópico.' });
   if (!subject) return res.status(400).json({ ok: false, error: 'Escreva o assunto.' });
   if (!body) return res.status(400).json({ ok: false, error: 'Escreva a mensagem.' });
   const to = await db.byHandle(toHandle);
