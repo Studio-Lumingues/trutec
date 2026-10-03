@@ -37,6 +37,14 @@
   var colWrap = document.getElementById('sp-collection-wrap');
   var slotsEl = document.getElementById('sp-slots');
   var mailBtn = document.getElementById('sp-mail');
+  var moreWrap = document.getElementById('sp-more-wrap');
+  var moreBtn = document.getElementById('sp-more');
+  var moreMenu = document.getElementById('sp-more-menu');
+  function closeMore() {
+    if (!moreMenu) return;
+    moreMenu.classList.add('hidden');
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', 'false');
+  }
 
   var DEFAULT_AVATAR = 'assets/personagem.svg';
   var PNG = 'data:image/png;base64,';
@@ -342,6 +350,8 @@
     bioEl.hidden = !bio;
     viewingOther = !!d.other;
     if (mailBtn) mailBtn.hidden = !(d.other && d.handle);   // carta só no perfil dos outros
+    if (moreWrap) moreWrap.hidden = !(d.other && d.handle);   // ⋯ (bloquear/denunciar) só no perfil dos outros
+    closeMore();
     winsEl.textContent = wins;
     lossesEl.textContent = losses;
     rateEl.textContent = total ? Math.round(wins / total * 100) + '%' : '—';
@@ -780,6 +790,22 @@
   });
 
   mailBtn.addEventListener('click', function () { if (shownHandle) openCompose(shownHandle); });
+
+  // ---- menu ⋯ do perfil (Bloquear / Denunciar): por enquanto só visual, os botões ainda não fazem nada ----
+  if (moreBtn && moreMenu) {
+    moreBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = moreMenu.classList.contains('hidden');
+      moreMenu.classList.toggle('hidden', !open);
+      moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    moreMenu.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (e.target.closest && e.target.closest('.sp-more-item')) closeMore();   // TODO: ligar bloquear/denunciar
+    });
+    document.addEventListener('click', closeMore);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMore(); });
+  }
   tabFriends.addEventListener('click', function () { setPane('friends'); });
   tabInbox.addEventListener('click', function () { setPane('inbox'); });
   document.addEventListener('truaccount', refreshBadge);

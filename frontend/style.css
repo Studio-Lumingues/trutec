@@ -4421,3 +4421,23 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .sp-body::-webkit-scrollbar { width: 0; height: 0; }
 }
 .sp-avatar { object-fit: cover; object-position: center top; padding: 0; }
+
+/* ---- Menu ⋯ do perfil: Bloquear / Denunciar ---- */
+.sp-actions { flex: none; display: flex; align-items: center; gap: 0.5rem; }
+.sp-more { position: relative; }
+.sp-more[hidden] { display: none; }
+.sp-more-btn svg { display: block; }
+.sp-more-btn[aria-expanded="true"] { background: rgba(255,248,240,0.2); }
+.sp-more-menu {
+  position: absolute; right: 0; top: calc(100% + 0.5rem); z-index: 20; min-width: 11rem; padding: 0.35rem;
+  display: flex; flex-direction: column; gap: 0.15rem;
+  background: #111; border: 1px solid rgba(255,248,240,0.25); border-radius: 0.9rem;
+  box-shadow: 0 0.8rem 2rem rgba(0,0,0,0.65);
+}
+.sp-more-menu.hidden { display: none; }
+.sp-more-item {
+  width: 100%; padding: 0.7rem 0.9rem; border: 0; border-radius: 0.6rem; background: transparent;
+  text-align: left; font: inherit; font-size: 1.05rem; cursor: pointer;
+  color: #ff4d4d;
+}
+.sp-more-item:hover, .sp-more-item:focus-visible { background: rgba(255,77,77,0.16); outline: none; }
