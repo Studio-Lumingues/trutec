@@ -9,12 +9,17 @@
   var sb = null;
   try {
     if (window.supabase && typeof SUPABASE_URL === 'string' && SUPABASE_URL.indexOf('SEU-PROJETO') < 0) {
-      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // persistSession + autoRefreshToken: o login fica salvo no aparelho e é renovado
+      // sozinho, então a pessoa não precisa entrar de novo a cada visita.
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+      });
     }
   } catch (e) { sb = null; }
 
   var API = (typeof RESOLVED_BACKEND_URL === 'string') ? RESOLVED_BACKEND_URL : '';
   var profile = null, signedIn = false, loaded = false;
+  var resolveReady, readyP = new Promise(function (r) { resolveReady = r; });
 
   function getToken() {
     if (!sb) return Promise.resolve(null);
@@ -44,6 +49,7 @@
   function profileUrl(h) { return location.origin + '/@' + h; }
 
   function refreshUI() {
+    try { document.dispatchEvent(new Event('truaccount')); } catch (e) {}   // avisa o gate.js
     if (btn) btn.textContent = profile ? '@' + profile.handle : (signedIn ? 'Escolher meu @' : 'Entrar com Google');
     if (profile) {
       $('acc-name').textContent = '@' + profile.handle;
@@ -81,6 +87,13 @@
   }
   function close() { if (modal) modal.classList.add('hidden'); }
 
+  function signInGoogle() {
+    if (!sb) return Promise.resolve({ error: 'Login não configurado.' });
+    return sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } })
+      .then(function (r) { return { error: r && r.error ? 'Não deu pra abrir o login do Google.' : null }; })
+      .catch(function () { return { error: 'Não deu pra abrir o login do Google.' }; });
+  }
+
   function syncCharacter() {
     if (!profile) return;
     var ch = null;
@@ -100,8 +113,7 @@
 
   if ($('acc-google')) $('acc-google').addEventListener('click', function () {
     if (!sb) return;
-    sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } })
-      .then(function (r) { if (r && r.error) errEl.textContent = 'Não deu pra abrir o login do Google.'; });
+    signInGoogle().then(function (r) { if (r.error) errEl.textContent = r.error; });
   });
 
   var handleInput = $('acc-handle');
@@ -142,6 +154,12 @@
   window.TruAccount = {
     getToken: getToken,
     isLoggedIn: function () { return !!profile; },
+    isSignedIn: function () { return signedIn; },   // tem sessão Google (mesmo sem @ ainda)
+    enabled: !!sb,                                   // false = Supabase não configurado
+    ready: function () { return readyP; },           // resolve quando já sabemos se está logado
+    isReady: function () { return loaded; },
+    signInGoogle: signInGoogle,
+    openModal: open,
     syncCharacter: syncCharacter,
     profile: function () { return profile; }
   };
@@ -152,6 +170,7 @@
       refreshUI();
       if (signedIn && !profile) open();   // acabou de voltar do Google, falta escolher o @
       else syncCharacter();
+      resolveReady();
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
