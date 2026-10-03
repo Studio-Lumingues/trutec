@@ -4225,3 +4225,13 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 /* Avatar: sem a queda de cima pra baixo. A tela agora só aparece com fade-in (feito no screen-open.js). */
 #screen-character-editor.active .character-panel { animation: none; }
 #screen-character-editor.active { animation: none; }
+
+/* descrição no perfil + janela de editar perfil */
+.sp-bio { margin: 0.7rem 0 0; max-width: 30rem; font-size: 1rem; line-height: 1.4; opacity: 0.88; white-space: pre-wrap; word-break: break-word; font-weight: 400; }
+.sp-bio[hidden] { display: none; }
+.pe-card { text-align: left; }
+.pe-card .pe-label { display: block; margin: 0.9rem 0 0.35rem; font-size: 0.9rem; opacity: 0.75; }
+.pe-card .pe-bio { resize: none; font: inherit; font-size: 1.05rem; line-height: 1.35; box-sizing: border-box; }
+.pe-card .pe-count { margin-top: 0.25rem; text-align: right; font-size: 0.8rem; opacity: 0.6; }
+.pe-card .modal-actions { margin-top: 0.9rem; display: flex; gap: 0.6rem; }
+.pe-card .modal-actions .btn { flex: 1; }

@@ -29,6 +29,7 @@
   var nameEl = document.getElementById('sp-name');
   var handleEl = document.getElementById('sp-handle');
   var sinceEl = document.getElementById('sp-since');
+  var bioEl = document.getElementById('sp-bio');
   var winsEl = document.getElementById('sp-wins');
   var lossesEl = document.getElementById('sp-losses');
   var rateEl = document.getElementById('sp-rate');
@@ -39,6 +40,7 @@
   var PNG = 'data:image/png;base64,';
   var reqId = 0;           // ignora respostas de buscas antigas
   var shownHandle = '';
+  var viewingOther = false;   // true enquanto o card mostra o perfil de outra pessoa
 
   // ---- logo (a mesma do lobby, recortada justo) como botão de voltar ----
   (function () {
@@ -171,6 +173,10 @@
     handleEl.textContent = d.handle ? '@' + d.handle : '';
     handleEl.hidden = !d.handle;
     sinceEl.textContent = d.since || '';
+    var bio = String(d.bio || '').trim();
+    bioEl.textContent = bio;
+    bioEl.hidden = !bio;
+    viewingOther = !!d.other;
     winsEl.textContent = wins;
     lossesEl.textContent = losses;
     rateEl.textContent = total ? Math.round(wins / total * 100) + '%' : '—';
@@ -186,6 +192,20 @@
     var d = new Date(p.createdAt);
     return isNaN(d) ? '' : 'Jogando desde ' + d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   }
+  // nome de exibição + descrição: guardados no aparelho e enviados ao servidor (se ele aceitar)
+  var PROFILE_KEY = 'trutec-profile';
+  function readExtra() {
+    var raw = null;
+    try { raw = localStorage.getItem(PROFILE_KEY); } catch (e) {}
+    if (raw !== null) {                                    // já editou neste aparelho: vale o que foi salvo
+      try {
+        var o = JSON.parse(raw) || {};
+        return { displayName: String(o.displayName || '').slice(0, 24), bio: String(o.bio || '').slice(0, 160) };
+      } catch (e) {}
+    }
+    var p = myProfile() || {};                             // senão, o que o servidor já tiver
+    return { displayName: String(p.displayName || '').slice(0, 24), bio: String(p.bio || '').slice(0, 160) };
+  }
   function myData() {
     var name = '';
     try { name = localStorage.getItem('trutec-name') || ''; } catch (e) {}
@@ -199,7 +219,8 @@
       if (Array.isArray(arr)) slots = [0, 1, 2].map(function (i) { return arr[i] && arr[i].img ? arr[i].img : null; });
     } catch (e) {}
     return {
-      name: name || 'Jogador', handle: myHandle(), since: mySince(), wins: st.wins, losses: st.losses,
+      name: readExtra().displayName || name || 'Jogador', bio: readExtra().bio,
+      handle: myHandle(), since: mySince(), wins: st.wins, losses: st.losses,
       avatar: avatar, collection: slots, other: false
     };
   }
@@ -269,6 +290,55 @@
     paint(myData());
   }
 
+  // ---- editar perfil ----
+  var peModal = document.getElementById('profile-edit-modal');
+  var peName = document.getElementById('pe-name');
+  var peBio = document.getElementById('pe-bio');
+  var peCount = document.getElementById('pe-count');
+  var peMsg = document.getElementById('pe-msg');
+  var peSave = document.getElementById('pe-save');
+  function peUpdateCount() { peCount.textContent = peBio.value.length + '/160'; }
+  function openEdit() {
+    var cur = readExtra();
+    peName.value = cur.displayName || myData().name;
+    peBio.value = cur.bio;
+    peMsg.textContent = '';
+    peSave.disabled = false;
+    peUpdateCount();
+    peModal.classList.remove('hidden');
+    peName.focus();
+  }
+  function closeEdit() { peModal.classList.add('hidden'); }
+  function saveEdit() {
+    var name = peName.value.trim().slice(0, 24);
+    var bio = peBio.value.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 160);
+    if (!name) { peMsg.textContent = 'Escreva um nome de exibição.'; peName.focus(); return; }
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ displayName: name, bio: bio })); } catch (e) {}
+    peSave.disabled = true;
+    peMsg.textContent = 'Salvando…';
+    var done = function (r) {
+      closeEdit();
+      refreshUser();
+      if (!viewingOther) paint(myData());
+      if (!r || !r.ok) say('Salvo neste aparelho. O servidor ainda não guardou esse perfil.', true);
+      else say('');
+    };
+    if (window.TruAccount && TruAccount.api && myHandle()) {
+      TruAccount.api('/api/me/profile', 'PUT', { displayName: name, bio: bio }).then(done);
+    } else done(null);
+  }
+  if (peModal) {
+    document.getElementById('sn-edit').addEventListener('click', function () { closeMenu(); openEdit(); });
+    document.getElementById('pe-cancel').addEventListener('click', closeEdit);
+    peSave.addEventListener('click', saveEdit);
+    peBio.addEventListener('input', peUpdateCount);
+    peName.addEventListener('keydown', function (e) { if (e.key === 'Enter') saveEdit(); });
+    peModal.addEventListener('click', function (e) { if (e.target === peModal) closeEdit(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !peModal.classList.contains('hidden')) closeEdit();
+    });
+  }
+
   // ---- busca ----
   function search(raw) {
     var handle = normalize(raw);
@@ -289,7 +359,7 @@
         say('');
         shownHandle = String(p.handle || handle);
         paint({
-          name: p.name || p.displayName || shownHandle, handle: shownHandle, since: since, wins: p.wins, losses: p.losses,
+          name: p.displayName || p.name || shownHandle, bio: p.bio, handle: shownHandle, since: since, wins: p.wins, losses: p.losses,
           avatar: p.character, collection: p.collection, other: true
         });
       })

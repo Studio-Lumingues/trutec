@@ -21,8 +21,34 @@ function checkHandle(h) {
   return null;
 }
 
-const COLS = 'id, handle, wins, losses, character, theme, created_at';
-const pub = (r) => r && ({ id: r.id, handle: r.handle, wins: r.wins, losses: r.losses, character: r.character || null, theme: r.theme || null, createdAt: r.created_at });
+// display_name / bio: colunas novas (veja o SQL em supabase-perfil.sql). Se ainda não existirem
+// no banco, o servidor cai pras colunas antigas em vez de quebrar o login.
+const BASE_COLS = 'id, handle, wins, losses, character, theme, created_at';
+const FULL_COLS = BASE_COLS + ', display_name, bio';
+let COLS = FULL_COLS;
+const missingCol = (e) => !!e && (e.code === '42703' || /display_name|bio|column/i.test(e.message || ''));
+async function withCols(run) {
+  let r = await run(COLS);
+  if (r.error && COLS === FULL_COLS && missingCol(r.error)) {
+    console.warn('[db] colunas display_name/bio não existem ainda; rode supabase-perfil.sql');
+    COLS = BASE_COLS;
+    r = await run(COLS);
+  }
+  return r;
+}
+const pub = (r) => r && ({
+  id: r.id, handle: r.handle, wins: r.wins, losses: r.losses, character: r.character || null, theme: r.theme || null,
+  displayName: r.display_name || null, bio: r.bio || null, createdAt: r.created_at
+});
+
+// Limpa texto de perfil: sem caracteres de controle nem os que invertem a direção do texto.
+function cleanText(v, max, multiline) {
+  let s = String(v == null ? '' : v).replace(/\r/g, '');
+  s = s.replace(/[\u0000-\u0008\u000B-\u001F\u007F\u202A-\u202E\u2066-\u2069]/g, '');
+  if (multiline) s = s.replace(/\n{3,}/g, '\n\n');
+  else s = s.replace(/\s+/g, ' ');
+  return s.trim().slice(0, max);
+}
 
 // token do Supabase -> usuário (cache curto pra não consultar a cada evento)
 const tokenCache = new Map();
@@ -39,15 +65,15 @@ async function verify(token) {
 }
 
 async function byId(id) {
-  const { data } = await sb.from('profiles').select(COLS).eq('id', id).maybeSingle();
+  const { data } = await withCols((c) => sb.from('profiles').select(c).eq('id', id).maybeSingle());
   return pub(data);
 }
 async function byHandle(handle) {
-  const { data } = await sb.from('profiles').select(COLS).eq('handle', handle).maybeSingle();
+  const { data } = await withCols((c) => sb.from('profiles').select(c).eq('handle', handle).maybeSingle());
   return pub(data);
 }
 async function create(userId, handle) {
-  const { data, error } = await sb.from('profiles').insert({ id: userId, handle }).select(COLS).single();
+  const { data, error } = await withCols((c) => sb.from('profiles').insert({ id: userId, handle }).select(c).single());
   if (error) {
     if (error.code === '23505') {
       const mine = await byId(userId);
@@ -60,9 +86,13 @@ async function create(userId, handle) {
 async function setCharacter(userId, character) {
   await sb.from('profiles').update({ character }).eq('id', userId);
 }
+async function setProfileInfo(userId, displayName, bio) {
+  const { error } = await sb.from('profiles').update({ display_name: displayName, bio: bio || null }).eq('id', userId);
+  if (error) throw error;
+}
 async function recordResult(userId, win) {
   const { error } = await sb.rpc('record_result', { p_user: userId, p_win: !!win });
   if (error) throw error;
 }
 
-module.exports = { enabled, verify, byId, byHandle, create, setCharacter, recordResult, normHandle, checkHandle };
+module.exports = { enabled, verify, byId, byHandle, create, setCharacter, setProfileInfo, cleanText, recordResult, normHandle, checkHandle };

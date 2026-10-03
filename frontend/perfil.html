@@ -22,6 +22,9 @@
   .top img { height: 12rem; width: auto; max-width: 100%; object-fit: contain; display: block; }
   .body { padding: 1.1rem 1.25rem 1.25rem; text-align: center; }
   h1 { margin: 0; font-size: 1.9rem; letter-spacing: .01em; word-break: break-all; }
+  .handle { opacity: .65; font-size: 1rem; margin-top: .1rem; word-break: break-all; }
+  .bio { margin: .7rem 0 0; font-size: 1rem; line-height: 1.4; opacity: .88; white-space: pre-wrap; word-break: break-word; }
+  .bio:empty { display: none; }
   .since { opacity: .6; font-size: .9rem; margin-top: .15rem; }
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1.1rem 0; }
   .stat { background: rgba(255,248,240,.07); border-radius: .8rem; padding: .7rem .3rem; }
@@ -61,14 +64,16 @@
       var rate = total ? Math.round(p.wins / total * 100) + '%' : '—';
       var since = p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '';
       var img = (p.character && p.character.indexOf('data:image/png;base64,') === 0) ? p.character : '/assets/personagem.svg';
-      document.title = '@' + p.handle + ' — TruTEC';
+      document.title = (p.displayName || '@' + p.handle) + ' — TruTEC';
       card.innerHTML =
         '<div class="top"><div class="checker"></div><img alt="" /></div>' +
-        '<div class="body"><h1></h1><div class="since"></div>' +
+        '<div class="body"><h1></h1><div class="handle"></div><div class="since"></div><p class="bio"></p>' +
         '<div class="stats"><div class="stat"><b id="w"></b><span>Vitórias</span></div><div class="stat"><b id="l"></b><span>Derrotas</span></div><div class="stat"><b id="r"></b><span>Aproveit.</span></div></div>' +
         '<div class="actions"><button class="btn" id="copy" type="button">Copiar link</button><a class="btn primary" href="/">Jogar</a></div></div>';
       card.querySelector('img').src = img;
-      card.querySelector('h1').textContent = '@' + p.handle;
+      card.querySelector('h1').textContent = p.displayName || ('@' + p.handle);
+      card.querySelector('.handle').textContent = p.displayName ? '@' + p.handle : '';
+      card.querySelector('.bio').textContent = p.bio || '';
       card.querySelector('.since').textContent = since ? 'Jogando desde ' + since : '';
       document.getElementById('w').textContent = p.wins;
       document.getElementById('l').textContent = p.losses;

@@ -260,6 +260,23 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
     </div>
   </div>
 
+  <!-- ===================== EDITAR PERFIL (nome de exibição + descrição) ===================== -->
+  <div id="profile-edit-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="pe-title">
+    <div class="settings-card pe-card">
+      <h2 id="pe-title">Editar perfil</h2>
+      <label class="pe-label" for="pe-name">Nome de exibição</label>
+      <input id="pe-name" class="modal-input" maxlength="24" placeholder="Como você quer aparecer" autocomplete="off" spellcheck="false" />
+      <label class="pe-label" for="pe-bio">Descrição</label>
+      <textarea id="pe-bio" class="modal-input pe-bio" maxlength="160" rows="4" placeholder="Conte algo sobre você"></textarea>
+      <div class="pe-count" id="pe-count">0/160</div>
+      <p class="error-text" id="pe-msg"></p>
+      <div class="modal-actions">
+        <button id="pe-cancel" type="button" class="btn btn-secondary">Cancelar</button>
+        <button id="pe-save" type="button" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== CRIAR SALA: escolher 1v1 ou 2v2 ===================== -->
   <div id="create-modal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-title">
     <div class="settings-card">
@@ -620,6 +637,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
           </button>
           <div class="sn-menu hidden" id="sn-menu" role="menu" aria-label="Minha conta">
             <button type="button" class="sn-item" role="menuitem" id="sn-me">Meu perfil</button>
+            <button type="button" class="sn-item" role="menuitem" id="sn-edit">Editar perfil</button>
             <div class="sn-sep"></div>
             <button type="button" class="sn-item sn-danger" role="menuitem" id="sn-logout">Sair da conta</button>
           </div>
@@ -649,6 +667,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
           <h2 class="sp-name" id="sp-name"></h2>
           <div class="sp-handle" id="sp-handle"></div>
           <div class="sp-since" id="sp-since"></div>
+          <p class="sp-bio" id="sp-bio" hidden></p>
           <div class="sp-stats">
             <div class="sp-stat"><b id="sp-wins">0</b><span>Vitórias</span></div>
             <div class="sp-stat"><b id="sp-losses">0</b><span>Derrotas</span></div>

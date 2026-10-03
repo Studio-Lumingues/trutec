@@ -96,6 +96,19 @@ app.put('/api/me/character', wrap(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// Nome de exibição + descrição (editar perfil). Exige login e um @ já escolhido.
+app.put('/api/me/profile', wrap(async (req, res) => {
+  const u = await userOf(req);
+  if (!u) return res.status(401).json({ ok: false, error: 'Faça login.' });
+  const displayName = db.cleanText(req.body && req.body.displayName, 24, false);
+  const bio = db.cleanText(req.body && req.body.bio, 160, true);
+  if (!displayName) return res.status(400).json({ ok: false, error: 'Escreva um nome de exibição.' });
+  const mine = await db.byId(u.id);
+  if (!mine) return res.status(400).json({ ok: false, error: 'Escolha seu @ primeiro.' });
+  await db.setProfileInfo(u.id, displayName, bio);
+  res.json({ ok: true, profile: await db.byId(u.id) });
+}));
+
 app.get('/api/profile/:handle', wrap(async (req, res) => {
   const handle = db.normHandle(req.params.handle);
   if (!/^[a-z0-9_]{3,16}$/.test(handle)) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });

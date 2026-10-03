@@ -158,6 +158,7 @@
     enabled: !!sb,                                   // false = Supabase não configurado
     ready: function () { return readyP; },           // resolve quando já sabemos se está logado
     isReady: function () { return loaded; },
+    api: api,
     signInGoogle: signInGoogle,
     logout: function () { if (sb) sb.auth.signOut().then(function () { location.reload(); }); },
     openModal: open,
