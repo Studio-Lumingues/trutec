@@ -24,8 +24,9 @@
   var TICK_FILE = 'assets/roulette-tick.mp3';
   var MIN_SLOTS = 8;            // posições no círculo (precisa de ≥ 5 pra o "pulo" da volta não aparecer)
   var TARGET_STEPS = 38;        // quantos jogadores passam, mais ou menos, até parar
-  var MAX_BLUR = 7;             // px de blur no auge da velocidade
-  var BLUR_FROM = 3;            // só borra acima dessa velocidade (jogadores por segundo)
+  var MAX_BLUR = 30;            // px de borrão HORIZONTAL no auge da velocidade
+  var BLUR_FROM = 2.5;          // só borra acima dessa velocidade (jogadores por segundo)
+  var BLUR_GAIN = 0.55;         // 1 = borrão do tamanho do deslocamento por quadro; menor = mais leve
 
   var cur = null;               // sorteio em andamento
 
@@ -45,15 +46,15 @@
       '@keyframes sdDots{0%{content:""}25%{content:"."}50%{content:".."}75%,100%{content:"..."}}' +
       '.sd-title.done{animation:sdPop .45s cubic-bezier(.2,1.4,.4,1)}' +
       '@keyframes sdPop{0%{transform:scale(.85)}100%{transform:scale(1)}}' +
-      '.sd-stage{position:relative;width:min(100vw,46rem);height:17rem;overflow:hidden;' +
+      '.sd-stage{position:relative;width:min(100vw,58rem);height:22.5rem;overflow:hidden;' +
       '-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)}' +
       '.sd-track{position:absolute;inset:0;will-change:filter}' +
-      '.sd-item{position:absolute;left:50%;top:0;width:10rem;margin-left:-5rem;display:flex;flex-direction:column;align-items:center;' +
+      '.sd-item{position:absolute;left:50%;top:1.5rem;width:12rem;margin-left:-6rem;display:flex;flex-direction:column;align-items:center;' +
       'text-align:center;will-change:transform,opacity}' +
-      '.sd-fig{display:block;width:9rem;height:9rem;border-radius:1rem;overflow:hidden;background:rgba(255,255,255,.08);' +
+      '.sd-fig{display:block;width:12rem;height:15rem;border-radius:1.1rem;overflow:hidden;background:rgba(255,255,255,.08);' +
       'border:3px solid rgba(255,255,255,.25);box-sizing:border-box;transition:border-color .2s,box-shadow .3s}' +
-      '.sd-fig img{display:block;width:100%;height:100%;object-fit:cover;object-position:center top;pointer-events:none}' +
-      '.sd-name{display:block;width:100%;margin-top:.7rem;font-size:1.6rem;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '.sd-fig img{display:block;width:100%;height:100%;object-fit:contain;object-position:center;pointer-events:none}' +
+      '.sd-name{display:block;width:100%;margin-top:.7rem;font-size:1.7rem;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
       '.sd-sub{display:block;font-size:.9rem;opacity:.6}' +
       '.sd-item.sel .sd-fig{border-color:var(--cream,#f5ecd7)}' +
       '.sd-item.win .sd-fig{border-color:#ffd24a;box-shadow:0 0 0 .25rem rgba(255,210,74,.35),0 0 2.2rem rgba(255,210,74,.65)}' +
@@ -61,8 +62,8 @@
       '@keyframes sdWin{0%{filter:brightness(1.8)}100%{filter:brightness(1)}}' +
       '.sd-marker{position:absolute;left:50%;width:0;height:0;margin-left:-.7rem;border-left:.7rem solid transparent;border-right:.7rem solid transparent;pointer-events:none}' +
       '.sd-marker.top{top:-.1rem;border-top:.9rem solid #ffd24a;filter:drop-shadow(0 .1rem .3rem rgba(0,0,0,.6))}' +
-      '.sd-marker.bot{bottom:3.1rem;border-bottom:.9rem solid #ffd24a;filter:drop-shadow(0 -.1rem .3rem rgba(0,0,0,.6))}' +
-      '@media (max-width:600px){.sd-stage{height:15rem}.sd-item{width:8.5rem;margin-left:-4.25rem}.sd-fig{width:7.5rem;height:7.5rem}.sd-name{font-size:1.3rem}.sd-marker.bot{display:none}}';
+      '.sd-marker.bot{bottom:.1rem;border-bottom:.9rem solid #ffd24a;filter:drop-shadow(0 -.1rem .3rem rgba(0,0,0,.6))}' +
+      '@media (max-width:600px){.sd-stage{height:18.5rem}.sd-item{width:9.5rem;margin-left:-4.75rem}.sd-fig{width:9.5rem;height:12rem}.sd-name{font-size:1.35rem}.sd-marker.bot{display:none}}';
     document.head.appendChild(st);
   }
 
@@ -189,6 +190,9 @@
     overlay.setAttribute('aria-live', 'polite');
     overlay.innerHTML =
       '<h2 class="sd-title">Sorteando jogador pra iniciar a partida<span class="sd-dots"></span></h2>' +
+      '<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>' +
+        '<filter id="sd-hblur" x="-10%" y="0" width="120%" height="100%" color-interpolation-filters="sRGB">' +
+          '<feGaussianBlur class="sd-hb" in="SourceGraphic" stdDeviation="0 0"/></filter></defs></svg>' +
       '<div class="sd-stage"><div class="sd-track"></div>' +
       '<span class="sd-marker top"></span><span class="sd-marker bot"></span></div>';
     var track = overlay.querySelector('.sd-track');
@@ -215,7 +219,7 @@
       track.appendChild(it);
       items.push(it);
     }
-    return { overlay: overlay, track: track, items: items, L: L, n: n, title: overlay.querySelector('.sd-title') };
+    return { overlay: overlay, track: track, hb: overlay.querySelector('.sd-hb'), items: items, L: L, n: n, title: overlay.querySelector('.sd-title') };
   }
 
   function layout(w, pos) {
@@ -235,6 +239,14 @@
       var sel = ad < 0.5;
       if (sel !== it.classList.contains('sel')) it.classList.toggle('sel', sel);
     });
+  }
+
+  // só no eixo X (stdDeviation "x 0"): o rastro fica na horizontal, como movimento de verdade
+  function setBlur(w, px) {
+    if (!w.hb) return;
+    if (px < 0.4) { w.track.style.filter = 'none'; return; }
+    w.hb.setAttribute('stdDeviation', px.toFixed(1) + ' 0');
+    w.track.style.filter = 'url(#sd-hblur)';
   }
 
   function cancel() {
@@ -295,10 +307,11 @@
         var speed = Math.abs(pos - lastPos) / dt;         // jogadores por segundo
         lastPos = pos; lastT = now;
 
-        // blur proporcional à velocidade (suavizado pra não piscar)
-        var wantBlur = Math.max(0, Math.min(MAX_BLUR, (speed - BLUR_FROM) * 0.5));
+        // borrão de movimento HORIZONTAL: tamanho ~ quanto a roleta anda por quadro (suavizado pra não piscar)
+        var pxPerFrame = speed * (w.items[0].offsetWidth || 190) * 1.02 / 60;
+        var wantBlur = speed > BLUR_FROM ? Math.min(MAX_BLUR, (speed - BLUR_FROM) / speed * pxPerFrame * BLUR_GAIN) : 0;
         blur += (wantBlur - blur) * 0.35;
-        w.track.style.filter = blur > 0.15 ? 'blur(' + blur.toFixed(2) + 'px)' : 'none';
+        setBlur(w, blur);
 
         layout(w, pos);
 
@@ -314,7 +327,7 @@
         if (finished) return;
         finished = true;
         layout(w, D);
-        w.track.style.filter = 'none';
+        setBlur(w, 0);
         w.items.forEach(function (it, slot) { if (slot === D % w.L) it.classList.add('win'); });
         var who = players[winIdx];
         w.title.classList.add('done');
