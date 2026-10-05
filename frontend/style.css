@@ -4552,34 +4552,26 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 @media (max-width: 720px) { .inbox-icon { width: 1.9rem; height: 1.75rem; } }
 
 
-/* ---- Amizade: personagem AO LADO do nome, com o sinal em cima da cabeça dele ----
-   O botão tem exatamente o tamanho do desenho, então o sinal sempre cola na cabeça.
-   Ajuste fino:
-     --fr-h        altura do boneco
-     --fr-nudge    desce (+) ou sobe (-) o boneco em relação ao texto
-     --fr-badge-x  posição do sinal na largura do boneco (aumente = vai pra direita)
-     --fr-badge-y  posição do sinal na altura do boneco (aumente = desce)
-     --fr-badge-s  tamanho do sinal */
-.sp-name-row .sp-name { flex: 0 1 auto; }   /* o nome só ocupa o que precisa: o boneco fica colado nele */
+/* ---- Amizade: botão de texto AO LADO do nome (Adicionar / Pendente / Remover; "Aceitar" quando a pessoa te pediu) ---- */
+.sp-name-row .sp-name { flex: 0 1 auto; }   /* o nome só ocupa o que precisa: o botão fica colado nele */
 .sp-name-row .sp-actions { margin-left: auto; }
-.sp-friend-btn { --fr-h: 2.4rem; --fr-nudge: -0.4rem; --fr-badge-x: 58%; --fr-badge-y: -8%; --fr-badge-s: 1rem;
-  position: relative; top: var(--fr-nudge); flex: none; display: block; width: auto; height: var(--fr-h);
-  align-self: center; margin: 0 0 0 -0.5rem;   /* cancela quase todo o espaço (gap) entre o nome e o boneco */
-               /* mesma linha do nome, sem sair do card */
-  padding: 0; background: none; border: 0; border-radius: 0.4rem; color: #22c55e; cursor: pointer; transition: transform .12s; }
+.sp-friend-btn {
+  --fr-c: 34, 197, 94;                       /* cor do estado, em R, G, B */
+  flex: none; align-self: center; display: inline-flex; align-items: center; justify-content: center;
+  height: 2rem; margin: 0; padding: 0 0.95rem; border-radius: 999px;
+  color: rgb(var(--fr-c)); background: rgba(var(--fr-c), 0.14); border: 1px solid rgba(var(--fr-c), 0.55);
+  font: inherit; font-size: 0.9rem; line-height: 1; letter-spacing: 0.02em; cursor: pointer;
+  transition: background .15s, border-color .15s, transform .12s;
+}
 .sp-friend-btn[hidden] { display: none; }
-.sp-friend-btn:hover { transform: scale(1.08); }
-.sp-friend-btn:active { transform: scale(0.95); }
+.sp-friend-btn:hover { background: rgba(var(--fr-c), 0.26); border-color: rgba(var(--fr-c), 0.9); }
+.sp-friend-btn:active { transform: scale(0.96); }
 .sp-friend-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .sp-friend-btn:disabled { opacity: .55; cursor: wait; }
-.sp-friend-char { height: var(--fr-h); width: auto; max-width: none; display: block; pointer-events: none; }
-.sp-friend-badge { position: absolute; top: var(--fr-badge-y); left: var(--fr-badge-x); width: var(--fr-badge-s); height: var(--fr-badge-s);
-  display: flex; align-items: center; justify-content: center; color: inherit; pointer-events: none; filter: drop-shadow(0 0 1.5px rgba(0,0,0,.9)); }
-.sp-friend-badge svg { width: 100%; height: 100%; display: block; fill: none; stroke: currentColor; stroke-width: 5; stroke-linecap: round; }
-.sp-friend-btn[data-state="none"] { color: #22c55e; }          /* + verde */
-.sp-friend-btn[data-state="pending_in"] { color: #22c55e; }    /* + verde (aceitar) */
-.sp-friend-btn[data-state="pending_out"] { color: #ffc933; }   /* pendente: amarelo */
-.sp-friend-btn[data-state="friends"] { color: #ff4d4d; }       /* remover: − vermelho */
+.sp-friend-btn[data-state="none"] { --fr-c: 34, 197, 94; }          /* Adicionar: verde */
+.sp-friend-btn[data-state="pending_in"] { --fr-c: 34, 197, 94; }    /* Aceitar: verde */
+.sp-friend-btn[data-state="pending_out"] { --fr-c: 255, 201, 51; }  /* Pendente: amarelo */
+.sp-friend-btn[data-state="friends"] { --fr-c: 255, 77, 77; }       /* Remover: vermelho */
 
 /* janela de confirmação */
 .confirm-card { text-align: center; }
@@ -4680,26 +4672,21 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 .sp-collection .sp-slot:not(.empty):not(.add)::after {
   content: ''; position: absolute; top: -10%; bottom: -10%; left: -60%; width: 55%; z-index: 2; pointer-events: none;
-  background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0.12) 70%, rgba(255,255,255,0) 100%);
+  background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.08) 70%, rgba(255,255,255,0) 100%);
   mix-blend-mode: soft-light; transform: translateX(0) skewX(-18deg); opacity: 0;
-  animation: sp-sweep 5.5s ease-in-out infinite;
+  animation: sp-sweep 7s ease-in-out infinite;
 }
-.sp-collection .sp-cell:nth-child(2) .sp-slot::after { animation-delay: 1.4s; }
-.sp-collection .sp-cell:nth-child(3) .sp-slot::after { animation-delay: 2.8s; }
-.sp-collection .sp-slot:not(.empty):not(.add):hover::after { animation: sp-sweep-fast .85s ease-out 1; }
-@keyframes sp-sweep {
-  0%, 62% { transform: translateX(0) skewX(-18deg); opacity: 0; }
-  68%     { opacity: 1; }
-  92%     { opacity: 1; }
+.sp-collection .sp-cell:nth-child(2) .sp-slot::after { animation-delay: 1.8s; }
+.sp-collection .sp-cell:nth-child(3) .sp-slot::after { animation-delay: 3.6s; }
+@keyframes sp-sweep {   /* a faixa surge devagar, cruza o card e some devagar */
+  0%, 55% { transform: translateX(0) skewX(-18deg); opacity: 0; }
+  68%     { opacity: 0.8; }
+  86%     { opacity: 0.8; }
   100%    { transform: translateX(480%) skewX(-18deg); opacity: 0; }
-}
-@keyframes sp-sweep-fast {
-  0%   { transform: translateX(0) skewX(-18deg); opacity: 1; }
-  100% { transform: translateX(480%) skewX(-18deg); opacity: 0; }
 }
 .sp-collection .sp-slot:not(.empty):not(.add):hover {
   border-color: transparent;
-  box-shadow: inset 0 0 1.6rem rgba(0,0,0,0.18), 0 0 1.4rem rgba(167,139,250,0.4), 0 0.5rem 1.4rem rgba(0,0,0,0.5);
+  box-shadow: inset 0 0 1.6rem rgba(0,0,0,0.18), 0 0.5rem 1.2rem rgba(0,0,0,0.45);
 }
 
 /* ABERTO: tamanho normal, boneco inteiro, logo abaixo do gráfico */

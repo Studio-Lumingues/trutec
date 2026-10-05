@@ -40,7 +40,7 @@
   var moreWrap = document.getElementById('sp-more-wrap');
   var moreBtn = document.getElementById('sp-more');
   var moreMenu = document.getElementById('sp-more-menu');
-  var friendBtn = document.getElementById('sp-friend');   // personagem + sinal (adicionar / pendente / remover amigo)
+  var friendBtn = document.getElementById('sp-friend');   // botão de texto (Adicionar / Pendente / Remover amigo)
   function closeMore() {
     if (!moreMenu) return;
     moreMenu.classList.add('hidden');
@@ -932,24 +932,20 @@
   });
 
   // ---- AMIZADES -------------------------------------------------------------
-  // Botão ao lado do nome: personagem com um sinal na cabeça.
-  //   nenhum pedido  -> "+"            clique: envia o pedido
-  //   pedido enviado -> relógio amarelo clique: pergunta se quer CANCELAR o pedido
-  //   já são amigos  -> "−" vermelho    clique: pergunta se quer REMOVER o amigo
-  //   te pediram     -> "+" verde       clique: aceita
-  var friendBadge = document.getElementById('sp-friend-badge');
+  // Botão de TEXTO ao lado do nome:
+  //   nenhum pedido  -> "Adicionar"  clique: envia o pedido
+  //   pedido enviado -> "Pendente"   clique: pergunta se quer CANCELAR o pedido
+  //   já são amigos  -> "Remover"    clique: pergunta se quer REMOVER o amigo
+  //   te pediram     -> "Aceitar"    clique: aceita
   var fState = 'none', fBusy = false;
-  var F_ICON = {
-    plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
-    minus: '<svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>',
-    clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
-  };
+  var F_TEXT = { none: 'Adicionar', pending_out: 'Pendente', pending_in: 'Aceitar', friends: 'Remover' };
   var F_LABEL = {
     none: 'Adicionar amigo',
     pending_out: 'Solicitação pendente (clique para cancelar)',
     pending_in: 'Aceitar solicitação de amizade',
     friends: 'Remover amigo'
   };
+  if (friendBtn) friendBtn.textContent = '';   // tira o boneco/sinal antigos do HTML: agora é só texto
   function paintFriend(state) {
     fState = state;
     if (!friendBtn) return;
@@ -958,7 +954,7 @@
     friendBtn.dataset.state = state;
     friendBtn.title = F_LABEL[state];
     friendBtn.setAttribute('aria-label', F_LABEL[state]);
-    friendBadge.innerHTML = state === 'friends' ? F_ICON.minus : state === 'pending_out' ? F_ICON.clock : F_ICON.plus;
+    friendBtn.textContent = F_TEXT[state];
   }
   function loadFriendState(handle) {
     if (!loggedIn()) return;
