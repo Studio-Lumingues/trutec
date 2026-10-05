@@ -4597,9 +4597,6 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .fr-btns { flex: none; display: flex; gap: 0.4rem; }
 .fr-btns .btn { padding: 0.45rem 0.9rem; font-size: 0.95rem; }
 
-/* ---- Perfil / coleção: imagem ESTÁTICA (sem zoom de abertura, sem inclinação 3D, sem brilho, sem tremido) ---- */
-.sp-lightbox-img { animation: none !important; filter: none !important; }
-.sp-tilt { transform: none !important; transition: none !important; will-change: auto; }
+/* ---- Perfil / coleção: sem zoom de abertura e sem brilho do mouse (tremido hand drawn e inclinação 3D continuam) ---- */
+.sp-lightbox-img { animation: none !important; }
 .sp-glare { display: none !important; }
-.sp-avatar { filter: none !important; }
-.sp-slot img { filter: none !important; }
