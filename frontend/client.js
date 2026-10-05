@@ -3064,14 +3064,7 @@ function updateActionButtons(state) {
   }
   btnTruco.title = maoDe11 ? 'Na mão de 11 não pode pedir truco' : (iRaisedLast ? 'Aguarde o adversário aumentar' : '');
 
-  const btnCorrer = document.getElementById('btn-correr');
-  btnCorrer.disabled = !isMyTurn || !!state.pendingCall || state.gameOver;
-  // homenzinho correndo: só se mexe quando o botão está ativo (e se a pessoa não pediu menos movimento)
-  const runMan = btnCorrer.querySelector('.run-man');
-  if (runMan && runMan.pauseAnimations) {
-    const still = btnCorrer.disabled || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    try { still ? runMan.pauseAnimations() : runMan.unpauseAnimations(); } catch (e) {}
-  }
+  document.getElementById('btn-correr').disabled = !isMyTurn || !!state.pendingCall || state.gameOver;
   const btnEsconder = document.getElementById('btn-esconder');
   const firstRound = isFirstRound(state);
   btnEsconder.disabled = !isMyTurn || !!state.pendingCall || state.gameOver || firstRound;
