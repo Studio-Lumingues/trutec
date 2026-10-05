@@ -1339,7 +1339,174 @@
     document.addEventListener('click', closeMore);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMore(); });
   }
-  tabFriends.addEventListener('click', function () { setPane('friends'); loadFriends(); });
+  // ---- JANELA DE AMIGOS (abre ao clicar na aba "Amigos" da barra do topo) ----
+  // Mostra seus amigos numa janela na frente da tela: boneco, nome e @ de cada um, com os botões
+  // "Mensagem" (abre a janela de escrever, igual à carta do perfil) e "Remover" (pede confirmação).
+  // Clicar no boneco/nome abre o perfil da pessoa. Fica ABAIXO das janelas de mensagem/confirmação (z-index 290).
+  var fmModal = null, fmList = null, fmSub = null, fmMsg = null, fmClose = null, fmReq = 0, fmFriends = [];
+  var FM_MAIL = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 8 8 6 8-6"/></svg>';
+  var FM_DEL = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="8" r="3.5"/><path d="M3 20c0-3.3 2.9-5.5 6.5-5.5S16 16.7 16 20M17.5 11h4"/></svg>';
+
+  function fmCss() {
+    if (document.getElementById('fm-css')) return;
+    var st = document.createElement('style');
+    st.id = 'fm-css';
+    st.textContent =
+      '.settings-modal.fm-modal{z-index:290}' +
+      '.fm-card{width:min(30rem,100%);max-height:calc(100dvh - 2rem);display:flex;flex-direction:column;padding:1.4rem 1.25rem 1.1rem;' +
+        'background:radial-gradient(120% 90% at 0% 0%,rgba(167,139,250,.14),transparent 55%),var(--panel)}' +
+      '.fm-head{display:flex;align-items:baseline;justify-content:center;gap:.6rem;margin:0 0 1rem}' +
+      '.fm-head h2{margin:0}' +
+      '.fm-sub{font-size:.85rem;opacity:.6}' +
+      '.fm-list{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:.55rem;padding:.1rem .1rem .2rem;scrollbar-width:thin;scrollbar-color:rgba(255,248,240,.25) transparent}' +
+      '.fm-row{display:flex;align-items:center;gap:.8rem;padding:.6rem .7rem;border-radius:1rem;background:linear-gradient(180deg,rgba(255,248,240,.08),rgba(255,248,240,.03));' +
+        'border:1px solid rgba(255,248,240,.1);transition:border-color .15s,background .15s}' +
+      '.fm-row:hover{border-color:rgba(167,139,250,.45)}' +
+      '.fm-row.busy{opacity:.5;pointer-events:none}' +
+      '.fm-who{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:.8rem;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:.7rem}' +
+      '.fm-who:focus-visible{outline:2px solid #fff8f0;outline-offset:3px}' +
+      '.fm-av{flex:none;width:3.2rem;height:3.2rem;border-radius:50%;overflow:hidden;background:#fff8f0;box-shadow:0 0 0 2px rgba(255,248,240,.25)}' +
+      '.fm-av img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}' +
+      '.fm-txt{min-width:0}' +
+      '.fm-name{display:block;font-size:1.15rem;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '.fm-handle{display:block;font-size:.85rem;opacity:.6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '.fm-actions{flex:none;display:flex;gap:.4rem}' +
+      '.fm-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem .8rem;border-radius:.7rem;border:1px solid rgba(255,248,240,.22);background:rgba(255,248,240,.08);' +
+        'color:#fff8f0;font:inherit;font-size:.9rem;line-height:1;cursor:pointer;transition:filter .15s,background .15s,border-color .15s}' +
+      '.fm-btn svg{width:1.05rem;height:1.05rem;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}' +
+      '.fm-btn:hover{filter:brightness(1.2)}' +
+      '.fm-btn:focus-visible{outline:2px solid #fff8f0;outline-offset:2px}' +
+      '.fm-msg{background:#fff8f0;color:#0a0a0a;border-color:#fff8f0}' +
+      '.fm-del{color:#ff6b6b;border-color:rgba(255,107,107,.4);background:rgba(224,32,26,.1)}' +
+      '.fm-del:hover{background:rgba(224,32,26,.2)}' +
+      '.fm-empty{padding:2rem 1rem;text-align:center;opacity:.75;line-height:1.4}' +
+      '.fm-empty small{display:block;margin-top:.3rem;opacity:.7;font-size:.85rem}' +
+      '.fm-error{min-height:1.1em;margin:.5rem 0 0;text-align:center;font-size:.9rem}' +
+      '.fm-foot{margin-top:.6rem;display:flex}' +
+      '.fm-foot .btn{flex:1}' +
+      '@media (max-width:30rem){.fm-btn span{display:none}.fm-btn{padding:.6rem}.fm-btn svg{width:1.15rem;height:1.15rem}}';
+    document.head.appendChild(st);
+  }
+
+  function fmBuild() {
+    if (fmModal) return;
+    fmCss();
+    fmModal = document.createElement('div');
+    fmModal.className = 'settings-modal fm-modal hidden';
+    fmModal.setAttribute('role', 'dialog');
+    fmModal.setAttribute('aria-modal', 'true');
+    fmModal.setAttribute('aria-labelledby', 'fm-title');
+    fmModal.innerHTML =
+      '<div class="settings-card fm-card">' +
+        '<div class="fm-head"><h2 id="fm-title">Amigos</h2><span class="fm-sub"></span></div>' +
+        '<div class="fm-list" role="list"></div>' +
+        '<p class="error-text fm-error" role="status" aria-live="polite"></p>' +
+        '<div class="fm-foot"><button type="button" class="btn btn-primary fm-close">Fechar</button></div>' +
+      '</div>';
+    document.body.appendChild(fmModal);
+    fmList = fmModal.querySelector('.fm-list');
+    fmSub = fmModal.querySelector('.fm-sub');
+    fmMsg = fmModal.querySelector('.fm-error');
+    fmClose = fmModal.querySelector('.fm-close');
+    fmClose.addEventListener('click', fmHide);
+    fmModal.addEventListener('click', function (e) { if (e.target === fmModal) fmHide(); });
+    // Esc fecha só esta janela, e só se não houver mensagem/confirmação por cima (captura: roda antes das outras)
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || fmModal.classList.contains('hidden')) return;
+      if (!cmModal.classList.contains('hidden') || !cfModal.classList.contains('hidden') || !rdModal.classList.contains('hidden')) return;
+      fmHide();
+    }, true);
+  }
+  function fmHide() {
+    if (!fmModal) return;
+    fmReq++;
+    fmModal.classList.add('hidden');
+    if (tabFriends && tabFriends.offsetParent) tabFriends.focus();
+  }
+  function fmEmpty(text, sub) {
+    fmSub.textContent = '';
+    fmList.innerHTML = '<div class="fm-empty"></div>';
+    var box = fmList.firstChild;
+    box.textContent = text;
+    if (sub) { var sm = document.createElement('small'); sm.textContent = sub; box.appendChild(sm); }
+  }
+  function fmRow(f) {
+    var row = document.createElement('div');
+    row.className = 'fm-row';
+    row.setAttribute('role', 'listitem');
+    var who = document.createElement('button');
+    who.type = 'button'; who.className = 'fm-who';
+    who.setAttribute('aria-label', 'Abrir perfil de @' + f.handle);
+    var av = document.createElement('span'); av.className = 'fm-av';
+    var im = document.createElement('img'); im.alt = ''; im.draggable = false;
+    im.src = safeImg(f.character) || safeImg(f.avatar) || DEFAULT_AVATAR;
+    if (!safeImg(f.character) && !safeImg(f.avatar)) fetchSenderAvatar(f.handle, function (img) { if (img) im.src = img; });
+    av.appendChild(im);
+    var txt = document.createElement('span'); txt.className = 'fm-txt';
+    var nm = document.createElement('span'), hd = document.createElement('span');
+    nm.className = 'fm-name'; nm.textContent = f.displayName || f.handle;
+    hd.className = 'fm-handle'; hd.textContent = '@' + f.handle;
+    txt.appendChild(nm); txt.appendChild(hd);
+    who.appendChild(av); who.appendChild(txt);
+    who.addEventListener('click', function () { fmHide(); search(f.handle); });
+
+    var acts = document.createElement('div'); acts.className = 'fm-actions';
+    var mail = document.createElement('button');
+    mail.type = 'button'; mail.className = 'fm-btn fm-msg';
+    mail.title = 'Mandar mensagem na inbox de @' + f.handle;
+    mail.setAttribute('aria-label', 'Mandar mensagem para @' + f.handle);
+    mail.innerHTML = FM_MAIL + '<span>Mensagem</span>';
+    mail.addEventListener('click', function () { fmMsg.textContent = ''; openCompose(f.handle); });
+    var del = document.createElement('button');
+    del.type = 'button'; del.className = 'fm-btn fm-del';
+    del.title = 'Remover @' + f.handle + ' dos amigos';
+    del.setAttribute('aria-label', 'Remover @' + f.handle + ' dos amigos');
+    del.innerHTML = FM_DEL + '<span>Remover</span>';
+    del.addEventListener('click', function () {
+      fmMsg.textContent = '';
+      askConfirm('Remover amigo?', 'Tem certeza que quer remover @' + f.handle + ' da sua lista de amigos?', 'Sim, remover', function () {
+        row.classList.add('busy');
+        mailApi('/api/friends/' + encodeURIComponent(f.handle), 'DELETE').then(function (r) {
+          row.classList.remove('busy');
+          if (!r || !r.ok) { fmMsg.textContent = (r && r.error) || 'Não deu pra remover. Tente de novo.'; return; }
+          fmFriends = fmFriends.filter(function (x) { return x.handle !== f.handle; });
+          if (ownCache) ownCache = { own: true, ok: true, friends: fmFriends.slice(), requests: ownCache.requests || [] };
+          if (f.handle === shownHandle) loadFriendState(f.handle);
+          loadFriends();                       // atualiza a roleta atrás da janela
+          fmRender();
+          fmMsg.textContent = '';
+          flash('@' + f.handle + ' foi removido dos seus amigos.');
+        });
+      });
+    });
+    acts.appendChild(mail); acts.appendChild(del);
+    row.appendChild(who); row.appendChild(acts);
+    return row;
+  }
+  function fmRender() {
+    if (!fmFriends.length) return fmEmpty('Você ainda não tem amigos por aqui.', 'Clique na lupa e procure o @ de alguém pra adicionar.');
+    fmSub.textContent = fmFriends.length + (fmFriends.length === 1 ? ' amigo' : ' amigos');
+    fmList.textContent = '';
+    fmFriends.forEach(function (f) { fmList.appendChild(fmRow(f)); });
+  }
+  function openFriendsModal() {
+    fmBuild();
+    fmMsg.textContent = '';
+    fmModal.classList.remove('hidden');
+    fmClose.focus();
+    if (!loggedIn()) return fmEmpty('Entre na sua conta pra ver seus amigos.', 'Use o botão de conta na tela inicial e escolha seu @.');
+    if (ownCache) { fmFriends = (ownCache.friends || []).filter(function (f) { return f && f.handle; }); fmRender(); }
+    else fmEmpty('Carregando…');
+    var id = ++fmReq;
+    mailApi('/api/friends').then(function (r) {                 // atualiza em silêncio com o que está no servidor
+      if (id !== fmReq || fmModal.classList.contains('hidden')) return;
+      if (!r || !r.ok) { if (!ownCache) fmEmpty((r && r.error) || 'Não deu pra carregar seus amigos agora.'); return; }
+      fmFriends = (r.friends || []).filter(function (f) { return f && f.handle; });
+      fmRender();
+    });
+  }
+
+  tabFriends.addEventListener('click', function () { setPane('friends'); loadFriends(); openFriendsModal(); });
   tabInbox.addEventListener('click', function () { setPane('inbox'); });
   document.addEventListener('truaccount', function () { refreshBadge(); loadFriends(); refreshOwnStats(); });
   setInterval(function () {
