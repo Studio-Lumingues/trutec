@@ -8,7 +8,7 @@
 // - O logo de verdade nunca sai do lugar: durante a brincadeira ele só fica
 //   invisível e um "clone" fixo na tela é que voa (assim nada corta o logo).
 // - Um clique sem arrastar não faz nada. Respeita "reduzir movimento".
-// Ajustes: WAIT_MS, GRAVITY, BOUNCE, LINE. Carregar depois do tutorial.js.
+// Ajustes: WAIT_MS, GRAVITY, BOUNCE, SETTLE, OBSTACLES e as falas em LINES. Carregar depois do tutorial.js.
 // ============================================================================
 (function () {
   var HOME = document.querySelector('#screen-lobby .site-logo-top');
@@ -16,11 +16,52 @@
   if (!HOME || !lobby || !window.PointerEvent) return;
 
   var WAIT_MS = 5000;           // tempo até o Jailson aparecer (contado do primeiro agarrão)
-  var GRAVITY = 1700;           // px/s²  (0 = flutua pra sempre)
-  var BOUNCE = 0.55;            // 0 = não quica, 1 = quica sem perder força
-  var AIR = 0.25, FLOOR_FRICTION = 5, SPIN_DRAG = 1.3, MAX_V = 3200;
+  var GRAVITY = 4200;           // px/s²  (maior = cai mais rápido; 0 = flutua pra sempre)
+  var BOUNCE = 0.45;            // 0 = não quica, 1 = quica sem perder força
+  var AIR = 0.15, FLOOR_FRICTION = 6, SPIN_DRAG = 1.0, MAX_V = 3600;
+  var SETTLE = 90;              // força que "deita" o logo de lado quando ele encosta no chão/painel
+  var OBSTACLES = '.lobby-card'; // o que o logo não atravessa (painel de opções); dá pra pôr mais seletores
   var GUIDE = 'assets/guia.png', GUIDE_RATIO = 441 / 620;
-  var LINE = 'Ei, cuidado com o TruTEC! Da próxima vez, toma mais cuidado, tá?';
+
+  // ---- falas do Jailson (sorteia uma de cada grupo; nas vezes seguintes ele fica mais bravo) ----
+  var LINES = {
+    arrive: [
+      'Opa, opa, opa! Quem jogou o TruTEC no chão?!',
+      'Eita! Olha o jeito que deixaram o TruTEC…',
+      'Ih, o TruTEC tá todo bagunçado! Deixa comigo.',
+      'Alguém soltou o TruTEC de novo? Eu vi isso, hein!'
+    ],
+    arriveFlipped: ['Tá até de ponta-cabeça! Coitado do TruTEC.'],
+    arriveAgain: [
+      'De novo?! Você só pode estar de brincadeira…',
+      'Mais uma vez? Eu acabei de arrumar isso!',
+      'Eu não acredito que você jogou o TruTEC outra vez…'
+    ],
+    arriveMany: [
+      'Tá, já entendi: você gosta de jogar o TruTEC. Eu também me canso, viu?',
+      'Eu já tô até com o caminho decorado, de tanto vir aqui…'
+    ],
+    done: [
+      'Pronto! Voltou pro lugar.',
+      'Prontinho! Como se nada tivesse acontecido.',
+      'Tá aí, bonitão de volta no lugar.',
+      'Fiu! Que trabalheira…'
+    ],
+    warn: [
+      'Da próxima vez, toma mais cuidado, tá?',
+      'O TruTEC não é bola de futebol, viu? Cuidado!',
+      'Ele é de pixel, mas também sente! Da próxima vez, cuidado, tá?',
+      'Tô de olho em você, hein! Da próxima vez, toma cuidado.',
+      'Trata com carinho o TruTEC, tá? Da próxima vez, cuidado!'
+    ],
+    warnAgain: [
+      'Cuidado, tá? Minhas costas não aguentam mais isso!',
+      'Se jogar de novo eu cobro hora extra. Toma cuidado!',
+      'Última vez que eu arrumo assim, hein? Cuidado da próxima!'
+    ]
+  };
+  var rounds = 0;               // quantas vezes o Jailson já veio nesta visita
+  function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
 
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var K = reduced ? 0.35 : 1;   // fator de duração das animações
@@ -114,6 +155,49 @@
     render();
   }
 
+  // ---------------------------------------------------- colisão com o painel
+  function obstacleRects() {
+    var out = [];
+    [].forEach.call(lobby.querySelectorAll(OBSTACLES), function (el) {
+      var r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) out.push(r);
+    });
+    return out;
+  }
+  // por qual lado o logo bateu: olha de onde ele VEIO (px,py = posição anterior), assim não atravessa
+  function hitSide(R, e, px, py) {
+    var L = x - e.ex, Rr = x + e.ex, T = y - e.ey, B = y + e.ey;
+    if (!(L < R.right && Rr > R.left && T < R.bottom && B > R.top)) return null;
+    if (py + e.ey <= R.top + 1) return 'up';
+    if (py - e.ey >= R.bottom - 1) return 'down';
+    if (px + e.ex <= R.left + 1) return 'left';
+    if (px - e.ex >= R.right - 1) return 'right';
+    var dUp = B - R.top, dDown = R.bottom - T, dL = Rr - R.left, dR = R.right - L;
+    var m = Math.min(dUp, dDown, dL, dR);
+    return m === dUp ? 'up' : m === dDown ? 'down' : m === dL ? 'left' : 'right';
+  }
+  function pushOut(R, e, side) {
+    if (side === 'up') y = R.top - e.ey;
+    else if (side === 'down') y = R.bottom + e.ey;
+    else if (side === 'left') x = R.left - e.ex;
+    else x = R.right + e.ex;
+  }
+  // segurando: o logo anda até o ponteiro em passinhos e esbarra no painel (não passa por dentro)
+  function dragTo(nx, ny) {
+    var rects = obstacleRects(), dx = nx - x, dy = ny - y;
+    var n = clamp(Math.ceil(Math.hypot(dx, dy) / 24), 1, 40);
+    for (var i = 0; i < n; i++) {
+      var px = x, py = y;
+      x += dx / n; y += dy / n;
+      clampToScreen();
+      var e = ext();
+      for (var k = 0; k < rects.length; k++) {
+        var s = hitSide(rects[k], e, px, py);
+        if (s) pushOut(rects[k], e, s);
+      }
+    }
+  }
+
   // ----------------------------------------------------------- arrastar
   function velocity() {
     var n = samples.length;
@@ -161,13 +245,12 @@
       document.documentElement.classList.add('jl-dragging');
       startTimer();
     }
-    x = e.clientX - g.ox; y = e.clientY - g.oy;
     var now = performance.now();
+    var v0 = velocity();
+    a += (clamp(v0.x * 0.012, -22, 22) - a) * 0.25;                      // balança conforme você puxa
+    dragTo(e.clientX - g.ox, e.clientY - g.oy);
     samples.push({ t: now, x: x, y: y });
     while (samples.length > 2 && now - samples[0].t > 110) samples.shift();
-    var v = velocity();
-    a += (clamp(v.x * 0.012, -22, 22) - a) * 0.25;                       // balança conforme você puxa
-    clampToScreen();
     render();
   }
   function onUp(e) {
@@ -181,39 +264,71 @@
     var v = velocity();
     vx = clamp(v.x, -MAX_V, MAX_V); vy = clamp(v.y, -MAX_V, MAX_V);
     om = vx * 0.05 + (Math.random() - 0.5) * 20;
+    launch();
+  }
+  function launch() {
+    if (moving || !toy) return;
     moving = true; last = performance.now();
     raf = requestAnimationFrame(step);
   }
   HOME.addEventListener('pointerdown', function (e) { grab(e, false); });
 
   // ------------------------------------------------------------- física
+  // Um passo de simulação (o quadro é dividido em vários passinhos: nada atravessa nada).
+  // Devolve true se o logo está apoiado (chão ou painel).
+  function sub(h, rects) {
+    var px = x, py = y, grounded = false;
+    vy += GRAVITY * h;
+    var drag = Math.exp(-AIR * h);
+    vx *= drag; vy *= drag;
+    x += vx * h; y += vy * h;
+    a += om * h; om *= Math.exp(-SPIN_DRAG * h);
+
+    var e = ext(), W = vw(), H = vh();
+    if (e.ex * 2 > W) { x = W / 2; vx = 0; }
+    else if (x < e.ex) { x = e.ex; if (vx < 0) { vx = -vx * BOUNCE; om = om * 0.6 - vy * 0.03; } }
+    else if (x > W - e.ex) { x = W - e.ex; if (vx > 0) { vx = -vx * BOUNCE; om = om * 0.6 + vy * 0.03; } }
+    if (e.ey * 2 > H) { y = H / 2; vy = 0; grounded = true; }
+    else if (y < e.ey) { y = e.ey; if (vy < 0) { vy = -vy * BOUNCE; om += vx * 0.04; } }
+    else if (y > H - e.ey) {
+      y = H - e.ey;
+      if (vy > 0) { vy = vy > 260 ? -vy * BOUNCE : 0; om = om * 0.6 + vx * 0.08; }
+      grounded = true;
+    }
+    for (var k = 0; k < rects.length; k++) {
+      var R = rects[k], s = hitSide(R, e, px, py);
+      if (!s) continue;
+      pushOut(R, e, s);
+      if (s === 'up') { if (vy > 0) { vy = vy > 260 ? -vy * BOUNCE : 0; om = om * 0.6 + vx * 0.08; } grounded = true; }
+      else if (s === 'down') { if (vy < 0) { vy = -vy * BOUNCE; om += vx * 0.04; } }
+      else if (s === 'left') { if (vx > 0) { vx = -vx * BOUNCE; om = om * 0.6 - vy * 0.03; } }
+      else { if (vx < 0) { vx = -vx * BOUNCE; om = om * 0.6 + vy * 0.03; } }
+    }
+    if (grounded) {
+      vx *= Math.exp(-FLOOR_FRICTION * h);
+      // encostou: o logo tomba e deita de lado (ângulo 0° ou 180°) em vez de ficar torto no ar
+      var d = a - Math.round(a / 180) * 180;
+      om += -d * SETTLE * h;
+      om *= Math.exp(-9 * h);
+    }
+    return grounded;
+  }
   function step(t) {
     if (!moving || !toy) return;
     var dt = Math.min(0.034, (t - last) / 1000);
     last = t;
     if (dt <= 0) { raf = requestAnimationFrame(step); return; }
-    vy += GRAVITY * dt;
-    var drag = Math.exp(-AIR * dt);
-    vx *= drag; vy *= drag;
-    x += vx * dt; y += vy * dt;
-    a += om * dt; om *= Math.exp(-SPIN_DRAG * dt);
-
-    var e = ext(), W = vw(), H = vh(), onFloor = false;
-    if (e.ex * 2 > W) { x = W / 2; vx = 0; }
-    else if (x < e.ex) { x = e.ex; if (vx < 0) { vx = -vx * BOUNCE; om = om * 0.6 - vy * 0.03; } }
-    else if (x > W - e.ex) { x = W - e.ex; if (vx > 0) { vx = -vx * BOUNCE; om = om * 0.6 + vy * 0.03; } }
-    if (e.ey * 2 > H) { y = H / 2; vy = 0; onFloor = true; }
-    else if (y < e.ey) { y = e.ey; if (vy < 0) { vy = -vy * BOUNCE; om += vx * 0.04; } }
-    else if (y > H - e.ey) {
-      y = H - e.ey;
-      if (vy > 0) { vy = vy > 120 ? -vy * BOUNCE : 0; om = om * 0.6 + vx * 0.08; }
-      onFloor = true;
-      vx *= Math.exp(-FLOOR_FRICTION * dt);
-      om *= Math.exp(-3 * dt);
-    }
+    var n = clamp(Math.ceil(Math.max(Math.abs(vx), Math.abs(vy)) * dt / 24), 1, 8), h = dt / n;
+    var rects = obstacleRects(), grounded = false;
+    for (var i = 0; i < n; i++) if (sub(h, rects)) grounded = true;
     render();
-    if (onFloor && Math.abs(vx) < 14 && Math.abs(vy) < 40 && Math.abs(om) < 10) {
+    var d = a - Math.round(a / 180) * 180;
+    if (grounded && Math.abs(vx) < 14 && Math.abs(vy) < 40 && Math.abs(om) < 10 && Math.abs(d) < 1.5) {
+      var e1 = ext();
+      a = Math.round(a / 180) * 180;
+      y += e1.ey - ext().ey;                      // ao endireitar o último grauzinho, continua encostado no apoio
       moving = false; vx = vy = om = 0;
+      render();
       maybeCall();
       return;
     }
@@ -298,12 +413,12 @@
     });
   }
 
-  function makeBubble(jx, jb, jw, jh) {
+  function makeBubble(line, jx, jb, jw, jh) {
     var b = document.createElement('div');
     b.className = 'jl-bubble';
     b.innerHTML = '<span class="jl-bg"><i class="jl-tail"></i></span><span class="jl-name">Jailson</span>' +
       '<div class="jl-text"><span class="jl-full"></span><span class="jl-typed"></span></div>';
-    b.querySelector('.jl-full').textContent = LINE;
+    b.querySelector('.jl-full').textContent = line;
     var W = vw(), rightRoom = W - (jx + jw / 2) - 12, leftRoom = jx - jw / 2 - 12, mode;
     if (rightRoom >= 200 || leftRoom >= 200) {
       mode = rightRoom >= leftRoom ? 'r' : 'l';
@@ -321,6 +436,22 @@
     top = clamp(top, 8, vh() - bh - 8);
     b.style.left = left + 'px'; b.style.top = top + 'px';
     return b;
+  }
+
+  async function say(my, J, line, hold, jx, jb, jw, jh) {
+    var b = makeBubble(line, jx, jb, jw, jh);
+    curBubble = b;
+    J.classList.add('jl-talk');
+    await typeText(my, b.querySelector('.jl-typed'), line);
+    if (my !== token) return;
+    J.classList.remove('jl-talk');
+    await wait(my, hold);
+    if (my !== token) return;
+    b.classList.add('jl-out');
+    await wait(my, 260);
+    if (my !== token) return;
+    if (b.parentNode) b.parentNode.removeChild(b);
+    curBubble = null;
   }
 
   // ------------------------------------------------------- o Jailson em ação
@@ -350,7 +481,12 @@
     await tween(my, 950 * K, function (p) { jpos(sx + (tx - sx) * easeOut(p), tb - hop(p, 4)); });
     if (my !== token) return;
     J.classList.remove('jl-walk');
-    await wait(my, 350 * K);
+    await wait(my, 300 * K);
+    if (my !== token) return;
+    var flipped = Math.abs(a - Math.round(a / 360) * 360) > 90;
+    var pool = rounds >= 2 ? LINES.arriveMany : rounds === 1 ? LINES.arriveAgain
+             : flipped ? LINES.arrive.concat(LINES.arriveFlipped, LINES.arriveFlipped) : LINES.arrive;
+    await say(my, J, pick(pool), 900, tx, tb, jw, jh);
     if (my !== token) return;
 
     // 2) pega o logo e leva de volta pro lugar de origem
@@ -377,20 +513,11 @@
     await wait(my, 250);
     if (my !== token) return;
 
-    // 3) fala
-    var bubble = makeBubble(jx, jb, jw, jh);
-    curBubble = bubble;
-    J.classList.add('jl-talk');
-    await typeText(my, bubble.querySelector('.jl-typed'), LINE);
+    // 3) fala: "pronto" + a bronca
+    await say(my, J, pick(LINES.done), 900, jx, jb, jw, jh);
     if (my !== token) return;
-    J.classList.remove('jl-talk');
-    await wait(my, 2400);
+    await say(my, J, pick(rounds >= 1 ? LINES.warnAgain.concat(LINES.warn) : LINES.warn), 2200, jx, jb, jw, jh);
     if (my !== token) return;
-    bubble.classList.add('jl-out');
-    await wait(my, 260);
-    if (my !== token) return;
-    if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
-    curBubble = null;
 
     // 4) sai da tela
     var ex = jx < W / 2 ? -jw : W + jw, jx0 = jx;
@@ -399,7 +526,7 @@
     if (my !== token) return;
     if (J.parentNode) J.parentNode.removeChild(J);
     curJ = null;
-    phase = 'idle'; timerSet = false; due = false;
+    phase = 'idle'; timerSet = false; due = false; rounds++;
   }
 
   // ------------------------------------------------------------- limpeza
@@ -421,6 +548,6 @@
   }).observe(lobby, { attributes: true, attributeFilter: ['class'] });
 
   window.addEventListener('resize', function () {
-    if (toy && phase === 'toy' && !held && !moving) { clampToScreen(); render(); }
+    if (toy && phase === 'toy' && !held && !moving) { clampToScreen(); render(); launch(); }
   });
 })();
