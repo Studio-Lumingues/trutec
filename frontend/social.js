@@ -1079,9 +1079,6 @@
     wheel.tabIndex = 0;
     wheel.setAttribute('role', 'listbox');
     wheel.setAttribute('aria-label', 'Seus amigos');
-    var hint = document.createElement('div');
-    hint.className = 'fr-wheel-hint';
-    hint.textContent = L > 1 ? 'Deslize e clique no amigo do meio pra abrir o perfil' : 'Clique no amigo pra abrir o perfil';
 
     var items = [];
     for (var k = 0; k < L; k++) (function (slot) {
@@ -1111,7 +1108,7 @@
       wheel.appendChild(it);
       items.push(it);
     })(k);
-    wrap.appendChild(wheel); wrap.appendChild(hint);
+    wrap.appendChild(wheel);
 
     var pos = 0, target = 0, anim = 0, lastT = 0;      // em "posições" (1 = um amigo); sem limites: é um círculo
     function itemW() { return items[0].offsetWidth || 1; }
