@@ -293,50 +293,13 @@
     if (window.TruAccount && TruAccount.syncCharacter) TruAccount.syncCharacter();   // manda pro perfil público
   }
 
-  // ---- boneco grande do perfil: recorta a margem transparente pra ele preencher o painel ----
-  // (cada PNG tem uma sobra diferente em volta do desenho; sem isso uns ficam pequenos
-  //  e, com zoom fixo, outros ficam cortados). Mostra o original na hora e troca pelo recorte.
-  var fitKey = '', fitVal = '';
+  // ---- boneco grande do perfil ----
+  // Todo PNG sai do editor no mesmo tamanho de tela, então mostramos a imagem ORIGINAL
+  // (sem recortar a margem transparente). Antes o recorte "esticava" bonecos que ocupam
+  // menos espaço no desenho, e o perfil de uns amigos ficava maior que o de outros.
   function setAvatar(src) {
     avatarEl.dataset.src = src;
-    if (src.indexOf(PNG) !== 0) { avatarEl.src = src; return; }
-    if (src === fitKey && fitVal) { avatarEl.src = fitVal; return; }
     avatarEl.src = src;
-    var im = new Image();
-    im.onload = function () {
-      if (avatarEl.dataset.src !== src) return;          // já trocou de perfil
-      try {
-        var W = im.naturalWidth, H = im.naturalHeight;
-        if (!W || !H) return;
-        var k = Math.min(1, 400 / Math.max(W, H));          // analisa numa versão menor
-        var w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
-        var c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        var cx = c.getContext('2d');
-        cx.drawImage(im, 0, 0, w, h);
-        var px = cx.getImageData(0, 0, w, h).data;
-        var x0 = w, y0 = h, x1 = -1, y1 = -1;
-        for (var y = 0; y < h; y++) {
-          for (var x = 0; x < w; x++) {
-            if (px[(y * w + x) * 4 + 3] > 60) {
-              if (x < x0) x0 = x; if (x > x1) x1 = x;
-              if (y < y0) y0 = y; if (y > y1) y1 = y;
-            }
-          }
-        }
-        if (x1 < 0) return;                                  // imagem vazia
-        var sx = Math.max(0, Math.floor(x0 / k)), sy = Math.max(0, Math.floor(y0 / k));
-        var sw = Math.min(W - sx, Math.ceil((x1 + 1) / k) - sx), sh = Math.min(H - sy, Math.ceil((y1 + 1) / k) - sy);
-        if (sw >= W * 0.97 && sh >= H * 0.97) return;        // já está justo
-        var o = document.createElement('canvas');
-        o.width = sw; o.height = sh;
-        o.getContext('2d').drawImage(im, sx, sy, sw, sh, 0, 0, sw, sh);
-        var url = o.toDataURL('image/png');
-        fitKey = src; fitVal = url;
-        avatarEl.src = url;
-      } catch (e) { /* fica com o original */ }
-    };
-    im.src = src;
   }
 
   // d = { name, handle, since, wins, losses, avatar, collection, other }
