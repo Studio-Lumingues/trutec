@@ -1352,7 +1352,8 @@
     var st = document.createElement('style');
     st.id = 'fm-css';
     st.textContent =
-      '.settings-modal.fm-modal{z-index:290}' +
+      '.settings-modal.fm-modal{z-index:290;overscroll-behavior:contain}' +
+      'html.fm-lock,html.fm-lock body,html.fm-lock .social-main,html.fm-lock .inbox-screen{overflow:hidden!important}' +
       '.fm-card{width:min(30rem,100%);max-height:calc(100dvh - 2rem);display:flex;flex-direction:column;padding:1.4rem 1.25rem 1.1rem;' +
         'background:radial-gradient(120% 90% at 0% 0%,rgba(167,139,250,.14),transparent 55%),var(--panel)}' +
       '.fm-head{display:flex;align-items:baseline;justify-content:center;gap:.6rem;margin:0 0 1rem}' +
@@ -1421,7 +1422,8 @@
     if (!fmModal) return;
     fmReq++;
     fmModal.classList.add('hidden');
-    if (tabFriends && tabFriends.offsetParent) tabFriends.focus();
+    document.documentElement.classList.remove('fm-lock');
+    if (tabFriends && tabFriends.offsetParent) tabFriends.focus({ preventScroll: true });
   }
   function fmEmpty(text, sub) {
     fmSub.textContent = '';
@@ -1493,7 +1495,8 @@
     fmBuild();
     fmMsg.textContent = '';
     fmModal.classList.remove('hidden');
-    fmClose.focus();
+    document.documentElement.classList.add('fm-lock');   // trava a rolagem da página atrás da janela
+    fmClose.focus({ preventScroll: true });
     if (!loggedIn()) return fmEmpty('Entre na sua conta pra ver seus amigos.', 'Use o botão de conta na tela inicial e escolha seu @.');
     if (ownCache) { fmFriends = (ownCache.friends || []).filter(function (f) { return f && f.handle; }); fmRender(); }
     else fmEmpty('Carregando…');
@@ -1506,7 +1509,7 @@
     });
   }
 
-  tabFriends.addEventListener('click', function () { setPane('friends'); loadFriends(); openFriendsModal(); });
+  tabFriends.addEventListener('click', function () { openFriendsModal(); });   // só abre a janela: não mexe no perfil/painel que está atrás
   tabInbox.addEventListener('click', function () { setPane('inbox'); });
   document.addEventListener('truaccount', function () { refreshBadge(); loadFriends(); refreshOwnStats(); });
   setInterval(function () {
