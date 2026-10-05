@@ -27,11 +27,12 @@
     '.tc-max{padding:0 .9rem;font-size:1.05rem;opacity:.75;border-left:1px solid rgba(255,248,240,.08)}' +
     '.tc-toggle:hover,.tc-max:hover{background:rgba(255,248,240,.07)}.tc-max:hover{opacity:1}' +
     '.tc-toggle:focus-visible,.tc-max:focus-visible{outline:2px solid rgba(255,248,240,.7);outline-offset:-2px}' +
-    '.tc-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s ease}' +
+    '.tc-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s cubic-bezier(.22,.8,.26,1)}' +
+    '.tc-plot{opacity:0;transition:opacity .2s ease}.sp-chart.open .tc-plot{opacity:1;transition:opacity .35s ease .12s}' +
     '.sp-chart.open .tc-body{grid-template-rows:1fr}' +
     '.tc-clip{min-height:0;overflow:hidden}' +
     '.tc-plot{position:relative;height:clamp(6.5rem,18dvh,8.5rem);touch-action:pan-y}' +
-    '@media (prefers-reduced-motion:reduce){.tc-body,.tc-toggle i{transition:none}}' +
+    '@media (prefers-reduced-motion:reduce){.tc-body,.tc-toggle i,.tc-plot{transition:none!important}}' +
     '.tc-tip{position:absolute;pointer-events:none;z-index:2;padding:.5rem .7rem;border-radius:.65rem;background:rgba(14,12,22,.94);border:1px solid rgba(167,139,250,.35);' +
       'box-shadow:0 .5rem 1.2rem rgba(0,0,0,.5);font-size:.85rem;line-height:1.4;white-space:nowrap;display:none}' +
     '.tc-card{width:min(46rem,94vw);max-height:92dvh;overflow:auto}' +
@@ -300,10 +301,24 @@
   // ---- gráfico dentro do perfil ----
   var inlineChart = null;
   var toggleBtn = null, maxBtn = null;
-  function setOpen(host, open) {
+  var wantOpen = false, swapT = 0;
+  function applyOpen(host, open) {
     host.classList.toggle('open', open);
     toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open && inlineChart) { inlineChart.reset(); inlineChart.fit(); inlineChart.draw(); }
+  }
+  // a coleção (cards) some rapidinho, o layout dela troca escondido (esticada <-> normal) e ela reaparece suave
+  function setOpen(host, open) {
+    wantOpen = open;
+    var col = document.getElementById('sp-collection-wrap');
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!col || col.hidden || reduced) { applyOpen(host, open); return; }
+    col.classList.add('sp-swap');
+    clearTimeout(swapT);
+    swapT = setTimeout(function () {
+      applyOpen(host, wantOpen);
+      requestAnimationFrame(function () { requestAnimationFrame(function () { col.classList.remove('sp-swap'); }); });
+    }, 150);
   }
   function setupInline() {
     var host = document.getElementById('sp-chart');
@@ -323,7 +338,8 @@
     toggleBtn = host.querySelector('.tc-toggle');
     maxBtn = host.querySelector('.tc-max');
     inlineChart = createChart(host.querySelector('.tc-plot'), { big: false, tooltip: false });
-    toggleBtn.addEventListener('click', function () { setOpen(host, !host.classList.contains('open')); });
+    wantOpen = false;
+    toggleBtn.addEventListener('click', function () { setOpen(host, !wantOpen); });
     maxBtn.addEventListener('click', openDetails);
     return true;
   }

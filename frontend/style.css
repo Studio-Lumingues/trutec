@@ -4657,6 +4657,9 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 }
 .sp-collection[hidden] { display: none; }
 .sp-collection-title { flex: none; }
+/* troca fechado <-> aberto (profile-chart.js põe .sp-swap): some rápido, o layout muda escondido, reaparece devagar */
+.sp-collection { transition: opacity .4s ease .05s, transform .45s cubic-bezier(.2,.8,.2,1) .05s; }
+.sp-collection.sp-swap { opacity: 0; transform: translateY(.5rem); transition: opacity .14s ease, transform .14s ease; }
 .sp-slots {
   flex: 1 1 auto; min-height: 0; width: 100%; max-width: none; margin-bottom: 0; gap: 0.75rem;
   grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); justify-content: stretch;
@@ -4664,14 +4667,11 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .sp-collection .sp-cell { min-height: 0; }
 .sp-collection .sp-slot {
   height: 100%; aspect-ratio: auto;
-  border-radius: 0.5rem 0.5rem 0 0; border-bottom-width: 0;
+  border-radius: 0.5rem 0.5rem 0 0; border: 0;
   box-shadow: inset 0 0 1.6rem rgba(0,0,0,0.18);
 }
-.sp-collection .sp-slot img {
-  object-position: 50% 0; transform: scale(1.02);
-  transition: object-position 1.1s cubic-bezier(.2,.7,.2,1), transform .6s ease;
-}
-.sp-collection .sp-slot:not(.empty):not(.add):hover img { object-position: 68% 0; transform: scale(1.08); }
+.sp-collection .sp-slot.active { box-shadow: inset 0 0 0 2px var(--gold-bright), inset 0 0 1.6rem rgba(0,0,0,0.18); }
+.sp-collection .sp-slot img { object-position: 50% 0; }
 
 /* brilho de vidro no topo + faixa de luz (light sweep) que cruza o card de tempos em tempos */
 .sp-collection .sp-slot:not(.empty):not(.add)::before {
@@ -4698,20 +4698,19 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   100% { transform: translateX(480%) skewX(-18deg); opacity: 0; }
 }
 .sp-collection .sp-slot:not(.empty):not(.add):hover {
-  border-color: rgba(255,255,255,0.9);
-  box-shadow: inset 0 0 1.6rem rgba(0,0,0,0.18), 0 0 1.4rem rgba(167,139,250,0.45), 0 0.5rem 1.4rem rgba(0,0,0,0.55);
+  border-color: transparent;
+  box-shadow: inset 0 0 1.6rem rgba(0,0,0,0.18), 0 0 1.4rem rgba(167,139,250,0.4), 0 0.5rem 1.4rem rgba(0,0,0,0.5);
 }
 
 /* ABERTO: tamanho normal, boneco inteiro, logo abaixo do gráfico */
 .sp-chart.open ~ .sp-collection { flex: none; min-height: 0; margin-bottom: 0; display: block; }
 .sp-chart.open ~ .sp-collection .sp-slots { display: grid; grid-template-columns: repeat(3, minmax(0, 9.5rem)); grid-template-rows: auto; justify-content: start; margin-bottom: 1.25rem; }
-.sp-chart.open ~ .sp-collection .sp-slot { height: auto; aspect-ratio: 2 / 3; border-radius: 0.3rem; border-bottom-width: 1px; }
-.sp-chart.open ~ .sp-collection .sp-slot img { object-position: 50% 0; transform: none; }
+.sp-chart.open ~ .sp-collection .sp-slot { height: auto; aspect-ratio: 2 / 3; border-radius: 0.3rem; }
 @media (max-width: 720px) {
   .sp-chart.open ~ .sp-collection .sp-slots { grid-template-columns: repeat(3, minmax(0, 7.5rem)); justify-content: center; }
   .sp-collection { min-height: 20rem; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .sp-collection, .sp-collection.sp-swap { transition: none; transform: none; }
   .sp-collection .sp-slot::after { animation: none !important; opacity: 0; }
-  .sp-collection .sp-slot img { transition: none; }
 }
