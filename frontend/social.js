@@ -1103,8 +1103,7 @@
       items.forEach(function (it) {
         var d = (it.offsetLeft + w / 2 - mid) / w;         // 0 = no meio, ±1 = vizinho
         var ad = Math.abs(d);
-        var t = Math.max(0, Math.min(1, (ad - 0.3) / 2.1));
-        var fade = t * t * (3 - 2 * t);                    // smoothstep: 0 no meio -> 1 na borda
+        var fade = 1 - Math.pow(1 - Math.min(1, ad / 2), 1.3);   // 0 no meio -> 1 a 2 amigos de distância (contínuo)
         var rot = Math.max(-70, Math.min(70, d * 24));
         it.style.transform = 'perspective(60rem) rotateY(' + rot.toFixed(1) + 'deg) scale(' + (1 - Math.min(ad, 3) * 0.1).toFixed(3) + ')';
         it.style.opacity = (1 - fade).toFixed(3);
@@ -1140,17 +1139,22 @@
     wheel._w = 0;
     requestAnimationFrame(update);
 
-    // roda do mouse / trackpad: empurra o alvo e, quando para de rolar, assenta no amigo mais próximo
+    // roda do mouse / trackpad: cada "toque" da roda avança UM amigo (com deslize suave).
+    // Os giros pequenos do trackpad se somam até passar do limite; há uma pequena pausa entre passos.
+    var acc = 0, accTimer = 0, lockUntil = 0;
     wheel.addEventListener('wheel', function (e) {
       var d = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
       if (e.deltaMode === 1) d *= 16;
       if (!d) return;
       e.preventDefault();
-      cancelAnimationFrame(anim); anim = 0;
-      target = clampPos(target + d);
-      run();
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(snapNearest, 140);
+      acc += d;
+      clearTimeout(accTimer);
+      accTimer = setTimeout(function () { acc = 0; }, 180);
+      var now = performance.now();
+      if (Math.abs(acc) < 40 || now < lockUntil) return;
+      goTo(Math.round(target / itemW()) + (acc > 0 ? 1 : -1));
+      acc = 0;
+      lockUntil = now + 190;
     }, { passive: false });
 
     // teclado
