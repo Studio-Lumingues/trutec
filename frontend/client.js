@@ -3048,7 +3048,9 @@ document.getElementById('btn-esconder').addEventListener('click', () => {
 function updateActionButtons(state) {
   const isMyTurn = state.turnSeat === mySeat && !state.viraPick; // ninguém age enquanto escolhem o vira
   const maoDe11 = !!state.score && (state.score[0] === 11 || state.score[1] === 11); // mão de 11: truco bloqueado
-  const canCall = isMyTurn && !state.pendingCall && !state.gameOver && !maoDe11;
+  // quem pediu (ou aceitou) a última aposta não pode aumentar de novo: quem sobe é o adversário
+  const iRaisedLast = state.lastRaiserTeam !== undefined && state.lastRaiserTeam !== null && state.lastRaiserTeam === myTeam;
+  const canCall = isMyTurn && !state.pendingCall && !state.gameOver && !maoDe11 && !iRaisedLast;
   const nextLevelByStake = { 1: 'truco', 3: 'seis', 6: 'nove', 9: 'doze' };
   const nextLevel = nextLevelByStake[state.stake];
 
@@ -3060,9 +3062,16 @@ function updateActionButtons(state) {
   } else {
     btnTruco.disabled = true;
   }
-  btnTruco.title = maoDe11 ? 'Na mão de 11 não pode pedir truco' : '';
+  btnTruco.title = maoDe11 ? 'Na mão de 11 não pode pedir truco' : (iRaisedLast ? 'Aguarde o adversário aumentar' : '');
 
-  document.getElementById('btn-correr').disabled = !isMyTurn || !!state.pendingCall || state.gameOver;
+  const btnCorrer = document.getElementById('btn-correr');
+  btnCorrer.disabled = !isMyTurn || !!state.pendingCall || state.gameOver;
+  // homenzinho correndo: só se mexe quando o botão está ativo (e se a pessoa não pediu menos movimento)
+  const runMan = btnCorrer.querySelector('.run-man');
+  if (runMan && runMan.pauseAnimations) {
+    const still = btnCorrer.disabled || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    try { still ? runMan.pauseAnimations() : runMan.unpauseAnimations(); } catch (e) {}
+  }
   const btnEsconder = document.getElementById('btn-esconder');
   const firstRound = isFirstRound(state);
   btnEsconder.disabled = !isMyTurn || !!state.pendingCall || state.gameOver || firstRound;

@@ -1028,6 +1028,7 @@ class Room {
       leaderSeat: this.leaderSeat,
       score: this.score,
       stake: this.stake,
+      lastRaiserTeam: this.lastRaiserTeam,   // quem fez a última aposta: esse time não pode aumentar de novo (botão escuro)
       stakeLabel: STAKE_LABEL[this.stake],
       pendingCall: this.pendingCall,
       gameOver: this.gameOver,

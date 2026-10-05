@@ -22,6 +22,7 @@
   var TARGET_STEPS = 22;        // quantos jogadores passam, mais ou menos, até parar
   var MAX_BLUR = 30;            // px de borrão HORIZONTAL no auge da velocidade
   var BLUR_FROM = 2.5;          // só borra acima dessa velocidade (jogadores por segundo)
+  var MASTER_VOL = 0.22;        // volume geral do som da roleta (1 = como era antes; menor = mais baixo)
   var BLUR_GAIN = 0.55;         // 1 = borrão do tamanho do deslocamento por quadro; menor = mais leve
 
   var cur = null;               // sorteio em andamento
@@ -85,7 +86,7 @@
       var comp = actx.createDynamicsCompressor();
       comp.threshold.value = -14; comp.ratio.value = 6; comp.attack.value = 0.002; comp.release.value = 0.12;
       master = actx.createGain();
-      master.gain.value = 1;
+      master.gain.value = MASTER_VOL;
       master.connect(comp); comp.connect(actx.destination);
       // 1 s de ruído branco, reaproveitado por todos os sons
       noiseBuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
