@@ -4646,3 +4646,17 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .social-friends { transition: opacity .45s ease; }
 .social-friends.fr-pending { opacity: 0; transition: opacity .5s ease; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .social-friends, .social-friends.fr-pending { transition: none; } }
+
+/* ===== Social: coleção maior; encolhe quando o gráfico de desempenho é aberto ===== */
+.sp-slots {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%; max-width: 42rem; gap: 1rem;
+  transition: max-width .25s ease, gap .25s ease;
+}
+/* o gráfico (#sp-chart) vem logo antes da coleção, então dá pra reagir ao estado "open" só com CSS */
+.sp-chart.open ~ .sp-collection .sp-slots { max-width: 17rem; gap: 0.6rem; }
+@media (max-width: 720px) {
+  .sp-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); justify-content: stretch; max-width: 100%; }
+  .sp-chart.open ~ .sp-collection .sp-slots { max-width: 15rem; }
+}
+@media (prefers-reduced-motion: reduce) { .sp-slots { transition: none; } }
