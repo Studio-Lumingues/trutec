@@ -40,6 +40,19 @@
     '.tc-note{font-size:.85rem;opacity:.7;margin:0 0 .8rem;text-align:center;min-height:1.1em}';
   document.head.appendChild(css);
 
+
+  // ---- MODO TESTE: ?chartdemo=1 na URL mostra um histórico de exemplo (só na sua tela) ----
+  var DEMO = /[?&]chartdemo=1/.test(location.search);
+  function demoHistory() {
+    var seed = 7, out = [], bal = 0;
+    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    for (var i = 0; i < 48; i++) {
+      var p = bal > 3 ? 0.4 : (bal < -3 ? 0.62 : 0.5);   // volta pro meio, dá cara de subidas e descidas
+      var win = rnd() < p; out.push(win); bal += win ? 1 : -1;
+    }
+    return out;
+  }
+
   function colors() {
     var cb = document.documentElement.classList.contains('colorblind');
     return { up: cb ? '#4da3ff' : '#3ddc84', down: cb ? '#ffb020' : '#ff4d5e', accent: cb ? '#56B4E9' : '#a78bfa' };
@@ -357,6 +370,7 @@
       msg = 'Cada vela agrupa ' + (m.size === 1 ? '1 partida' : m.size + ' partidas') + '. Verde = saldo subiu, vermelho = caiu.';
       if (m.prior > 0) msg += ' ' + m.prior + ' partida' + (m.prior > 1 ? 's' : '') + ' antiga' + (m.prior > 1 ? 's' : '') + ' sem detalhes entram como saldo inicial.';
     }
+    if (DEMO) msg = 'MODO TESTE: dados de exemplo, não são partidas reais.';
     mEls.note.textContent = msg;
   }
 
@@ -382,6 +396,7 @@
     var valid = /^[a-z0-9_]{3,16}$/.test(handle);
     if (!valid) {                                   // convidado / sem @: linha reta
       curHandle = ''; model = null; level = 0; loadedAt = 0; loading = false; loadError = ''; reqId++;
+      if (DEMO) { var dh = demoHistory(), dw = dh.filter(Boolean).length; model = compute(dh, dw, dh.length - dw); level = model.wins - model.losses; }
       redrawAll(); return;
     }
     if (handle === curHandle && (loading || Date.now() - loadedAt < STALE_MS)) return;
@@ -395,7 +410,10 @@
         loading = false;
         if (!r || !r.ok) { loadError = (r && r.error) || 'Não foi possível carregar o gráfico.'; fillModal(); return; }
         loadError = ''; loadedAt = Date.now();
-        model = compute(r.history || [], +r.wins || 0, +r.losses || 0);
+        if (DEMO) {
+          var dh = demoHistory(), dw = dh.filter(Boolean).length;
+          model = compute(dh, dw, dh.length - dw);
+        } else model = compute(r.history || [], +r.wins || 0, +r.losses || 0);
         level = model.wins - model.losses;
         redrawAll(); fillModal();
       })
