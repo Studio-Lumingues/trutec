@@ -4727,12 +4727,12 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .sp-collection .sp-slot.add:hover { background: rgba(0,0,0,0.25); border-color: rgba(255,255,255,0.45); }
 .sp-collection .sp-slot.add:hover::before { filter: grayscale(1) brightness(0.65); }
 
-/* ===== Amigos (roleta): hand drawn animado ===== */
-/* A sombra sai do box-shadow (que o filtro cortaria) e vira drop-shadow depois do tremido. */
-.fr-wheel-fig {
-  box-shadow: none;
-  filter: url(#boil-sm) drop-shadow(0 0.8rem 1rem rgba(0,0,0,0.5));
-}
-.fr-wheel-name, .fr-wheel-handle { filter: url(#boil-ic); }
+/* ===== Amigos (roleta): só o BONECO treme; o quadro branco fica parado ===== */
+.fr-wheel-fig img { filter: url(#boil-sm); }
 /* lista de amigos (quando não é roleta) */
 .fr-open img { filter: url(#boil-sm); }
+
+/* ===== Botão Social: bonecos dos amigos que se alternam (social-duo.js) ===== */
+.btn-glass .glass-duo img { transition: opacity .35s ease; }
+.btn-glass .glass-duo img.gd-fade { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .btn-glass .glass-duo img { transition: none; } }
