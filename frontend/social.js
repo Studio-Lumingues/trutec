@@ -302,6 +302,94 @@
     avatarEl.src = src;
   }
 
+  // ---- lápis no boneco principal: escolher qual avatar da coleção fica como principal ----
+  var spTop = avatarEl.parentNode;
+  var editAvBtn = document.createElement('button');
+  editAvBtn.type = 'button';
+  editAvBtn.className = 'sp-avatar-edit';
+  editAvBtn.title = 'Trocar o personagem principal';
+  editAvBtn.setAttribute('aria-label', 'Trocar o personagem principal');
+  editAvBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M4 20l1.2-4.4L16.6 4.2a2 2 0 0 1 2.8 0l1.4 1.4a2 2 0 0 1 0 2.8L9.4 19.8z"/>' +
+    '<path d="M14.8 6l3.2 3.2"/></svg>';
+  editAvBtn.hidden = true;
+  spTop.appendChild(editAvBtn);
+
+  var eqModal = null, eqGrid = null, eqHint = null;
+  function activeAvatarIndex() {
+    var av = ownAvatars(), ix = -1, cur = null;
+    try { ix = parseInt(localStorage.getItem('trutec_avatar_active'), 10); } catch (e) {}
+    try { cur = localStorage.getItem('trutec_meu_personagem'); } catch (e) {}
+    if (isFinite(ix) && ix >= 0 && ix < 3 && av[ix] && (!cur || av[ix] === cur)) return ix;
+    return cur ? av.indexOf(cur) : -1;
+  }
+  function buildEquipPicker() {
+    if (eqModal) return;
+    eqModal = document.createElement('div');
+    eqModal.className = 'settings-modal hidden';
+    eqModal.setAttribute('role', 'dialog');
+    eqModal.setAttribute('aria-modal', 'true');
+    eqModal.setAttribute('aria-labelledby', 'sp-eq-title');
+    eqModal.innerHTML =
+      '<div class="settings-card sp-pick-card">' +
+        '<h2 id="sp-eq-title">Personagem principal</h2>' +
+        '<p class="modal-hint" id="sp-eq-hint"></p>' +
+        '<div class="sp-pick-grid" id="sp-eq-grid"></div>' +
+        '<div class="modal-actions"><button type="button" class="btn btn-primary" id="sp-eq-close">Fechar</button></div>' +
+      '</div>';
+    document.body.appendChild(eqModal);
+    eqGrid = eqModal.querySelector('#sp-eq-grid');
+    eqHint = eqModal.querySelector('#sp-eq-hint');
+    eqModal.querySelector('#sp-eq-close').addEventListener('click', closeEquipPicker);
+    eqModal.addEventListener('click', function (e) { if (e.target === eqModal) closeEquipPicker(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && eqModal && !eqModal.classList.contains('hidden')) { e.stopPropagation(); closeEquipPicker(); }
+    }, true);
+  }
+  function closeEquipPicker() { if (eqModal) eqModal.classList.add('hidden'); }
+  function openEquipPicker() {
+    buildEquipPicker();
+    var av = ownAvatars(), cur = activeAvatarIndex(), n = 0;
+    eqGrid.innerHTML = '';
+    for (var i = 0; i < 3; i++) {
+      if (!av[i]) continue;
+      n++;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sp-slot' + (i === cur ? ' active' : '');
+      var im = document.createElement('img');
+      im.src = av[i]; im.alt = ''; im.draggable = false;
+      b.appendChild(im);
+      b.setAttribute('aria-label', 'Avatar ' + (i + 1) + (i === cur ? ' (principal)' : ''));
+      b.title = i === cur ? 'Personagem principal atual' : 'Usar o avatar ' + (i + 1) + ' como principal';
+      b.addEventListener('click', (function (ix) { return function () { equipAvatar(ix); }; })(i));
+      eqGrid.appendChild(b);
+    }
+    eqHint.textContent = n
+      ? 'Escolha qual personagem da sua coleção vai ser o principal (o do perfil e o das partidas).'
+      : 'Você ainda não criou nenhum boneco. Crie um em \u201cAvatar\u201d, na tela inicial, e volte aqui.';
+    eqModal.classList.remove('hidden');
+    var first = eqGrid.querySelector('button.active') || eqGrid.querySelector('button');
+    (first || eqModal.querySelector('#sp-eq-close')).focus();
+  }
+  function equipAvatar(ix) {
+    var av = ownAvatars();
+    if (!av[ix]) return;
+    closeEquipPicker();
+    // o editor de avatar (client.js) guarda o "em uso", atualiza a prévia e avisa a sala
+    var handled = false;
+    try { handled = !document.dispatchEvent(new CustomEvent('trutec:equip-avatar', { detail: { index: ix }, cancelable: true })); } catch (e) {}
+    if (!handled) {
+      try { localStorage.setItem('trutec_avatar_active', String(ix)); localStorage.setItem('trutec_meu_personagem', av[ix]); } catch (e) {}
+    }
+    refreshUser();
+    if (!viewingOther) paint(myData());
+    if (window.TruAccount && TruAccount.syncCharacter) TruAccount.syncCharacter();   // manda pro perfil público
+  }
+  editAvBtn.addEventListener('click', function (e) { e.stopPropagation(); openEquipPicker(); });
+
   // d = { name, handle, since, wins, losses, avatar, collection, other }
   function paint(d) {
     var wins = num(d.wins), losses = num(d.losses), total = wins + losses;
@@ -313,6 +401,7 @@
     bioEl.textContent = bio;
     bioEl.hidden = !bio;
     viewingOther = !!d.other;
+    editAvBtn.hidden = !!d.other;   // lápis só no SEU perfil
     if (mailBtn) mailBtn.hidden = !(d.other && d.handle);   // carta só no perfil dos outros
     if (moreWrap) moreWrap.hidden = !(d.other && d.handle);   // ⋯ (bloquear/denunciar) só no perfil dos outros
     if (friendBtn) { friendBtn.hidden = true; if (d.other && d.handle) loadFriendState(d.handle); }   // amizade só no perfil dos outros

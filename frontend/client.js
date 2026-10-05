@@ -1109,6 +1109,16 @@ function getSavedCharacter() {
     try { localStorage.setItem('trutec_meu_personagem', it.img); } catch (e) {}
   }
   renderSlots();
+
+  // O perfil (social.js) pode trocar o personagem principal: usa o mesmo caminho do clique no espaço.
+  document.addEventListener('trutec:equip-avatar', (e) => {
+    const i = e && e.detail ? e.detail.index : -1;
+    if (!(i >= 0 && i < SLOT_COUNT) || !slots[i]) return;
+    e.preventDefault();                       // avisa que foi tratado
+    setActive(i);
+    renderSlots();
+    applyActive(slots[i].img, `Avatar ${i + 1} em uso!`);
+  });
 })();
 
 // ------------------------------------------------------------------
