@@ -1040,12 +1040,15 @@
     if (friends.length) friendsEl.appendChild(buildWheel(friends));
   }
 
-  // ---- amigos em "roleta" HORIZONTAL (estilo seletor do iPhone, só que de lado) ----
-  // Cada amigo é o boneco dele com o nome logo abaixo do peito. A roleta trava no do meio;
-  // os dos lados ficam menores, virados e esmaecidos. Clicar no do meio abre o perfil;
-  // clicar em outro leva ele pro meio. Roda do mouse, arrastar, toque e setas do teclado.
+  // ---- amigos em "roleta" HORIZONTAL INFINITA (estilo seletor do iPhone, só que de lado) ----
+  // Cada amigo é o boneco dele com o nome logo abaixo do peito. O do meio fica em destaque e
+  // sempre tem um amigo de cada lado; ao passar do último volta pro primeiro (loop infinito).
+  // Clicar no do meio abre o perfil; clicar em outro leva ele pro meio.
+  // Roda do mouse (só perto dos bonecos), arrastar, toque e setas do teclado.
   function buildWheel(friends) {
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var n = friends.length;
+    var L = n === 1 ? 1 : (n === 2 ? 4 : n);        // posições no círculo (com 2 amigos eles se repetem pra não ficar vazio)
     var wrap = document.createElement('div');
     wrap.className = 'fr-wheel-wrap';
     var wheel = document.createElement('div');
@@ -1055,12 +1058,11 @@
     wheel.setAttribute('aria-label', 'Seus amigos');
     var hint = document.createElement('div');
     hint.className = 'fr-wheel-hint';
-    hint.textContent = 'Deslize e clique no amigo do meio pra abrir o perfil';
+    hint.textContent = L > 1 ? 'Deslize e clique no amigo do meio pra abrir o perfil' : 'Clique no amigo pra abrir o perfil';
 
-    var spL = document.createElement('div'); spL.className = 'fr-wheel-spacer';
-    var spR = document.createElement('div'); spR.className = 'fr-wheel-spacer';
-    wheel.appendChild(spL);
-    var items = friends.map(function (f) {
+    var items = [];
+    for (var k = 0; k < L; k++) (function (slot) {
+      var f = friends[slot % n];
       var it = document.createElement('button');
       it.type = 'button';
       it.className = 'fr-wheel-item';
@@ -1081,32 +1083,31 @@
       it.addEventListener('click', function () {
         if (wasDragged) return;
         if (it.classList.contains('sel')) search(f.handle);
-        else goTo(items.indexOf(it));
+        else goTo(Math.round(pos) + Math.round(offset(slot)));
       });
       wheel.appendChild(it);
-      return it;
-    });
-    wheel.appendChild(spR);
+      items.push(it);
+    })(k);
     wrap.appendChild(wheel); wrap.appendChild(hint);
 
+    var pos = 0, target = 0, anim = 0, lastT = 0;      // em "posições" (1 = um amigo); sem limites: é um círculo
     function itemW() { return items[0].offsetWidth || 1; }
-    function maxPos() { return (items.length - 1) * itemW(); }
-    function clampPos(v) { return Math.max(0, Math.min(maxPos(), v)); }
-    function current() { return Math.max(0, Math.min(items.length - 1, Math.round(wheel.scrollLeft / itemW()))); }
+    function offset(slot) { var x = slot - pos; return x - L * Math.round(x / L); }   // distância do centro, no menor caminho
+    function curSlot() { var r = Math.round(pos) % L; return r < 0 ? r + L : r; }
 
-    // aparência: tamanho, giro e transparência variam de forma contínua com a distância do centro.
-    // A transparência chega a 0 antes da borda, então os amigos nascem/somem num fade suave (sem "pulo").
+    // aparência: tamanho, giro e transparência variam de forma contínua com a distância do centro
     function update() {
-      var vw = wheel.clientWidth;
-      if (!vw) return;
-      var w = itemW(), mid = wheel.scrollLeft + vw / 2;
-      items.forEach(function (it) {
-        var d = (it.offsetLeft + w / 2 - mid) / w;         // 0 = no meio, ±1 = vizinho
+      var w = itemW();
+      items.forEach(function (it, slot) {
+        var d = offset(slot);
         var ad = Math.abs(d);
-        var fade = 1 - Math.pow(1 - Math.min(1, ad / 2), 1.3);   // 0 no meio -> 1 a 2 amigos de distância (contínuo)
+        var fade = 1 - Math.pow(1 - Math.min(1, ad / 2), 1.3);   // 0 no meio -> 1 a 2 amigos de distância
         var rot = Math.max(-70, Math.min(70, d * 24));
-        it.style.transform = 'perspective(60rem) rotateY(' + rot.toFixed(1) + 'deg) scale(' + (1 - Math.min(ad, 3) * 0.1).toFixed(3) + ')';
-        it.style.opacity = (1 - fade).toFixed(3);
+        it.style.transform = 'translateX(' + (d * w).toFixed(1) + 'px) perspective(60rem) rotateY(' + rot.toFixed(1) + 'deg) scale(' + (1 - Math.min(ad, 3) * 0.1).toFixed(3) + ')';
+        var o = 1 - fade;
+        it.style.opacity = o.toFixed(3);
+        it.style.visibility = o < 0.01 ? 'hidden' : 'visible';
+        it.style.zIndex = String(Math.round(100 - ad * 10));
         var sel = ad < 0.5;
         if (sel !== it.classList.contains('sel')) {
           it.classList.toggle('sel', sel);
@@ -1115,73 +1116,65 @@
       });
     }
 
-    // rolagem suave própria: a posição "persegue" o alvo com desaceleração (em vez do pulo seco do snap do navegador)
-    var pos = 0, target = 0, anim = 0, lastT = 0, idleTimer = 0;
+    // deslize suave: a posição "persegue" o alvo com desaceleração
     function frame(now) {
       var dt = Math.min(64, now - lastT || 16); lastT = now;
       var diff = target - pos;
-      if (Math.abs(diff) < 0.4) { pos = target; anim = 0; }
+      if (Math.abs(diff) < 0.002) { pos = target; anim = 0; }
       else { pos += diff * (1 - Math.exp(-dt / 110)); anim = requestAnimationFrame(frame); }
-      wheel.scrollLeft = pos;
       update();
     }
     function run() { if (!anim) { lastT = performance.now(); anim = requestAnimationFrame(frame); } }
-    function setTarget(v) { target = clampPos(v); if (reduce) { pos = target; wheel.scrollLeft = pos; update(); } else run(); }
-    function goTo(i) { setTarget(Math.max(0, Math.min(items.length - 1, i)) * itemW()); }
-    function snapNearest() { goTo(Math.round(target / itemW())); }
+    function goTo(t) { if (L < 2) return; target = t; if (reduce) { pos = target; update(); } else run(); }
+    function step(dir) { goTo(Math.round(target) + dir); }
 
-    if (window.ResizeObserver) new ResizeObserver(function () {
-      var i = Math.round(pos / (wheel._w || itemW()));
-      wheel._w = itemW();
-      pos = target = clampPos(i * itemW()); wheel.scrollLeft = pos; update();
-    }).observe(wheel);
+    if (window.ResizeObserver) new ResizeObserver(update).observe(wheel);
     else window.addEventListener('resize', update);
-    wheel._w = 0;
     requestAnimationFrame(update);
+    if (L < 2) return wrap;
 
-    // roda do mouse / trackpad: cada "toque" da roda avança UM amigo (com deslize suave).
-    // Os giros pequenos do trackpad se somam até passar do limite; há uma pequena pausa entre passos.
     // hitbox: só os bonecos visíveis (com uma folguinha em volta) seguram a roda do mouse
     function overFriend(x, y) {
       var pad = 24;
       for (var i = 0; i < items.length; i++) {
-        if (parseFloat(items[i].style.opacity || '1') < 0.08) continue;   // já sumiu no fade
+        if (items[i].style.visibility === 'hidden' || parseFloat(items[i].style.opacity || '1') < 0.08) continue;
         var r = items[i].getBoundingClientRect();
         if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad) return true;
       }
       return false;
     }
+
+    // roda do mouse / trackpad: cada "toque" avança UM amigo; fora da hitbox a página rola normalmente
     var acc = 0, accTimer = 0, lockUntil = 0;
     wheel.addEventListener('wheel', function (e) {
       var d = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
       if (e.deltaMode === 1) d *= 16;
       if (!d) return;
-      if (!overFriend(e.clientX, e.clientY)) return;   // fora da "hitbox" dos bonecos: a página rola normalmente
+      if (!overFriend(e.clientX, e.clientY)) return;
       e.preventDefault();
       acc += d;
       clearTimeout(accTimer);
       accTimer = setTimeout(function () { acc = 0; }, 180);
       var now = performance.now();
       if (Math.abs(acc) < 40 || now < lockUntil) return;
-      goTo(Math.round(target / itemW()) + (acc > 0 ? 1 : -1));
+      step(acc > 0 ? 1 : -1);
       acc = 0;
       lockUntil = now + 190;
     }, { passive: false });
 
     // teclado
     wheel.addEventListener('keydown', function (e) {
-      var cur = Math.round(target / itemW());
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goTo(cur + 1); }
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goTo(cur - 1); }
-      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); search(friends[current()].handle); }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); step(1); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); step(-1); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); search(friends[curSlot() % n].handle); }
     });
 
-    // arrastar (mouse, toque e caneta) com inércia: ao soltar, a velocidade empurra e a roleta assenta num amigo
+    // arrastar (mouse, toque e caneta) com inércia: ao soltar, a velocidade empurra e assenta num amigo
     var wasDragged = false, drag = null;
     wheel.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      cancelAnimationFrame(anim); anim = 0; clearTimeout(idleTimer);
-      target = pos = wheel.scrollLeft;
+      cancelAnimationFrame(anim); anim = 0;
+      target = pos;
       drag = { x: e.clientX, start: pos, moved: false, id: e.pointerId, lx: e.clientX, lt: performance.now(), v: 0 };
     });
     wheel.addEventListener('pointermove', function (e) {
@@ -1192,8 +1185,7 @@
       var now = performance.now(), dt = Math.max(1, now - drag.lt);
       drag.v = 0.8 * ((e.clientX - drag.lx) / dt) + 0.2 * drag.v;   // px/ms, suavizado
       drag.lx = e.clientX; drag.lt = now;
-      pos = target = clampPos(drag.start - dx);
-      wheel.scrollLeft = pos;
+      pos = target = drag.start - dx / itemW();
       update();
     });
     function endDrag() {
@@ -1204,8 +1196,8 @@
       wasDragged = true;
       setTimeout(function () { wasDragged = false; }, 0);   // engole o clique gerado ao soltar
       var idle = performance.now() - d.lt > 80;               // parou antes de soltar: sem inércia
-      var fling = idle ? 0 : -d.v * 260;
-      goTo(Math.round(clampPos(pos + fling) / itemW()));
+      var fling = idle ? 0 : -d.v * 260 / itemW();
+      goTo(Math.round(pos + fling));
     }
     wheel.addEventListener('pointerup', endDrag);
     wheel.addEventListener('pointercancel', endDrag);
