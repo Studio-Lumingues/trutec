@@ -515,6 +515,7 @@
     shownHandle = myHandle();   // o seu @ também pode ter o link copiado
     say('');
     paint(myData());
+    loadFriends();           // volta a mostrar os SEUS amigos
   }
 
   // ---- editar perfil ----
@@ -646,6 +647,8 @@
           name: p.displayName || p.name || shownHandle, bio: p.bio, handle: shownHandle, wins: p.wins, losses: p.losses,
           avatar: p.character, collection: p.collection, other: true
         });
+        if (Array.isArray(p.friends) && shownHandle !== myHandle()) { friendsReq++; renderOtherFriends(shownHandle, p.friends); }   // o servidor já mandou os amigos dele
+        else loadFriends();                        // amigos de quem está sendo visto
         hideLoading();                             // fade out: revela o perfil novo
       })
       .catch(function () {
@@ -1207,9 +1210,38 @@
     wheel.addEventListener('pointercancel', endDrag);
     return wrap;
   }
+  // A seção Amigos acompanha o perfil que está aberto: no SEU perfil mostra os seus amigos (e pedidos);
+  // no perfil de outra pessoa mostra os amigos DELA (nunca os seus).
+  var friendsReq = 0;                               // ignora respostas de pedidos antigos
+  function viewingOtherFriends() { return viewingOther && shownHandle && shownHandle !== myHandle(); }
+  function friendsMsg(text) {
+    if (!friendsEl) return;
+    friendsEl.innerHTML = '<div class="social-empty"><p></p></div>';
+    friendsEl.querySelector('p').textContent = text;
+  }
+  function renderOtherFriends(handle, list) {
+    if (!friendsEl) return;
+    var friends = (list || []).filter(function (f) { return f && f.handle; });
+    if (!friends.length) return friendsMsg('@' + handle + ' ainda não tem amigos por aqui.');
+    renderFriends({ friends: friends, requests: [] });
+  }
   function loadFriends() {
+    var id = ++friendsReq;
+    if (viewingOtherFriends()) {
+      var h = shownHandle;
+      if (friendsEl) friendsEl.textContent = '';    // some a lista do perfil anterior enquanto carrega
+      fetch(RESOLVED_BACKEND_URL + '/api/profile/' + encodeURIComponent(h) + '/friends')
+        .then(function (r) { return r.json(); })
+        .then(function (r) {
+          if (id !== friendsReq) return;
+          if (r && r.ok && Array.isArray(r.friends)) renderOtherFriends(h, r.friends);
+          else friendsMsg('Não foi possível carregar os amigos de @' + h + '.');
+        })
+        .catch(function () { if (id === friendsReq) friendsMsg('Não foi possível carregar os amigos de @' + h + '.'); });
+      return;
+    }
     if (!loggedIn()) return renderFriends(null);
-    mailApi('/api/friends').then(function (r) { if (r && r.ok) renderFriends(r); });
+    mailApi('/api/friends').then(function (r) { if (id === friendsReq && r && r.ok) renderFriends(r); });
   }
 
   mailBtn.addEventListener('click', function () { if (shownHandle) openCompose(shownHandle); });
