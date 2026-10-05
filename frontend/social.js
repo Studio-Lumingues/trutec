@@ -1037,7 +1037,116 @@
       reqs.forEach(function (f) { friendsEl.appendChild(friendRow(f, true)); });
       if (friends.length) friendsEl.appendChild(label('Seus amigos'));
     }
-    friends.forEach(function (f) { friendsEl.appendChild(friendRow(f, false)); });
+    if (friends.length) friendsEl.appendChild(buildWheel(friends));
+  }
+
+  // ---- amigos em "roleta" (estilo seletor de horário do iPhone) ----
+  // Lista grande com rolagem que "trava" no item do meio; os de cima e de baixo
+  // ficam menores, inclinados e esmaecidos. Clicar no do meio abre o perfil; clicar
+  // em outro leva ele pro meio. Mouse: roda, arrastar ou setas do teclado.
+  function buildWheel(friends) {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var wrap = document.createElement('div');
+    wrap.className = 'fr-wheel-wrap';
+    var band = document.createElement('div');
+    band.className = 'fr-wheel-band';
+    band.setAttribute('aria-hidden', 'true');
+    var wheel = document.createElement('div');
+    wheel.className = 'fr-wheel';
+    wheel.tabIndex = 0;
+    wheel.setAttribute('role', 'listbox');
+    wheel.setAttribute('aria-label', 'Seus amigos');
+    var hint = document.createElement('div');
+    hint.className = 'fr-wheel-hint';
+    hint.textContent = 'Role e clique no amigo do meio pra abrir o perfil';
+
+    var items = friends.map(function (f) {
+      var it = document.createElement('button');
+      it.type = 'button';
+      it.className = 'fr-wheel-item';
+      it.setAttribute('role', 'option');
+      var im = document.createElement('img');
+      im.src = safeImg(f.character) || DEFAULT_AVATAR; im.alt = ''; im.draggable = false;
+      var box = document.createElement('span'), nm = document.createElement('span'), hd = document.createElement('span');
+      nm.className = 'fr-wheel-name'; nm.textContent = f.displayName || f.handle;
+      hd.className = 'fr-wheel-handle'; hd.textContent = '@' + f.handle;
+      box.className = 'fr-wheel-text'; box.appendChild(nm); box.appendChild(hd);
+      it.appendChild(im); it.appendChild(box);
+      it.addEventListener('click', function () {
+        if (wasDragged) return;
+        if (it.classList.contains('sel')) search(f.handle);
+        else goTo(items.indexOf(it));
+      });
+      wheel.appendChild(it);
+      return it;
+    });
+    wrap.appendChild(band); wrap.appendChild(wheel); wrap.appendChild(hint);
+
+    function itemH() { return items[0].offsetHeight || 1; }
+    function current() { return Math.max(0, Math.min(items.length - 1, Math.round(wheel.scrollTop / itemH()))); }
+    function goTo(i) {
+      i = Math.max(0, Math.min(items.length - 1, i));
+      wheel.scrollTo({ top: i * itemH(), behavior: reduce ? 'auto' : 'smooth' });
+    }
+
+    var raf = 0;
+    function update() {
+      raf = 0;
+      var vh = wheel.clientHeight;
+      if (!vh) return;
+      var h = itemH(), mid = wheel.scrollTop + vh / 2;
+      items.forEach(function (it) {
+        var d = (it.offsetTop + h / 2 - mid) / h;          // 0 = no meio, ±1 = vizinho
+        var ad = Math.abs(d);
+        var rot = Math.max(-80, Math.min(80, -d * 26));
+        it.style.transform = 'perspective(30rem) rotateX(' + rot.toFixed(1) + 'deg) scale(' + (1 - Math.min(ad, 3) * 0.09).toFixed(3) + ')';
+        it.style.opacity = Math.max(0.12, 1 - Math.min(ad, 2.6) * 0.38).toFixed(2);
+        var sel = ad < 0.5;
+        if (sel !== it.classList.contains('sel')) {
+          it.classList.toggle('sel', sel);
+          it.setAttribute('aria-selected', sel ? 'true' : 'false');
+        }
+      });
+    }
+    function queue() { if (!raf) raf = requestAnimationFrame(update); }
+    wheel.addEventListener('scroll', queue, { passive: true });
+    if (window.ResizeObserver) new ResizeObserver(queue).observe(wheel);
+    else window.addEventListener('resize', queue);
+    requestAnimationFrame(update);
+
+    // teclado
+    wheel.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); goTo(current() + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); goTo(current() - 1); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); search(friends[current()].handle); }
+    });
+
+    // mouse: arrastar a roleta (no toque a rolagem nativa já funciona)
+    var wasDragged = false, drag = null;
+    wheel.addEventListener('pointerdown', function (e) {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      drag = { y: e.clientY, top: wheel.scrollTop, moved: false, id: e.pointerId };
+    });
+    wheel.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      var dy = e.clientY - drag.y;
+      if (!drag.moved && Math.abs(dy) < 5) return;
+      if (!drag.moved) { drag.moved = true; wheel.classList.add('dragging'); try { wheel.setPointerCapture(drag.id); } catch (er) {} }
+      wheel.scrollTop = drag.top - dy;
+    });
+    function endDrag() {
+      if (!drag) return;
+      var moved = drag.moved;
+      drag = null;
+      if (!moved) return;
+      wheel.classList.remove('dragging');
+      wasDragged = true;
+      setTimeout(function () { wasDragged = false; }, 0);   // engole o clique que o soltar do mouse gera
+      goTo(current());
+    }
+    wheel.addEventListener('pointerup', endDrag);
+    wheel.addEventListener('pointercancel', endDrag);
+    return wrap;
   }
   function loadFriends() {
     if (!loggedIn()) return renderFriends(null);
