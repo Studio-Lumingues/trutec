@@ -4619,7 +4619,7 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .fr-wheel {
   position: relative; display: flex; align-items: flex-start; box-sizing: border-box; overflow-x: auto; overflow-y: hidden;
   padding: 1rem 0 1.25rem; outline: none;
-  scrollbar-width: none; touch-action: pan-y; cursor: grab;   /* a rolagem suave é feita pelo JS (sem snap do navegador) */
+  scrollbar-width: none; touch-action: pan-y;   /* a rolagem suave é feita pelo JS (sem snap do navegador) */
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14%, #000 86%, transparent 100%);
   mask-image: linear-gradient(to right, transparent 0, #000 14%, #000 86%, transparent 100%);
 }

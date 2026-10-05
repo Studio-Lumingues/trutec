@@ -1141,11 +1141,22 @@
 
     // roda do mouse / trackpad: cada "toque" da roda avança UM amigo (com deslize suave).
     // Os giros pequenos do trackpad se somam até passar do limite; há uma pequena pausa entre passos.
+    // hitbox: só os bonecos visíveis (com uma folguinha em volta) seguram a roda do mouse
+    function overFriend(x, y) {
+      var pad = 24;
+      for (var i = 0; i < items.length; i++) {
+        if (parseFloat(items[i].style.opacity || '1') < 0.08) continue;   // já sumiu no fade
+        var r = items[i].getBoundingClientRect();
+        if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad) return true;
+      }
+      return false;
+    }
     var acc = 0, accTimer = 0, lockUntil = 0;
     wheel.addEventListener('wheel', function (e) {
       var d = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
       if (e.deltaMode === 1) d *= 16;
       if (!d) return;
+      if (!overFriend(e.clientX, e.clientY)) return;   // fora da "hitbox" dos bonecos: a página rola normalmente
       e.preventDefault();
       acc += d;
       clearTimeout(accTimer);
