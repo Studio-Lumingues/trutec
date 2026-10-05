@@ -226,6 +226,16 @@ app.get('/api/profile/:handle', wrap(async (req, res) => {
   res.json({ ok: true, profile: p });
 }));
 
+// Histórico de partidas (público) pro gráfico do perfil: array de 1 (vitória) / 0 (derrota), mais antiga primeiro.
+app.get('/api/profile/:handle/history', wrap(async (req, res) => {
+  const handle = db.normHandle(req.params.handle);
+  if (!/^[a-z0-9_]{3,16}$/.test(handle)) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });
+  const p = await db.byHandle(handle);
+  if (!p) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });
+  const history = await db.historyOf(p.id, 300);
+  res.json({ ok: true, wins: p.wins, losses: p.losses, history });
+}));
+
 // Amigos de qualquer perfil (público): só @ e nome de exibição de quem já é amigo.
 // Pedidos pendentes NÃO aparecem aqui (isso continua só em GET /api/friends, que exige login).
 app.get('/api/profile/:handle/friends', wrap(async (req, res) => {

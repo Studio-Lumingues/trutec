@@ -222,4 +222,14 @@
   }
 
   window.TruChart = { open: open };
+
+  // botão "Ver gráfico" na tela de perfil: usa o @ que o social.js escreveu em #sp-handle
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('#sp-chart-btn');
+    if (!b) return;
+    var he = document.getElementById('sp-handle');
+    var h = he ? he.textContent : '';
+    if (!h && window.TruAccount && TruAccount.profile && TruAccount.profile()) h = TruAccount.profile().handle;
+    if (h) open(h);
+  });
 })();
