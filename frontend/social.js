@@ -1048,7 +1048,11 @@
   function buildWheel(friends) {
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var n = friends.length;
-    var L = n === 1 ? 1 : (n === 2 ? 4 : n);        // posições no círculo (com 2 amigos eles se repetem pra não ficar vazio)
+    // Posições no círculo. Quando a roleta dá a volta, o amigo "pula" da ponta de um lado pra ponta do outro
+    // (a distância máxima é L/2). Pra esse pulo nunca ser visto, o círculo precisa ter pelo menos 5 posições:
+    // aí o pulo acontece a 2,5 amigos do centro, onde já está 100% transparente. Com poucos amigos eles se
+    // repetem no círculo, então parece que sempre estiveram lá, só passando de lado.
+    var L = n === 1 ? 1 : n * Math.ceil(5 / n);
     var wrap = document.createElement('div');
     wrap.className = 'fr-wheel-wrap';
     var wheel = document.createElement('div');
