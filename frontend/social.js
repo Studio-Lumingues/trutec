@@ -1090,24 +1090,24 @@
     wrap.appendChild(wheel); wrap.appendChild(hint);
 
     function itemW() { return items[0].offsetWidth || 1; }
+    function maxPos() { return (items.length - 1) * itemW(); }
+    function clampPos(v) { return Math.max(0, Math.min(maxPos(), v)); }
     function current() { return Math.max(0, Math.min(items.length - 1, Math.round(wheel.scrollLeft / itemW()))); }
-    function goTo(i) {
-      i = Math.max(0, Math.min(items.length - 1, i));
-      wheel.scrollTo({ left: i * itemW(), behavior: reduce ? 'auto' : 'smooth' });
-    }
 
-    var raf = 0;
+    // aparência: tamanho, giro e transparência variam de forma contínua com a distância do centro.
+    // A transparência chega a 0 antes da borda, então os amigos nascem/somem num fade suave (sem "pulo").
     function update() {
-      raf = 0;
       var vw = wheel.clientWidth;
       if (!vw) return;
       var w = itemW(), mid = wheel.scrollLeft + vw / 2;
       items.forEach(function (it) {
         var d = (it.offsetLeft + w / 2 - mid) / w;         // 0 = no meio, ±1 = vizinho
         var ad = Math.abs(d);
+        var t = Math.max(0, Math.min(1, (ad - 0.3) / 2.1));
+        var fade = t * t * (3 - 2 * t);                    // smoothstep: 0 no meio -> 1 na borda
         var rot = Math.max(-70, Math.min(70, d * 24));
-        it.style.transform = 'perspective(60rem) rotateY(' + rot.toFixed(1) + 'deg) scale(' + (1 - Math.min(ad, 3) * 0.12).toFixed(3) + ')';
-        it.style.opacity = Math.max(0.15, 1 - Math.min(ad, 2.6) * 0.36).toFixed(2);
+        it.style.transform = 'perspective(60rem) rotateY(' + rot.toFixed(1) + 'deg) scale(' + (1 - Math.min(ad, 3) * 0.1).toFixed(3) + ')';
+        it.style.opacity = (1 - fade).toFixed(3);
         var sel = ad < 0.5;
         if (sel !== it.classList.contains('sel')) {
           it.classList.toggle('sel', sel);
@@ -1115,48 +1115,82 @@
         }
       });
     }
-    function queue() { if (!raf) raf = requestAnimationFrame(update); }
-    wheel.addEventListener('scroll', queue, { passive: true });
-    if (window.ResizeObserver) new ResizeObserver(queue).observe(wheel);
-    else window.addEventListener('resize', queue);
+
+    // rolagem suave própria: a posição "persegue" o alvo com desaceleração (em vez do pulo seco do snap do navegador)
+    var pos = 0, target = 0, anim = 0, lastT = 0, idleTimer = 0;
+    function frame(now) {
+      var dt = Math.min(64, now - lastT || 16); lastT = now;
+      var diff = target - pos;
+      if (Math.abs(diff) < 0.4) { pos = target; anim = 0; }
+      else { pos += diff * (1 - Math.exp(-dt / 110)); anim = requestAnimationFrame(frame); }
+      wheel.scrollLeft = pos;
+      update();
+    }
+    function run() { if (!anim) { lastT = performance.now(); anim = requestAnimationFrame(frame); } }
+    function setTarget(v) { target = clampPos(v); if (reduce) { pos = target; wheel.scrollLeft = pos; update(); } else run(); }
+    function goTo(i) { setTarget(Math.max(0, Math.min(items.length - 1, i)) * itemW()); }
+    function snapNearest() { goTo(Math.round(target / itemW())); }
+
+    if (window.ResizeObserver) new ResizeObserver(function () {
+      var i = Math.round(pos / (wheel._w || itemW()));
+      wheel._w = itemW();
+      pos = target = clampPos(i * itemW()); wheel.scrollLeft = pos; update();
+    }).observe(wheel);
+    else window.addEventListener('resize', update);
+    wheel._w = 0;
     requestAnimationFrame(update);
 
-    // roda do mouse (vertical) gira a roleta de lado
+    // roda do mouse / trackpad: empurra o alvo e, quando para de rolar, assenta no amigo mais próximo
     wheel.addEventListener('wheel', function (e) {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;   // gesto horizontal (trackpad) já funciona sozinho
+      var d = Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      if (e.deltaMode === 1) d *= 16;
+      if (!d) return;
       e.preventDefault();
-      wheel.scrollLeft += e.deltaY;
+      cancelAnimationFrame(anim); anim = 0;
+      target = clampPos(target + d);
+      run();
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(snapNearest, 140);
     }, { passive: false });
 
     // teclado
     wheel.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goTo(current() + 1); }
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goTo(current() - 1); }
+      var cur = Math.round(target / itemW());
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goTo(cur + 1); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goTo(cur - 1); }
       else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); search(friends[current()].handle); }
     });
 
-    // mouse: arrastar a roleta (no toque a rolagem nativa já funciona)
+    // arrastar (mouse, toque e caneta) com inércia: ao soltar, a velocidade empurra e a roleta assenta num amigo
     var wasDragged = false, drag = null;
     wheel.addEventListener('pointerdown', function (e) {
-      if (e.pointerType !== 'mouse' || e.button !== 0) return;
-      drag = { x: e.clientX, left: wheel.scrollLeft, moved: false, id: e.pointerId };
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      cancelAnimationFrame(anim); anim = 0; clearTimeout(idleTimer);
+      target = pos = wheel.scrollLeft;
+      drag = { x: e.clientX, start: pos, moved: false, id: e.pointerId, lx: e.clientX, lt: performance.now(), v: 0 };
     });
     wheel.addEventListener('pointermove', function (e) {
       if (!drag) return;
       var dx = e.clientX - drag.x;
-      if (!drag.moved && Math.abs(dx) < 5) return;
+      if (!drag.moved && Math.abs(dx) < 6) return;
       if (!drag.moved) { drag.moved = true; wheel.classList.add('dragging'); try { wheel.setPointerCapture(drag.id); } catch (er) {} }
-      wheel.scrollLeft = drag.left - dx;
+      var now = performance.now(), dt = Math.max(1, now - drag.lt);
+      drag.v = 0.8 * ((e.clientX - drag.lx) / dt) + 0.2 * drag.v;   // px/ms, suavizado
+      drag.lx = e.clientX; drag.lt = now;
+      pos = target = clampPos(drag.start - dx);
+      wheel.scrollLeft = pos;
+      update();
     });
     function endDrag() {
       if (!drag) return;
-      var moved = drag.moved;
-      drag = null;
-      if (!moved) return;
+      var d = drag; drag = null;
+      if (!d.moved) return;
       wheel.classList.remove('dragging');
       wasDragged = true;
-      setTimeout(function () { wasDragged = false; }, 0);   // engole o clique que o soltar do mouse gera
-      goTo(current());
+      setTimeout(function () { wasDragged = false; }, 0);   // engole o clique gerado ao soltar
+      var idle = performance.now() - d.lt > 80;               // parou antes de soltar: sem inércia
+      var fling = idle ? 0 : -d.v * 260;
+      goTo(Math.round(clampPos(pos + fling) / itemW()));
     }
     wheel.addEventListener('pointerup', endDrag);
     wheel.addEventListener('pointercancel', endDrag);
