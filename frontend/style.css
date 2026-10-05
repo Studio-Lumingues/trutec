@@ -4701,3 +4701,12 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .sp-collection, .sp-collection.sp-swap { transition: none; transform: none; }
   .sp-collection .sp-slot::after { animation: none !important; opacity: 0; }
 }
+
+/* ===== Coleção: cards vazios mostram o personagem padrão em cinza, um pouco mais claro que o fundo do card ===== */
+.sp-collection .sp-slot.empty, .sp-collection .sp-slot.add { isolation: isolate; }
+.sp-collection .sp-slot.empty::before, .sp-collection .sp-slot.add::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: url("/assets/personagem.svg") center top / cover no-repeat;
+  filter: grayscale(1) brightness(0.8);     /* mais claro = brightness maior (0.9); mais escuro = menor (0.65) */
+}
+.sp-collection .sp-slot.add:hover::before { filter: grayscale(1) brightness(0.95); }
