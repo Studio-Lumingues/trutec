@@ -1040,17 +1040,14 @@
     if (friends.length) friendsEl.appendChild(buildWheel(friends));
   }
 
-  // ---- amigos em "roleta" (estilo seletor de horário do iPhone) ----
-  // Lista grande com rolagem que "trava" no item do meio; os de cima e de baixo
-  // ficam menores, inclinados e esmaecidos. Clicar no do meio abre o perfil; clicar
-  // em outro leva ele pro meio. Mouse: roda, arrastar ou setas do teclado.
+  // ---- amigos em "roleta" HORIZONTAL (estilo seletor do iPhone, só que de lado) ----
+  // Cada amigo é o boneco dele com o nome logo abaixo do peito. A roleta trava no do meio;
+  // os dos lados ficam menores, virados e esmaecidos. Clicar no do meio abre o perfil;
+  // clicar em outro leva ele pro meio. Roda do mouse, arrastar, toque e setas do teclado.
   function buildWheel(friends) {
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var wrap = document.createElement('div');
     wrap.className = 'fr-wheel-wrap';
-    var band = document.createElement('div');
-    band.className = 'fr-wheel-band';
-    band.setAttribute('aria-hidden', 'true');
     var wheel = document.createElement('div');
     wheel.className = 'fr-wheel';
     wheel.tabIndex = 0;
@@ -1058,20 +1055,29 @@
     wheel.setAttribute('aria-label', 'Seus amigos');
     var hint = document.createElement('div');
     hint.className = 'fr-wheel-hint';
-    hint.textContent = 'Role e clique no amigo do meio pra abrir o perfil';
+    hint.textContent = 'Deslize e clique no amigo do meio pra abrir o perfil';
 
+    var spL = document.createElement('div'); spL.className = 'fr-wheel-spacer';
+    var spR = document.createElement('div'); spR.className = 'fr-wheel-spacer';
+    wheel.appendChild(spL);
     var items = friends.map(function (f) {
       var it = document.createElement('button');
       it.type = 'button';
       it.className = 'fr-wheel-item';
       it.setAttribute('role', 'option');
+      var fig = document.createElement('span');
+      fig.className = 'fr-wheel-fig';
       var im = document.createElement('img');
-      im.src = safeImg(f.character) || DEFAULT_AVATAR; im.alt = ''; im.draggable = false;
-      var box = document.createElement('span'), nm = document.createElement('span'), hd = document.createElement('span');
+      im.alt = ''; im.draggable = false;
+      im.src = safeImg(f.character) || safeImg(f.avatar) || DEFAULT_AVATAR;
+      fig.appendChild(im);
+      if (!safeImg(f.character) && !safeImg(f.avatar)) {      // a lista não traz o boneco: busca no perfil do @
+        fetchSenderAvatar(f.handle, function (img) { if (img) im.src = img; });
+      }
+      var nm = document.createElement('span'), hd = document.createElement('span');
       nm.className = 'fr-wheel-name'; nm.textContent = f.displayName || f.handle;
       hd.className = 'fr-wheel-handle'; hd.textContent = '@' + f.handle;
-      box.className = 'fr-wheel-text'; box.appendChild(nm); box.appendChild(hd);
-      it.appendChild(im); it.appendChild(box);
+      it.appendChild(fig); it.appendChild(nm); it.appendChild(hd);
       it.addEventListener('click', function () {
         if (wasDragged) return;
         if (it.classList.contains('sel')) search(f.handle);
@@ -1080,27 +1086,28 @@
       wheel.appendChild(it);
       return it;
     });
-    wrap.appendChild(band); wrap.appendChild(wheel); wrap.appendChild(hint);
+    wheel.appendChild(spR);
+    wrap.appendChild(wheel); wrap.appendChild(hint);
 
-    function itemH() { return items[0].offsetHeight || 1; }
-    function current() { return Math.max(0, Math.min(items.length - 1, Math.round(wheel.scrollTop / itemH()))); }
+    function itemW() { return items[0].offsetWidth || 1; }
+    function current() { return Math.max(0, Math.min(items.length - 1, Math.round(wheel.scrollLeft / itemW()))); }
     function goTo(i) {
       i = Math.max(0, Math.min(items.length - 1, i));
-      wheel.scrollTo({ top: i * itemH(), behavior: reduce ? 'auto' : 'smooth' });
+      wheel.scrollTo({ left: i * itemW(), behavior: reduce ? 'auto' : 'smooth' });
     }
 
     var raf = 0;
     function update() {
       raf = 0;
-      var vh = wheel.clientHeight;
-      if (!vh) return;
-      var h = itemH(), mid = wheel.scrollTop + vh / 2;
+      var vw = wheel.clientWidth;
+      if (!vw) return;
+      var w = itemW(), mid = wheel.scrollLeft + vw / 2;
       items.forEach(function (it) {
-        var d = (it.offsetTop + h / 2 - mid) / h;          // 0 = no meio, ±1 = vizinho
+        var d = (it.offsetLeft + w / 2 - mid) / w;         // 0 = no meio, ±1 = vizinho
         var ad = Math.abs(d);
-        var rot = Math.max(-80, Math.min(80, -d * 26));
-        it.style.transform = 'perspective(30rem) rotateX(' + rot.toFixed(1) + 'deg) scale(' + (1 - Math.min(ad, 3) * 0.09).toFixed(3) + ')';
-        it.style.opacity = Math.max(0.12, 1 - Math.min(ad, 2.6) * 0.38).toFixed(2);
+        var rot = Math.max(-70, Math.min(70, d * 24));
+        it.style.transform = 'perspective(60rem) rotateY(' + rot.toFixed(1) + 'deg) scale(' + (1 - Math.min(ad, 3) * 0.12).toFixed(3) + ')';
+        it.style.opacity = Math.max(0.15, 1 - Math.min(ad, 2.6) * 0.36).toFixed(2);
         var sel = ad < 0.5;
         if (sel !== it.classList.contains('sel')) {
           it.classList.toggle('sel', sel);
@@ -1114,10 +1121,17 @@
     else window.addEventListener('resize', queue);
     requestAnimationFrame(update);
 
+    // roda do mouse (vertical) gira a roleta de lado
+    wheel.addEventListener('wheel', function (e) {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;   // gesto horizontal (trackpad) já funciona sozinho
+      e.preventDefault();
+      wheel.scrollLeft += e.deltaY;
+    }, { passive: false });
+
     // teclado
     wheel.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); goTo(current() + 1); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); goTo(current() - 1); }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goTo(current() + 1); }
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goTo(current() - 1); }
       else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); search(friends[current()].handle); }
     });
 
@@ -1125,14 +1139,14 @@
     var wasDragged = false, drag = null;
     wheel.addEventListener('pointerdown', function (e) {
       if (e.pointerType !== 'mouse' || e.button !== 0) return;
-      drag = { y: e.clientY, top: wheel.scrollTop, moved: false, id: e.pointerId };
+      drag = { x: e.clientX, left: wheel.scrollLeft, moved: false, id: e.pointerId };
     });
     wheel.addEventListener('pointermove', function (e) {
       if (!drag) return;
-      var dy = e.clientY - drag.y;
-      if (!drag.moved && Math.abs(dy) < 5) return;
+      var dx = e.clientX - drag.x;
+      if (!drag.moved && Math.abs(dx) < 5) return;
       if (!drag.moved) { drag.moved = true; wheel.classList.add('dragging'); try { wheel.setPointerCapture(drag.id); } catch (er) {} }
-      wheel.scrollTop = drag.top - dy;
+      wheel.scrollLeft = drag.left - dx;
     });
     function endDrag() {
       if (!drag) return;

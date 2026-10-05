@@ -4614,35 +4614,33 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .sp-avatar-edit:hover { background: rgba(0,0,0,0.92); }
 @media (hover: none) { .sp-avatar-edit { opacity: 1; transform: none; } }
 
-/* ---- Amigos em roleta (estilo seletor de horário do iPhone) ---- */
-.fr-wheel-wrap { --fr-item: 5.6rem; --fr-view: calc(var(--fr-item) * 5); position: relative; margin-top: 0.25rem; }
-.fr-wheel-band {
-  position: absolute; left: 0; right: 0; top: calc(var(--fr-view) / 2); height: var(--fr-item); transform: translateY(-50%);
-  border-radius: 1.3rem; background: rgba(255,248,240,0.09); border: 1px solid rgba(255,248,240,0.25); pointer-events: none;
-}
+/* ---- Amigos em roleta HORIZONTAL (bonecos com o nome embaixo) ---- */
+.fr-wheel-wrap { --fr-w: 12.5rem; position: relative; margin-top: 0.25rem; }
 .fr-wheel {
-  position: relative; box-sizing: border-box; height: var(--fr-view); overflow-y: auto; outline: none;
-  padding: calc((var(--fr-view) - var(--fr-item)) / 2) 0;
-  scroll-snap-type: y mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 20%, #000 80%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 20%, #000 80%, transparent 100%);
+  position: relative; display: flex; align-items: flex-start; box-sizing: border-box; overflow-x: auto; overflow-y: hidden;
+  padding: 1rem 0 1.25rem; outline: none;
+  scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 18%, #000 82%, transparent 100%);
 }
 .fr-wheel::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .fr-wheel.dragging { scroll-snap-type: none; cursor: grabbing; user-select: none; -webkit-user-select: none; }
-.fr-wheel:focus-visible + .fr-wheel-hint, .fr-wheel:focus-visible { outline: none; }
+.fr-wheel-spacer { flex: none; width: calc((100% - var(--fr-w)) / 2); }
 .fr-wheel-item {
-  display: flex; align-items: center; justify-content: center; gap: 1.2rem; width: 100%; height: var(--fr-item);
-  padding: 0 1rem; box-sizing: border-box; border: 0; background: transparent; color: var(--cream); font: inherit;
-  cursor: pointer; scroll-snap-align: center; scroll-snap-stop: always; will-change: transform, opacity;
-  -webkit-tap-highlight-color: transparent;
+  flex: none; display: flex; flex-direction: column; align-items: center; width: var(--fr-w); padding: 0 0.6rem; box-sizing: border-box;
+  border: 0; background: transparent; color: var(--cream); font: inherit; text-align: center; cursor: pointer;
+  scroll-snap-align: center; scroll-snap-stop: always; will-change: transform, opacity; -webkit-tap-highlight-color: transparent;
 }
-.fr-wheel-item img { flex: none; width: 3.9rem; height: 3.9rem; object-fit: contain; border-radius: 0.9rem; background: #fff8f0; pointer-events: none; }
-.fr-wheel-text { display: block; min-width: 0; text-align: left; }
-.fr-wheel-name { display: block; max-width: 22rem; font-size: 2.2rem; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fr-wheel-handle { display: block; font-size: 1.05rem; opacity: 0.6; }
-.fr-wheel-hint { margin-top: 0.5rem; text-align: center; font-size: 0.85rem; opacity: 0.5; color: var(--cream); }
+.fr-wheel-fig {
+  display: block; width: 100%; aspect-ratio: 9 / 10; overflow: hidden; border-radius: 1.1rem; background: #fff8f0;
+  border: 2px solid transparent; box-shadow: 0 0.8rem 1.8rem rgba(0,0,0,0.5); transition: border-color .15s;
+}
+.fr-wheel-item.sel .fr-wheel-fig { border-color: var(--cream); }
+.fr-wheel-fig img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center top; pointer-events: none; }
+.fr-wheel-name { display: block; width: 100%; margin-top: 0.7rem; font-size: 1.7rem; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fr-wheel-handle { display: block; width: 100%; font-size: 0.95rem; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fr-wheel-hint { margin-top: 0.25rem; text-align: center; font-size: 0.85rem; opacity: 0.5; color: var(--cream); }
 @media (max-width: 720px) {
-  .fr-wheel-wrap { --fr-item: 4.8rem; }
-  .fr-wheel-item img { width: 3.2rem; height: 3.2rem; }
-  .fr-wheel-name { font-size: 1.7rem; max-width: 14rem; }
+  .fr-wheel-wrap { --fr-w: 9.5rem; }
+  .fr-wheel-name { font-size: 1.35rem; }
 }
