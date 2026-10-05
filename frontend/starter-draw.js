@@ -10,20 +10,16 @@
 //   spin  = tempo girando
 //   hold  = pausa mostrando quem foi sorteado
 //
-// Som (opcional): coloque um destes arquivos na pasta assets/ e ele toca sozinho:
-//   assets/roulette-spin.mp3  -> som de roleta inteiro, tocado 1x no começo do giro
-//   assets/roulette-tick.mp3  -> um "clique" curto, tocado a cada jogador que passa
-// Sem arquivo nenhum, o JS gera os cliques e o "ding" final sozinho (Web Audio).
+// Som: gerado pelo próprio JS (Web Audio), não precisa de arquivo em assets/.
+//   - "tec" de roleta a cada jogador que passa, ventinho de giro e "ding" no final.
 // O volume segue o controle de efeitos das Configurações (e o mudo).
 //
 // Uso (client.js):  TruStarterDraw.play(state)   // state do 'game_start'
 // ============================================================================
 (function () {
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var SPIN_FILE = 'assets/roulette-spin.mp3';
-  var TICK_FILE = 'assets/roulette-tick.mp3';
   var MIN_SLOTS = 8;            // posições no círculo (precisa de ≥ 5 pra o "pulo" da volta não aparecer)
-  var TARGET_STEPS = 38;        // quantos jogadores passam, mais ou menos, até parar
+  var TARGET_STEPS = 22;        // quantos jogadores passam, mais ou menos, até parar
   var MAX_BLUR = 30;            // px de borrão HORIZONTAL no auge da velocidade
   var BLUR_FROM = 2.5;          // só borra acima dessa velocidade (jogadores por segundo)
   var BLUR_GAIN = 0.55;         // 1 = borrão do tamanho do deslocamento por quadro; menor = mais leve
@@ -68,7 +64,11 @@
   }
 
   // ---------------------------------------------------------------- som
-  var actx = null, tickBuf = null, spinBuf = null, filesTried = false;
+  // Tudo gerado pelo próprio JS (Web Audio): não depende de arquivo nenhum em assets/.
+  //  - "tec" de roleta (madeira) a cada jogador que passa; mais agudo/seco quanto mais rápido
+  //  - um ventinho de giro (ruído filtrado) que sobe e desce com a velocidade
+  //  - no final: pancadinha + "ding"
+  var actx = null, master = null, noiseBuf = null, whir = null;
 
   function sfxVolume() {
     if (!window.GameAudio) return 0.8;
@@ -79,89 +79,109 @@
     if (actx) return actx;
     var AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
-    try { actx = new AC(); } catch (e) { actx = null; }
+    try {
+      actx = new AC();
+      // compressor evita estourar quando vários cliques seguidos se somam
+      var comp = actx.createDynamicsCompressor();
+      comp.threshold.value = -14; comp.ratio.value = 6; comp.attack.value = 0.002; comp.release.value = 0.12;
+      master = actx.createGain();
+      master.gain.value = 1;
+      master.connect(comp); comp.connect(actx.destination);
+      // 1 s de ruído branco, reaproveitado por todos os sons
+      noiseBuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
+      var d = noiseBuf.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    } catch (e) { actx = null; }
     return actx;
   }
-  function loadFile(url) {
-    return fetch(url).then(function (r) {
-      if (!r.ok) throw new Error('no file');
-      return r.arrayBuffer();
-    }).then(function (ab) {
-      return new Promise(function (ok, fail) { actx.decodeAudioData(ab, ok, fail); });
-    }).catch(function () { return null; });
-  }
-  function loadSounds() {
-    if (filesTried) return;
-    filesTried = true;
-    if (!ctx()) return;
-    loadFile(SPIN_FILE).then(function (b) { spinBuf = b; });
-    loadFile(TICK_FILE).then(function (b) { tickBuf = b; });
+  function resume() {
+    if (actx && actx.state === 'suspended') actx.resume().catch(function () {});
   }
 
-  // clique sintetizado: estalinho curto, mais agudo quanto mais rápido gira
-  function synthTick(speed, vol) {
-    var c = ctx(); if (!c) return;
-    var t = c.currentTime;
-    var g = c.createGain();
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.5 * vol, t + 0.002);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-    var o = c.createOscillator();
-    o.type = 'triangle';
-    o.frequency.setValueAtTime(700 + Math.min(speed, 14) * 55, t);
-    o.frequency.exponentialRampToValueAtTime(380, t + 0.045);
-    o.connect(g); g.connect(c.destination);
-    o.start(t); o.stop(t + 0.06);
-  }
+  // "tec": estalo de ruído (ataque) + corpo de madeira que cai rápido
   function playTick(speed) {
     var vol = sfxVolume(); if (vol <= 0) return;
     var c = ctx(); if (!c) return;
-    if (tickBuf && !spinBuf) {
-      var s = c.createBufferSource(), g = c.createGain();
-      s.buffer = tickBuf;
-      s.playbackRate.value = 0.9 + Math.min(speed, 14) * 0.03;
-      g.gain.value = Math.min(1, vol);
-      s.connect(g); g.connect(c.destination);
-      s.start();
-    } else if (!spinBuf) {
-      synthTick(speed, vol);
-    }
+    resume();
+    var t = c.currentTime;
+    var k = Math.min(1, speed / 9);                 // 0 = devagar, 1 = rápido
+    var level = (0.55 + Math.random() * 0.15) * (1 - k * 0.25) * vol * 1.6;
+
+    var nz = c.createBufferSource(); nz.buffer = noiseBuf;
+    var bp = c.createBiquadFilter(); bp.type = 'bandpass';
+    bp.frequency.value = 2200 + k * 1800 + Math.random() * 300; bp.Q.value = 1.6;
+    var ng = c.createGain();
+    ng.gain.setValueAtTime(level, t);
+    ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+    nz.connect(bp); bp.connect(ng); ng.connect(master);
+    nz.start(t, Math.random() * 0.8, 0.05);
+
+    var o = c.createOscillator(); o.type = 'sine';
+    var f0 = 900 + k * 500 + Math.random() * 60;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.55, t + 0.06);
+    var og = c.createGain();
+    og.gain.setValueAtTime(0.0001, t);
+    og.gain.exponentialRampToValueAtTime(level * 0.9, t + 0.003);
+    og.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+    o.connect(og); og.connect(master);
+    o.start(t); o.stop(t + 0.08);
   }
-  function playSpinFile(spinMs) {
-    var vol = sfxVolume(); if (vol <= 0 || !spinBuf) return;
-    var c = ctx(); if (!c) return;
-    var s = c.createBufferSource(), g = c.createGain();
-    s.buffer = spinBuf;
-    var rate = spinBuf.duration / (spinMs / 1000);       // estica/encolhe pra caber no giro
-    if (rate < 0.75 || rate > 1.4) rate = 1;
-    s.playbackRate.value = rate;
-    var t = c.currentTime, dur = spinBuf.duration / rate;
-    g.gain.setValueAtTime(Math.min(1, vol), t);
-    if (dur > spinMs / 1000) {                            // arquivo mais longo que o giro: some no fim
-      g.gain.setValueAtTime(Math.min(1, vol), t + spinMs / 1000 - 0.4);
-      g.gain.linearRampToValueAtTime(0.0001, t + spinMs / 1000);
-    }
-    s.connect(g); g.connect(c.destination);
-    s.start(t);
-    return s;
+
+  // ventinho do giro: ruído passa-banda cujo volume e frequência seguem a velocidade
+  function startWhir() {
+    var c = ctx(); if (!c || whir) return;
+    resume();
+    var src = c.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    var bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 400; bp.Q.value = 0.9;
+    var g = c.createGain(); g.gain.value = 0.0001;
+    src.connect(bp); bp.connect(g); g.connect(master);
+    src.start();
+    whir = { src: src, bp: bp, g: g };
   }
+  function setWhir(speed) {
+    if (!whir || !actx) return;
+    var vol = sfxVolume();
+    var k = Math.min(1, speed / 9);
+    var t = actx.currentTime;
+    whir.bp.frequency.setTargetAtTime(350 + k * 1500, t, 0.05);
+    whir.g.gain.setTargetAtTime(vol <= 0 ? 0.0001 : (0.02 + k * 0.16) * vol, t, 0.06);
+  }
+  function stopWhir() {
+    if (!whir) return;
+    var w = whir; whir = null;
+    try {
+      w.g.gain.setTargetAtTime(0.0001, actx.currentTime, 0.08);
+      w.src.stop(actx.currentTime + 0.5);
+    } catch (e) {}
+  }
+
+  // final: pancadinha grave + "ding" de duas notas
   function playDing() {
     var vol = sfxVolume(); if (vol <= 0) return;
     var c = ctx(); if (!c) return;
+    resume();
     var t = c.currentTime;
+    var th = c.createOscillator(); th.type = 'sine';
+    th.frequency.setValueAtTime(160, t); th.frequency.exponentialRampToValueAtTime(60, t + 0.18);
+    var tg = c.createGain();
+    tg.gain.setValueAtTime(0.0001, t); tg.gain.exponentialRampToValueAtTime(0.7 * vol, t + 0.01);
+    tg.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    th.connect(tg); tg.connect(master); th.start(t); th.stop(t + 0.25);
     [660, 990].forEach(function (f, i) {
       var o = c.createOscillator(), g = c.createGain();
       o.type = 'sine'; o.frequency.value = f;
-      g.gain.setValueAtTime(0.0001, t + i * 0.09);
-      g.gain.exponentialRampToValueAtTime(0.35 * vol, t + i * 0.09 + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.09 + 0.7);
-      o.connect(g); g.connect(c.destination);
-      o.start(t + i * 0.09); o.stop(t + i * 0.09 + 0.75);
+      var t1 = t + 0.1 + i * 0.1;
+      g.gain.setValueAtTime(0.0001, t1);
+      g.gain.exponentialRampToValueAtTime(0.4 * vol, t1 + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t1 + 0.8);
+      o.connect(g); g.connect(master);
+      o.start(t1); o.stop(t1 + 0.85);
     });
   }
 
   // ---------------------------------------------------------------- curva de velocidade
-  // cubic-bezier(.45,0,.15,1): começa devagar, acelera e tem uma desaceleração longa no fim
+  // cubic-bezier(.35,0,.25,1): começa devagar, acelera (pico ~8 jogadores/s) e desacelera bem no fim
   function bezier(x1, y1, x2, y2) {
     function cx(t) { return 3 * x1 * t * (1 - t) * (1 - t) + 3 * x2 * t * t * (1 - t) + t * t * t; }
     function cy(t) { return 3 * y1 * t * (1 - t) * (1 - t) + 3 * y2 * t * t * (1 - t) + t * t * t; }
@@ -178,7 +198,7 @@
       return cy(t);
     };
   }
-  var ease = bezier(0.45, 0, 0.15, 1);
+  var ease = bezier(0.35, 0, 0.25, 1);
 
   // ---------------------------------------------------------------- roleta
   function build(players, winIdx, mySeat) {
@@ -253,7 +273,7 @@
     if (!cur) return;
     clearTimeout(cur.t1); clearTimeout(cur.t2); clearTimeout(cur.t3);
     cancelAnimationFrame(cur.raf);
-    if (cur.snd) { try { cur.snd.stop(); } catch (e) {} }
+    stopWhir();
     if (cur.w && cur.w.overlay.parentNode) cur.w.overlay.parentNode.removeChild(cur.w.overlay);
     cur = null;
   }
@@ -267,7 +287,7 @@
     if (elapsed >= total - 300) return;                  // já acabou (ex.: reconectou tarde)
     cancel();
     css();
-    loadSounds();
+    ctx();
 
     var players = state.players.slice().sort(function (a, b) { return a.seat - b.seat; });
     var winIdx = 0;
@@ -280,7 +300,7 @@
     var D = winIdx + n * Math.max(1, Math.ceil((TARGET_STEPS - winIdx) / n));
 
     var w = build(players, winIdx, mySeat);
-    cur = { w: w, raf: 0, t1: 0, t2: 0, t3: 0, snd: null };
+    cur = { w: w, raf: 0, t1: 0, t2: 0, t3: 0 };
     var me_ = cur;
     var tZero = performance.now() - elapsed;              // "momento 0" do sorteio, igual ao do servidor
 
@@ -296,8 +316,8 @@
       var lastPos = 0, lastT = t0, lastIdx = 0, blur = 0, finished = false;
 
       if (reduced) { finish(); return; }
-      resume();
-      me_.snd = playSpinFile(d.spin) || null;
+      ctx(); resume();
+      startWhir();
 
       function frame(now) {
         if (cur !== me_) return;
@@ -316,6 +336,7 @@
         layout(w, pos);
 
         var idx = Math.floor(pos + 0.5);                  // cruzou um jogador: clique
+        setWhir(speed);
         if (idx !== lastIdx) { lastIdx = idx; playTick(speed); }
 
         if (p < 1) me_.raf = requestAnimationFrame(frame);
@@ -332,6 +353,7 @@
         var who = players[winIdx];
         w.title.classList.add('done');
         w.title.textContent = who.seat === mySeat ? 'Você começa!' : (who.name || 'Jogador') + ' começa!';
+        stopWhir();
         playDing();
         var endIn = tZero + total - performance.now();   // até o fim do sorteio no servidor
         me_.t2 = setTimeout(function () {
@@ -349,7 +371,7 @@
   function resume() {
     if (actx && actx.state === 'suspended') actx.resume().catch(function () {});
   }
-  document.addEventListener('pointerdown', function () { ctx(); resume(); loadSounds(); }, { passive: true });
+  document.addEventListener('pointerdown', function () { ctx(); resume(); }, { passive: true });
 
   window.TruStarterDraw = { play: play, cancel: cancel };
 })();
