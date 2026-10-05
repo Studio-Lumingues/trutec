@@ -608,7 +608,8 @@ class Room {
     this.manilhaRank = null;
     this.clearViraPick();
 
-    this.leaderSeat = (this.dealerSeat + 1) % n;
+    // A ordem de jogo segue para a DIREITA na tela (assento anterior: seat - 1).
+    this.leaderSeat = (this.dealerSeat - 1 + n) % n;
     this.turnSeat = this.leaderSeat;
 
     // Mão de 11 (só 2v2):
@@ -760,7 +761,7 @@ class Room {
   }
 
   advanceDealer() {
-    this.dealerSeat = (this.dealerSeat + 1) % this.players.length;
+    this.dealerSeat = (this.dealerSeat - 1 + this.players.length) % this.players.length;
   }
 
   currentTrickIndex() {
@@ -781,7 +782,7 @@ class Room {
     if (playedThisTrick >= n) {
       return this.resolveTrick();
     }
-    this.turnSeat = (seat + 1) % n;
+    this.turnSeat = (seat - 1 + n) % n;   // próximo a jogar = jogador da direita
     return { ok: true };
   }
 
