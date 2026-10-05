@@ -4647,25 +4647,71 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .social-friends.fr-pending { opacity: 0; transition: opacity .5s ease; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .social-friends, .social-friends.fr-pending { transition: none; } }
 
-/* ===== Social: coleção "espiando" pela borda de baixo do card; abre inteira quando o gráfico abre ===== */
-/* FECHADO (padrão): os 3 cartazes ocupam a largura toda, colados na borda de baixo do card, mostrando só a
-   metade de cima do boneco (caixa 4:3 + object-fit: cover alinhado ao topo = corta a metade de baixo).
-   Pra mostrar mais ou menos do boneco, mude --col-closed-ratio (4/3 = metade; 1/1 = uns 2/3 do boneco). */
-.sp-collection { --col-closed-ratio: 4 / 3; margin-top: auto; margin-bottom: -2rem; }   /* -2rem = cola na borda (anula o padding do .sp-body) */
+/* ===== Social: coleção em 3 cards ALTOS, esticados até a borda de baixo do perfil =====
+   FECHADO (padrão): os cards ocupam todo o espaço entre o gráfico e a borda de baixo. Como são estreitos e altos,
+   o boneco não cabe inteiro: aparece só um pedaço dele, de lado (cover, centralizado).
+   ABERTO (gráfico aberto): voltam ao tamanho normal, abaixo do gráfico, com o boneco inteiro. */
+.sp-collection {
+  flex: 1 1 auto; min-height: 16rem; display: flex; flex-direction: column;
+  margin-bottom: -2rem;                        /* cola na borda de baixo (anula o padding do .sp-body) */
+}
+.sp-collection[hidden] { display: none; }
+.sp-collection-title { flex: none; }
 .sp-slots {
-  grid-template-columns: repeat(3, minmax(0, 1fr)); justify-content: stretch;
-  width: 100%; max-width: none; gap: 0.75rem; margin-bottom: 0;
+  flex: 1 1 auto; min-height: 0; width: 100%; max-width: none; margin-bottom: 0; gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); justify-content: stretch;
 }
+.sp-collection .sp-cell { min-height: 0; }
 .sp-collection .sp-slot {
-  aspect-ratio: var(--col-closed-ratio);
-  border-radius: 0.3rem 0.3rem 0 0; border-bottom-width: 0;
-  transition: aspect-ratio .25s ease, border-color .15s, box-shadow .15s;
+  height: 100%; aspect-ratio: auto;
+  border-radius: 0.5rem 0.5rem 0 0; border-bottom-width: 0;
+  box-shadow: inset 0 0 1.6rem rgba(0,0,0,0.18);
 }
-/* ABERTO (gráfico aberto): volta ao tamanho normal, boneco inteiro, logo abaixo do gráfico */
-.sp-chart.open ~ .sp-collection { margin-top: 0; margin-bottom: 0; }
-.sp-chart.open ~ .sp-collection .sp-slots { grid-template-columns: repeat(3, minmax(0, 9.5rem)); justify-content: start; margin-bottom: 1.25rem; }
-.sp-chart.open ~ .sp-collection .sp-slot { aspect-ratio: 2 / 3; border-radius: 0.3rem; border-bottom-width: 1px; }
+.sp-collection .sp-slot img {
+  object-position: 50% 0; transform: scale(1.02);
+  transition: object-position 1.1s cubic-bezier(.2,.7,.2,1), transform .6s ease;
+}
+.sp-collection .sp-slot:not(.empty):not(.add):hover img { object-position: 68% 0; transform: scale(1.08); }
+
+/* brilho de vidro no topo + faixa de luz (light sweep) que cruza o card de tempos em tempos */
+.sp-collection .sp-slot:not(.empty):not(.add)::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 28%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.12));
+}
+.sp-collection .sp-slot:not(.empty):not(.add)::after {
+  content: ''; position: absolute; top: -10%; bottom: -10%; left: -60%; width: 55%; z-index: 2; pointer-events: none;
+  background: linear-gradient(100deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.75) 50%, rgba(255,255,255,0.12) 70%, rgba(255,255,255,0) 100%);
+  mix-blend-mode: soft-light; transform: translateX(0) skewX(-18deg); opacity: 0;
+  animation: sp-sweep 5.5s ease-in-out infinite;
+}
+.sp-collection .sp-cell:nth-child(2) .sp-slot::after { animation-delay: 1.4s; }
+.sp-collection .sp-cell:nth-child(3) .sp-slot::after { animation-delay: 2.8s; }
+.sp-collection .sp-slot:not(.empty):not(.add):hover::after { animation: sp-sweep-fast .85s ease-out 1; }
+@keyframes sp-sweep {
+  0%, 62% { transform: translateX(0) skewX(-18deg); opacity: 0; }
+  68%     { opacity: 1; }
+  92%     { opacity: 1; }
+  100%    { transform: translateX(480%) skewX(-18deg); opacity: 0; }
+}
+@keyframes sp-sweep-fast {
+  0%   { transform: translateX(0) skewX(-18deg); opacity: 1; }
+  100% { transform: translateX(480%) skewX(-18deg); opacity: 0; }
+}
+.sp-collection .sp-slot:not(.empty):not(.add):hover {
+  border-color: rgba(255,255,255,0.9);
+  box-shadow: inset 0 0 1.6rem rgba(0,0,0,0.18), 0 0 1.4rem rgba(167,139,250,0.45), 0 0.5rem 1.4rem rgba(0,0,0,0.55);
+}
+
+/* ABERTO: tamanho normal, boneco inteiro, logo abaixo do gráfico */
+.sp-chart.open ~ .sp-collection { flex: none; min-height: 0; margin-bottom: 0; display: block; }
+.sp-chart.open ~ .sp-collection .sp-slots { display: grid; grid-template-columns: repeat(3, minmax(0, 9.5rem)); grid-template-rows: auto; justify-content: start; margin-bottom: 1.25rem; }
+.sp-chart.open ~ .sp-collection .sp-slot { height: auto; aspect-ratio: 2 / 3; border-radius: 0.3rem; border-bottom-width: 1px; }
+.sp-chart.open ~ .sp-collection .sp-slot img { object-position: 50% 0; transform: none; }
 @media (max-width: 720px) {
   .sp-chart.open ~ .sp-collection .sp-slots { grid-template-columns: repeat(3, minmax(0, 7.5rem)); justify-content: center; }
+  .sp-collection { min-height: 20rem; }
 }
-@media (prefers-reduced-motion: reduce) { .sp-collection .sp-slot { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .sp-collection .sp-slot::after { animation: none !important; opacity: 0; }
+  .sp-collection .sp-slot img { transition: none; }
+}
