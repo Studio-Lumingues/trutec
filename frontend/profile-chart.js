@@ -1,8 +1,9 @@
 // ============================================================================
 // GRÁFICO DE DESEMPENHO DO PERFIL (estilo gráfico de velas)
-// - Fica sempre visível no perfil (#sp-chart), com altura FIXA (não mexe no layout).
+// - No perfil (#sp-chart) começa FECHADO (só a barra "Desempenho"): clicar na barra abre/fecha o gráfico;
+//   o botão ⤢ expande numa janela grande.
 // - Sem partidas: linha reta. Com partidas: velas + médias móveis.
-// - Clicar no gráfico abre uma janela com mais detalhes (vitórias, derrotas, aproveitamento,
+// - O botão expandir abre uma janela com mais detalhes (vitórias, derrotas, aproveitamento,
 //   saldo, sequências e o gráfico maior com informações ao passar o mouse/dedo).
 // TruChart.inline('arroba') é chamado pelo social.js sempre que o perfil é desenhado.
 // Dados: GET /api/profile/:handle/history.
@@ -12,18 +13,25 @@
 
   var css = document.createElement('style');
   css.textContent =
-    '.sp-chart{position:relative;flex:none;width:100%;max-width:30rem;height:clamp(6.5rem,18dvh,8.5rem);margin:.7rem 0 .9rem;border-radius:.95rem;' +
+    '.sp-chart{position:relative;flex:none;width:100%;max-width:30rem;margin:.7rem 0 .9rem;border-radius:.95rem;' +
       'background:radial-gradient(120% 150% at 0% 0%,rgba(167,139,250,.16),transparent 55%),linear-gradient(180deg,rgba(255,248,240,.065),rgba(255,248,240,.02));' +
       'border:1px solid rgba(255,248,240,.1);box-shadow:inset 0 1px 0 rgba(255,248,240,.07),0 .5rem 1.2rem rgba(0,0,0,.25);' +
-      'overflow:hidden;touch-action:pan-y;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .2s}' +
-    '.sp-chart:hover{border-color:rgba(167,139,250,.5);box-shadow:inset 0 1px 0 rgba(255,248,240,.09),0 .6rem 1.4rem rgba(0,0,0,.35),0 0 0 1px rgba(167,139,250,.12)}' +
-    '.sp-chart:active{transform:scale(.995)}' +
-    '.sp-chart:focus-visible{outline:2px solid rgba(255,248,240,.7);outline-offset:2px}' +
+      'overflow:hidden;transition:border-color .2s}' +
+    '.sp-chart.open{border-color:rgba(167,139,250,.35)}' +
     '.sp-chart canvas,.tc-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}' +
-    '.tc-expand{position:absolute;top:.45rem;left:.6rem;z-index:1;display:flex;align-items:center;gap:.4rem;padding:.18rem .5rem .18rem .55rem;border-radius:999px;' +
-      'background:rgba(255,248,240,.08);border:1px solid rgba(255,248,240,.1);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;line-height:1;opacity:.85;pointer-events:none}' +
-    '.tc-expand i{font-style:normal;font-size:.8rem;opacity:.7;transition:transform .2s,opacity .2s}' +
-    '.sp-chart:hover .tc-expand i{opacity:1;transform:translate(1px,-1px)}' +
+    '.tc-bar{display:flex;align-items:stretch}' +
+    '.tc-toggle,.tc-max{border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;transition:background .15s}' +
+    '.tc-toggle{flex:1;gap:.5rem;padding:.65rem .9rem;text-align:left;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase}' +
+    '.tc-toggle i{font-style:normal;font-size:.9rem;opacity:.7;margin-left:auto;transition:transform .25s}' +
+    '.sp-chart.open .tc-toggle i{transform:rotate(180deg)}' +
+    '.tc-max{padding:0 .9rem;font-size:1.05rem;opacity:.75;border-left:1px solid rgba(255,248,240,.08)}' +
+    '.tc-toggle:hover,.tc-max:hover{background:rgba(255,248,240,.07)}.tc-max:hover{opacity:1}' +
+    '.tc-toggle:focus-visible,.tc-max:focus-visible{outline:2px solid rgba(255,248,240,.7);outline-offset:-2px}' +
+    '.tc-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .25s ease}' +
+    '.sp-chart.open .tc-body{grid-template-rows:1fr}' +
+    '.tc-clip{min-height:0;overflow:hidden}' +
+    '.tc-plot{position:relative;height:clamp(6.5rem,18dvh,8.5rem);touch-action:pan-y}' +
+    '@media (prefers-reduced-motion:reduce){.tc-body,.tc-toggle i{transition:none}}' +
     '.tc-tip{position:absolute;pointer-events:none;z-index:2;padding:.5rem .7rem;border-radius:.65rem;background:rgba(14,12,22,.94);border:1px solid rgba(167,139,250,.35);' +
       'box-shadow:0 .5rem 1.2rem rgba(0,0,0,.5);font-size:.85rem;line-height:1.4;white-space:nowrap;display:none}' +
     '.tc-card{width:min(46rem,94vw);max-height:92dvh;overflow:auto}' +
@@ -291,17 +299,32 @@
 
   // ---- gráfico dentro do perfil ----
   var inlineChart = null;
+  var toggleBtn = null, maxBtn = null;
+  function setOpen(host, open) {
+    host.classList.toggle('open', open);
+    toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open && inlineChart) { inlineChart.reset(); inlineChart.fit(); inlineChart.draw(); }
+  }
   function setupInline() {
     var host = document.getElementById('sp-chart');
     if (!host) return false;
     if (inlineChart && host.contains(inlineChart.host.querySelector('canvas'))) return true;
-    host.innerHTML = '<span class="tc-expand" aria-hidden="true"><span>Desempenho</span><i>\u2922</i></span>';
-    host.setAttribute('role', 'button');
-    host.setAttribute('tabindex', '0');
-    host.setAttribute('aria-label', 'Gráfico de desempenho. Clique para ver detalhes');
-    inlineChart = createChart(host, { big: false, tooltip: false });
-    host.addEventListener('click', openDetails);
-    host.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetails(); } });
+    // começa FECHADO: só a barra "Desempenho" (abre/fecha) + botão de expandir (abre a janela grande)
+    host.innerHTML =
+      '<div class="tc-bar">' +
+        '<button type="button" class="tc-toggle" aria-expanded="false"><span>Desempenho</span><i aria-hidden="true">\u25BE</i></button>' +
+        '<button type="button" class="tc-max" aria-label="Expandir gráfico" title="Expandir">\u2922</button>' +
+      '</div>' +
+      '<div class="tc-body"><div class="tc-clip"><div class="tc-plot"></div></div></div>';
+    host.classList.remove('open');
+    host.setAttribute('role', 'group');
+    host.removeAttribute('tabindex');
+    host.setAttribute('aria-label', 'Gráfico de desempenho');
+    toggleBtn = host.querySelector('.tc-toggle');
+    maxBtn = host.querySelector('.tc-max');
+    inlineChart = createChart(host.querySelector('.tc-plot'), { big: false, tooltip: false });
+    toggleBtn.addEventListener('click', function () { setOpen(host, !host.classList.contains('open')); });
+    maxBtn.addEventListener('click', openDetails);
     return true;
   }
 
@@ -385,8 +408,7 @@
   function closeDetails() {
     if (!modal) return;
     modal.classList.add('hidden');
-    var h = document.getElementById('sp-chart');
-    if (h && h.offsetParent) h.focus();
+    if (maxBtn && maxBtn.offsetParent) maxBtn.focus({ preventScroll: true });
   }
 
   // ---- carregar dados (chamado pelo social.js toda vez que o perfil é desenhado) ----
