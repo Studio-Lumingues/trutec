@@ -81,10 +81,29 @@ const socket = io(RESOLVED_BACKEND_URL, {
   transports: ['websocket', 'polling'],
   // função: a cada (re)conexão pega o token de login mais novo (null = convidado)
   auth: (cb) => {
+    // Se o login (Supabase) demorar mais de 4s, conecta mesmo assim e manda o token depois
+    // (auth_refresh) — antes a conexão inteira ficava esperando o token.
+    let sent = false;
+    const send = (token) => { if (sent) return; sent = true; cb(token ? { clientId: CLIENT_ID, token } : { clientId: CLIENT_ID }); };
     const t = window.TruAccount ? TruAccount.getToken() : Promise.resolve(null);
-    t.then((token) => cb({ clientId: CLIENT_ID, token })).catch(() => cb({ clientId: CLIENT_ID }));
+    const late = setTimeout(() => send(null), 4000);
+    t.then((token) => {
+      clearTimeout(late);
+      if (!sent) return send(token);
+      if (token && socket.connected) socket.emit('auth_refresh', { token });   // chegou depois da conexão
+    }).catch(() => { clearTimeout(late); send(null); });
   }
 });
+
+// Acorda o servidor (Render grátis dorme depois de ~15 min parado e leva ~1 min pra voltar).
+// Pinga o /health assim que o site abre — enquanto a pessoa está no menu, ele já vai acordando —
+// e a cada 4 min com a aba aberta, pra não voltar a dormir.
+(function warmBackend() {
+  const ping = () => { try { fetch(RESOLVED_BACKEND_URL + '/health', { mode: 'no-cors', cache: 'no-store' }).catch(() => {}); } catch (e) {} };
+  ping();
+  setInterval(() => { if (!document.hidden) ping(); }, 4 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !socket.connected) ping(); });
+})();
 
 socket.on('connect_error', (err) => {
   console.error('Falha ao conectar no backend:', err.message);
@@ -1224,10 +1243,29 @@ document.querySelectorAll('.create-modes .btn').forEach((btn) => {
       showScreen('screen-lobby');
       lobbyError(msg);
     };
-    const timer = setTimeout(() => giveUp('O servidor demorou demais pra responder. Tente de novo.'), 60000);
+    // Acompanha a espera: avisa o que está acontecendo e desiste quando não adianta mais esperar.
+    //  - nunca conectou: até 80s (servidor dormindo acorda em ~1 min)
+    //  - conectou mas não respondeu: 15s
+    const t0 = Date.now();
+    let connectedAt = socket.connected ? t0 : 0;
+    const timer = setInterval(() => {
+      if (answered) return clearInterval(timer);
+      const now = Date.now();
+      if (socket.connected && !connectedAt) connectedAt = now;
+      if (!socket.connected) connectedAt = 0;
+      if (connectedAt) {
+        if (hintEl) hintEl.textContent = 'Criando a sala…';
+        if (now - connectedAt > 15000) { clearInterval(timer); giveUp('O servidor não respondeu. Tente de novo.'); }
+      } else {
+        const s = Math.round((now - t0) / 1000);
+        if (hintEl) hintEl.textContent = s < 4 ? 'Conectando ao servidor…'
+          : 'Acordando o servidor… (' + s + 's) na primeira vez do dia pode levar até 1 minuto.';
+        if (now - t0 > 80000) { clearInterval(timer); giveUp('Não consegui conectar ao servidor. Tente de novo.'); }
+      }
+    }, 1000);
 
     socket.emit('create_room', { name: myName, mode: myMode, isPublic: false, character: getSavedCharacter(), stats: window.TruStats ? TruStats.get() : null, theme: window.TruThemes ? TruThemes.current() : null }, (res) => {
-      clearTimeout(timer);
+      clearInterval(timer);
       if (answered) return;
       answered = true; creatingRoom = false;
       if (!res || !res.ok) {

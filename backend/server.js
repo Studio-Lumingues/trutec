@@ -1439,9 +1439,16 @@ async function authSocket(socket, token) {
     return prof;
   } catch (e) { return null; }
 }
-io.use(async (socket, next) => {
-  await authSocket(socket, socket.handshake.auth && socket.handshake.auth.token);
-  next();
+io.use((socket, next) => {
+  // Antes: esperava o Supabase responder (sem limite) pra deixar o jogador conectar. Se o Supabase
+  // estivesse lento, a conexão (e o "criar sala") ficava travada pra sempre. Agora a conexão sai em
+  // no máximo AUTH_WAIT_MS; se o login ainda não terminou, ele continua em segundo plano e o perfil
+  // (@, vitórias) é preenchido assim que chegar.
+  const AUTH_WAIT_MS = 4000;
+  let done = false;
+  const go = () => { if (!done) { done = true; next(); } };
+  authSocket(socket, socket.handshake.auth && socket.handshake.auth.token).then(go, go);
+  setTimeout(go, AUTH_WAIT_MS);
 });
 
 io.on('connection', (socket) => {
