@@ -270,6 +270,12 @@ const VIRA_PICK_COUNT = 3;
 const VIRA_REVEAL_MS = 2600;   // animação do vira na tela antes de liberar a 1ª carta
 // Mão de 11: tempo da votação "às cegas" ou "normal" antes da mão começar (ms).
 const VOTE_MS = 10000;
+// Sorteio de quem começa a partida (roleta na tela). O tempo total é a soma das 3 partes:
+// espera da intro da logo + giro da roleta + pausa mostrando o sorteado. O starter-draw.js
+// (cliente) usa os mesmos valores, que vão junto no state em `draw`.
+const DRAW_LEAD_MS = 2300;
+const DRAW_SPIN_MS = 6500;
+const DRAW_HOLD_MS = 1600;
 
 function genRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -428,6 +434,9 @@ class Room {
     this.vira = null;
     this.manilhaRank = null;
     this.dealerSeat = -1;
+    this.drawUntil = 0;   // enquanto Date.now() < drawUntil, a roleta do sorteio está na tela
+    this.drawStartedAt = 0;
+    this.drawSeat = -1;   // quem foi sorteado pra abrir a partida
     this.turnSeat = -1;
     this.leaderSeat = -1; // quem abre a rodada atual (trick)
     this.table = []; // { seat, card, hidden }
@@ -584,8 +593,16 @@ class Room {
     this.reseatByTeams();
     this.started = true;
     this.score = [0, 0];
-    this.dealerSeat = 0;
+    // Sorteia quem abre a partida. A ordem de jogo vai pra direita (seat - 1) e quem abre é
+    // dealer - 1, então o dealer é o assento seguinte ao sorteado.
+    const n = this.players.length;
+    const starter = Math.floor(Math.random() * n);
+    this.dealerSeat = (starter + 1) % n;
+    this.drawSeat = starter;
+    this.drawStartedAt = Date.now();
+    this.drawUntil = this.drawStartedAt + DRAW_LEAD_MS + DRAW_SPIN_MS + DRAW_HOLD_MS;
     this.startMao();
+    this.nextPlayAt = this.drawUntil;
   }
 
   startMao() {
@@ -643,6 +660,16 @@ class Room {
   // são as cartas do topo do monte (já embaralhado), então escolher qualquer uma é igual.
   startViraPick() {
     this.clearViraPick(true);   // true = mantém o peek da mão de 11 que está esperando o vira
+    if (this.drawActive()) {    // roleta do sorteio na tela: só depois dela o dealer escolhe o vira
+      const code0 = this.code;
+      this._viraTimer = setTimeout(() => {
+        this._viraTimer = null;
+        if (rooms.get(code0) !== this) return;
+        this.startViraPick();
+        this.broadcastState(io);
+      }, Math.max(0, this.drawUntil - Date.now()) + 50);
+      return;
+    }
     const n = this.players.length;
     const seat = this.dealerSeat >= 0 ? this.dealerSeat % n : n - 1;
     const dealer = this.playerBySeat(seat);
@@ -744,7 +771,11 @@ class Room {
 
   // qualquer fase da mão de 11 que trava as jogadas (votação ou peek)
   holdActive() {
-    return this.voteOn || this.peekActive() || this.viraPickOn;
+    return this.voteOn || this.peekActive() || this.viraPickOn || this.drawActive();
+  }
+
+  drawActive() {
+    return Date.now() < this.drawUntil;
   }
 
   peekActive() {
@@ -981,6 +1012,11 @@ class Room {
       } : undefined,
       // escolha do vira: quem escolhe (seat), quanto tempo falta e quantas cartas viradas mostrar
       viraPick: this.viraPickOn ? { seat: this.viraPickSeat, msLeft: Math.max(0, this.viraPickUntil - Date.now()), count: VIRA_PICK_COUNT } : undefined,
+      // sorteio de quem começa: o cliente toca a roleta (lead + spin + hold) e para em `seat`
+      draw: this.drawActive() ? {
+        seat: this.drawSeat, lead: DRAW_LEAD_MS, spin: DRAW_SPIN_MS, hold: DRAW_HOLD_MS,
+        elapsed: Date.now() - this.drawStartedAt
+      } : undefined,
       blind: this.blind,
       code: this.code,
       mode: this.mode,
