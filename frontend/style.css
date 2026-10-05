@@ -4647,16 +4647,25 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .social-friends.fr-pending { opacity: 0; transition: opacity .5s ease; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .social-friends, .social-friends.fr-pending { transition: none; } }
 
-/* ===== Social: coleção maior; encolhe quando o gráfico de desempenho é aberto ===== */
+/* ===== Social: coleção "espiando" pela borda de baixo do card; abre inteira quando o gráfico abre ===== */
+/* FECHADO (padrão): os 3 cartazes ocupam a largura toda, colados na borda de baixo do card, mostrando só a
+   metade de cima do boneco (caixa 4:3 + object-fit: cover alinhado ao topo = corta a metade de baixo).
+   Pra mostrar mais ou menos do boneco, mude --col-closed-ratio (4/3 = metade; 1/1 = uns 2/3 do boneco). */
+.sp-collection { --col-closed-ratio: 4 / 3; margin-top: auto; margin-bottom: -2rem; }   /* -2rem = cola na borda (anula o padding do .sp-body) */
 .sp-slots {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: 100%; max-width: 42rem; gap: 1rem;
-  transition: max-width .25s ease, gap .25s ease;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); justify-content: stretch;
+  width: 100%; max-width: none; gap: 0.75rem; margin-bottom: 0;
 }
-/* o gráfico (#sp-chart) vem logo antes da coleção, então dá pra reagir ao estado "open" só com CSS */
-.sp-chart.open ~ .sp-collection .sp-slots { max-width: 17rem; gap: 0.6rem; }
+.sp-collection .sp-slot {
+  aspect-ratio: var(--col-closed-ratio);
+  border-radius: 0.3rem 0.3rem 0 0; border-bottom-width: 0;
+  transition: aspect-ratio .25s ease, border-color .15s, box-shadow .15s;
+}
+/* ABERTO (gráfico aberto): volta ao tamanho normal, boneco inteiro, logo abaixo do gráfico */
+.sp-chart.open ~ .sp-collection { margin-top: 0; margin-bottom: 0; }
+.sp-chart.open ~ .sp-collection .sp-slots { grid-template-columns: repeat(3, minmax(0, 9.5rem)); justify-content: start; margin-bottom: 1.25rem; }
+.sp-chart.open ~ .sp-collection .sp-slot { aspect-ratio: 2 / 3; border-radius: 0.3rem; border-bottom-width: 1px; }
 @media (max-width: 720px) {
-  .sp-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); justify-content: stretch; max-width: 100%; }
-  .sp-chart.open ~ .sp-collection .sp-slots { max-width: 15rem; }
+  .sp-chart.open ~ .sp-collection .sp-slots { grid-template-columns: repeat(3, minmax(0, 7.5rem)); justify-content: center; }
 }
-@media (prefers-reduced-motion: reduce) { .sp-slots { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .sp-collection .sp-slot { transition: none; } }
