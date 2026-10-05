@@ -410,6 +410,7 @@
     lossesEl.textContent = losses;
     rateEl.textContent = total ? Math.round(wins / total * 100) + '%' : '—';
     renderCollection(d.collection, safeImg(d.avatar), !d.other);
+    if (window.TruChart && TruChart.inline) TruChart.inline(d.handle);   // gráfico de desempenho no lugar das estatísticas
   }
 
   // ---- o seu perfil (dados locais do aparelho) ----
