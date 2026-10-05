@@ -435,6 +435,20 @@
     var p = myProfile() || {};                             // senão, o que o servidor já tiver
     return { displayName: String(p.displayName || '').slice(0, 24), bio: String(p.bio || '').slice(0, 160) };
   }
+  // vitórias/derrotas da própria conta, buscadas do servidor (o perfil guardado no login fica velho depois de jogar)
+  var liveStats = null;
+  function refreshOwnStats() {
+    var h = myHandle();
+    if (!h) return;
+    fetch(RESOLVED_BACKEND_URL + '/api/profile/' + encodeURIComponent(h))
+      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r || !r.ok || !r.profile) return;
+        liveStats = { wins: +r.profile.wins || 0, losses: +r.profile.losses || 0 };
+        if (!viewingOther) paint(myData());
+      })
+      .catch(function () {});
+  }
   function myData() {
     var name = '';
     try { name = localStorage.getItem('trutec-name') || ''; } catch (e) {}
@@ -442,7 +456,8 @@
     if (inp && inp.value.trim()) name = inp.value.trim();
     var st = window.TruStats ? TruStats.get() : { wins: 0, losses: 0 };
     var pr = myProfile();
-    if (pr && typeof pr.wins === 'number' && typeof pr.losses === 'number') st = { wins: pr.wins, losses: pr.losses };   // com conta: vale o que está no servidor
+    if (liveStats) st = liveStats;                                                                                       // buscado agora do servidor
+    else if (pr && typeof pr.wins === 'number' && typeof pr.losses === 'number') st = { wins: pr.wins, losses: pr.losses };   // senão, o do login
     var avatar = null;
     try { avatar = localStorage.getItem('trutec_meu_personagem'); } catch (e) {}
     return {
@@ -1325,7 +1340,7 @@
   }
   tabFriends.addEventListener('click', function () { setPane('friends'); loadFriends(); });
   tabInbox.addEventListener('click', function () { setPane('inbox'); });
-  document.addEventListener('truaccount', function () { refreshBadge(); loadFriends(); });
+  document.addEventListener('truaccount', function () { refreshBadge(); loadFriends(); refreshOwnStats(); });
   setInterval(function () {
     var scr = document.getElementById('screen-social');
     if (scr && scr.classList.contains('active') && !document.hidden) { refreshBadge(); if (inboxOn && rdModal.classList.contains('hidden')) loadInbox(true); }
@@ -1337,6 +1352,7 @@
     input.value = '';
     setPane('friends');
     refreshBadge();
+    refreshOwnStats();
     showScreen('screen-social');
   });
   logoBtn.addEventListener('click', function () { closeBox(); closeMenu(); showScreen('screen-lobby'); });
