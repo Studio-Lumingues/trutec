@@ -12,27 +12,37 @@
 
   var css = document.createElement('style');
   css.textContent =
-    '.sp-chart{position:relative;flex:none;width:100%;max-width:30rem;height:12rem;margin:1rem 0;border-radius:.8rem;background:rgba(255,248,240,.05);overflow:hidden;touch-action:pan-y;cursor:pointer}' +
-    '.sp-chart:hover{background:rgba(255,248,240,.08)}' +
+    '.sp-chart{position:relative;flex:none;width:100%;max-width:30rem;height:clamp(6.5rem,18dvh,8.5rem);margin:.7rem 0 .9rem;border-radius:.95rem;' +
+      'background:radial-gradient(120% 150% at 0% 0%,rgba(167,139,250,.16),transparent 55%),linear-gradient(180deg,rgba(255,248,240,.065),rgba(255,248,240,.02));' +
+      'border:1px solid rgba(255,248,240,.1);box-shadow:inset 0 1px 0 rgba(255,248,240,.07),0 .5rem 1.2rem rgba(0,0,0,.25);' +
+      'overflow:hidden;touch-action:pan-y;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .2s}' +
+    '.sp-chart:hover{border-color:rgba(167,139,250,.5);box-shadow:inset 0 1px 0 rgba(255,248,240,.09),0 .6rem 1.4rem rgba(0,0,0,.35),0 0 0 1px rgba(167,139,250,.12)}' +
+    '.sp-chart:active{transform:scale(.995)}' +
     '.sp-chart:focus-visible{outline:2px solid rgba(255,248,240,.7);outline-offset:2px}' +
     '.sp-chart canvas,.tc-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}' +
-    '.tc-expand{position:absolute;top:.4rem;right:.5rem;font-size:.9rem;opacity:.45;pointer-events:none;line-height:1}' +
-    '.tc-tip{position:absolute;pointer-events:none;z-index:2;padding:.45rem .6rem;border-radius:.5rem;background:rgba(15,15,15,.95);border:1px solid rgba(255,248,240,.25);font-size:.85rem;line-height:1.35;white-space:nowrap;display:none}' +
+    '.tc-expand{position:absolute;top:.45rem;left:.6rem;z-index:1;display:flex;align-items:center;gap:.4rem;padding:.18rem .5rem .18rem .55rem;border-radius:999px;' +
+      'background:rgba(255,248,240,.08);border:1px solid rgba(255,248,240,.1);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;line-height:1;opacity:.85;pointer-events:none}' +
+    '.tc-expand i{font-style:normal;font-size:.8rem;opacity:.7;transition:transform .2s,opacity .2s}' +
+    '.sp-chart:hover .tc-expand i{opacity:1;transform:translate(1px,-1px)}' +
+    '.tc-tip{position:absolute;pointer-events:none;z-index:2;padding:.5rem .7rem;border-radius:.65rem;background:rgba(14,12,22,.94);border:1px solid rgba(167,139,250,.35);' +
+      'box-shadow:0 .5rem 1.2rem rgba(0,0,0,.5);font-size:.85rem;line-height:1.4;white-space:nowrap;display:none}' +
     '.tc-card{width:min(46rem,94vw);max-height:92dvh;overflow:auto}' +
     '.tc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin:.6rem 0}' +
-    '.tc-stat{background:rgba(255,248,240,.07);border-radius:.7rem;padding:.55rem .2rem;text-align:center}' +
+    '.tc-stat{background:linear-gradient(180deg,rgba(255,248,240,.09),rgba(255,248,240,.04));border:1px solid rgba(255,248,240,.08);border-radius:.8rem;padding:.6rem .2rem;text-align:center}' +
     '.tc-stat b{display:block;font-size:1.4rem;font-weight:400}' +
     '.tc-stat span{font-size:.75rem;opacity:.7}' +
     '.tc-extra{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:0 0 .6rem}' +
-    '.tc-legend{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;font-size:.8rem;opacity:.85;margin:.2rem 0 .5rem}' +
-    '.tc-legend i{display:inline-block;width:.8rem;height:.25rem;border-radius:2px;margin-right:.35rem;vertical-align:middle}' +
-    '.tc-wrap{position:relative;height:min(20rem,46dvh);margin:.2rem 0 .6rem;border-radius:.6rem;background:rgba(0,0,0,.35);border:1px solid rgba(255,248,240,.12);touch-action:pan-y}' +
+    '.tc-legend{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;font-size:.78rem;margin:.2rem 0 .6rem}' +
+    '.tc-legend span{display:inline-flex;align-items:center;padding:.22rem .7rem;border-radius:999px;background:rgba(255,248,240,.07);border:1px solid rgba(255,248,240,.08)}' +
+    '.tc-legend i{display:inline-block;width:.8rem;height:.25rem;border-radius:2px;margin-right:.4rem}' +
+    '.tc-wrap{position:relative;height:min(20rem,46dvh);margin:.2rem 0 .6rem;border-radius:.9rem;' +
+      'background:radial-gradient(120% 140% at 0% 0%,rgba(167,139,250,.12),transparent 55%),rgba(0,0,0,.4);border:1px solid rgba(255,248,240,.12);touch-action:pan-y}' +
     '.tc-note{font-size:.85rem;opacity:.7;margin:0 0 .8rem;text-align:center;min-height:1.1em}';
   document.head.appendChild(css);
 
   function colors() {
     var cb = document.documentElement.classList.contains('colorblind');
-    return { up: cb ? '#4da3ff' : '#3ddc84', down: cb ? '#ffb020' : '#ff4d5e' };
+    return { up: cb ? '#4da3ff' : '#3ddc84', down: cb ? '#ffb020' : '#ff4d5e', accent: cb ? '#56B4E9' : '#a78bfa' };
   }
 
   // ---- dados -> velas ----
@@ -78,7 +88,7 @@
 
   // ---- um gráfico dentro de um elemento (usado no perfil e na janela) ----
   function createChart(host, opts) {
-    var PAD = opts.big ? { l: 10, r: 46, t: 12, b: 24 } : { l: 10, r: 38, t: 12, b: 22 };
+    var PAD = opts.big ? { l: 14, r: 52, t: 16, b: 26 } : { l: 14, r: 42, t: 30, b: 12 };
     host.insertAdjacentHTML('afterbegin', '<canvas></canvas>' + (opts.tooltip ? '<div class="tc-tip"></div>' : ''));
     var canvas = host.querySelector('canvas'), tip = host.querySelector('.tc-tip');
     var ctx = canvas.getContext('2d');
@@ -91,13 +101,33 @@
       canvas.height = Math.max(1, Math.round(H * dpr));
     }
 
+    function hexA(hex, a) {
+      var n = parseInt(hex.slice(1), 16);
+      return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+    function rr(x, y, w, h, r) {
+      r = Math.min(r, w / 2, h / 2);
+      ctx.beginPath(); ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+    }
+    // marcas do eixo sempre em números inteiros "redondos" (1, 2, 5, 10...)
+    function niceTicks(lo, hi, n) {
+      var raw = (hi - lo) / n, steps = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000], step = steps[steps.length - 1];
+      for (var i = 0; i < steps.length; i++) if (steps[i] >= raw) { step = steps[i]; break; }
+      var out = [];
+      for (var v = Math.ceil(lo / step) * step; v <= hi; v += step) out.push(v);
+      return out;
+    }
+    function fmt(v) { v = Math.round(v); return (v > 0 ? '+' : '') + v; }
+
     function draw() {
       if (!W || !H) return;
-      var col = colors();
+      var col = colors(), big = !!opts.big;
       var C = model ? model.candles : [], cnt = C.length;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
-      ctx.font = '12px Coolvetica, "Segoe UI", system-ui, sans-serif';
+      ctx.font = (big ? 12 : 11) + 'px Coolvetica, "Segoe UI", system-ui, sans-serif';
 
       var lo, hi;
       if (cnt) {
@@ -112,56 +142,101 @@
       function Y(v) { return PAD.t + (1 - (v - lo) / (hi - lo)) * ph; }
       var step = cnt ? pw / cnt : pw;
       function X(i) { return PAD.l + step * (i + 0.5); }
+      var last = cnt ? C[cnt - 1].close : level;
+      var lastColor = last > 0 ? col.up : (last < 0 ? col.down : col.accent);
+      var yLast = Y(last);
 
+      // grade + eixo (some o número que encostaria na etiqueta do saldo atual)
       ctx.textAlign = 'left'; ctx.lineWidth = 1;
-      for (var t = 0; t <= 4; t++) {
-        var v = lo + (hi - lo) * t / 4, y = Y(v);
-        ctx.strokeStyle = 'rgba(255,248,240,.07)';
-        ctx.beginPath(); ctx.moveTo(PAD.l, y); ctx.lineTo(W - PAD.r, y); ctx.stroke();
-        ctx.fillStyle = 'rgba(255,248,240,.4)';
-        ctx.fillText((Math.round(v) > 0 ? '+' : '') + Math.round(v), W - PAD.r + 6, y + 4);
-      }
-
-      if (!cnt) {   // linha reta: nada aconteceu ainda
-        var y0 = Y(level);
-        ctx.strokeStyle = 'rgba(255,248,240,.45)'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(PAD.l, y0); ctx.lineTo(W - PAD.r, y0); ctx.stroke();
-        return;
-      }
-
-      if (lo < 0 && hi > 0) {
-        ctx.strokeStyle = 'rgba(255,248,240,.25)'; ctx.setLineDash([4, 4]);
-        ctx.beginPath(); ctx.moveTo(PAD.l, Y(0)); ctx.lineTo(W - PAD.r, Y(0)); ctx.stroke(); ctx.setLineDash([]);
-      }
-      ctx.fillStyle = 'rgba(255,248,240,.45)';
-      ctx.textAlign = 'left'; ctx.fillText('#' + C[0].from, PAD.l, H - 6);
-      ctx.textAlign = 'right'; ctx.fillText('#' + C[cnt - 1].to, W - PAD.r, H - 6);
-
-      var bw = Math.max(3, Math.min(22, step * 0.62));
-      C.forEach(function (c, i) {
-        var up = c.close >= c.open, color = up ? col.up : col.down, x = X(i);
-        ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(x, Y(c.high)); ctx.lineTo(x, Y(c.low)); ctx.stroke();
-        var y1 = Y(Math.max(c.open, c.close)), y2 = Y(Math.min(c.open, c.close));
-        var h = Math.max(2, y2 - y1);
-        if (up) ctx.fillStyle = 'rgba(0,0,0,.85)';           // vela vazada = subiu (como no gráfico de bolsa)
-        ctx.fillRect(x - bw / 2, y1, bw, h);
-        ctx.strokeRect(x - bw / 2, y1, bw, h);
+      niceTicks(lo, hi, big ? 5 : 3).forEach(function (v) {
+        var y = Y(v);
+        ctx.strokeStyle = 'rgba(255,248,240,.06)';
+        ctx.beginPath(); ctx.moveTo(PAD.l, y + .5); ctx.lineTo(W - PAD.r, y + .5); ctx.stroke();
+        if (Math.abs(y - yLast) < 12) return;
+        ctx.fillStyle = 'rgba(255,248,240,.38)';
+        ctx.fillText(fmt(v), W - PAD.r + 8, y + 4);
       });
-
-      function line(arr, color) {
-        if (arr.length < 2) return;
-        ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round';
-        ctx.beginPath();
-        arr.forEach(function (v, i) { if (i) ctx.lineTo(X(i), Y(v)); else ctx.moveTo(X(i), Y(v)); });
-        ctx.stroke();
+      if (lo < 0 && hi > 0) {   // linha do zero
+        ctx.strokeStyle = 'rgba(255,248,240,.22)'; ctx.setLineDash([4, 5]);
+        ctx.beginPath(); ctx.moveTo(PAD.l, Y(0) + .5); ctx.lineTo(W - PAD.r, Y(0) + .5); ctx.stroke(); ctx.setLineDash([]);
       }
-      line(model.ma2, '#e8e36a'); line(model.ma1, '#5fc8ff');
 
-      if (hover >= 0 && hover < cnt) {
-        ctx.strokeStyle = 'rgba(255,248,240,.35)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
-        ctx.beginPath(); ctx.moveTo(X(hover), PAD.t); ctx.lineTo(X(hover), H - PAD.b); ctx.stroke(); ctx.setLineDash([]);
+      if (!cnt) {   // nada aconteceu ainda: linha reta elegante
+        var lg = ctx.createLinearGradient(PAD.l, 0, W - PAD.r, 0);
+        lg.addColorStop(0, hexA(col.accent, 0)); lg.addColorStop(.35, hexA(col.accent, .85)); lg.addColorStop(1, 'rgba(255,248,240,.95)');
+        var ag = ctx.createLinearGradient(0, yLast, 0, H - PAD.b);
+        ag.addColorStop(0, hexA(col.accent, .2)); ag.addColorStop(1, hexA(col.accent, 0));
+        ctx.fillStyle = ag; ctx.fillRect(PAD.l, yLast, pw, H - PAD.b - yLast);
+        ctx.strokeStyle = lg; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(PAD.l, yLast); ctx.lineTo(W - PAD.r, yLast); ctx.stroke();
+        ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,248,240,.4)';
+        ctx.fillText('Sem partidas ainda', PAD.l + pw / 2, Math.min(H - PAD.b - 4, yLast + 20));
+        // ponto brilhante no fim da linha
+        ctx.save(); ctx.shadowColor = col.accent; ctx.shadowBlur = 12;
+        ctx.fillStyle = '#fff8f0'; ctx.beginPath(); ctx.arc(W - PAD.r, yLast, 3.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      } else {
+        // rótulos do eixo X (só na janela grande)
+        if (big) {
+          ctx.fillStyle = 'rgba(255,248,240,.4)';
+          ctx.textAlign = 'left'; ctx.fillText('#' + C[0].from, PAD.l, H - 8);
+          ctx.textAlign = 'right'; ctx.fillText('#' + C[cnt - 1].to, W - PAD.r, H - 8);
+        }
+        // área suave sob a linha do saldo
+        var base = Y(Math.max(lo, Math.min(0, hi)));
+        var area = ctx.createLinearGradient(0, PAD.t, 0, H - PAD.b);
+        area.addColorStop(0, hexA(col.accent, .22)); area.addColorStop(1, hexA(col.accent, 0));
+        ctx.fillStyle = area;
+        ctx.beginPath(); ctx.moveTo(X(0), H - PAD.b);
+        C.forEach(function (c, i) { ctx.lineTo(X(i), Y(c.close)); });
+        ctx.lineTo(X(cnt - 1), H - PAD.b); ctx.closePath(); ctx.fill();
+
+        // velas arredondadas com degradê
+        var bw = Math.max(3, Math.min(big ? 20 : 14, step * 0.6));
+        C.forEach(function (c, i) {
+          var up = c.close >= c.open, color = up ? col.up : col.down, x = X(i);
+          ctx.strokeStyle = hexA(color, .9); ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(x, Y(c.high)); ctx.lineTo(x, Y(c.low)); ctx.stroke();
+          var y1 = Y(Math.max(c.open, c.close)), y2 = Y(Math.min(c.open, c.close));
+          var h = Math.max(3, y2 - y1);
+          var g = ctx.createLinearGradient(0, y1, 0, y1 + h);
+          g.addColorStop(0, hexA(color, 1)); g.addColorStop(1, hexA(color, .55));
+          ctx.fillStyle = g;
+          rr(x - bw / 2, y1, bw, h, Math.min(3, bw / 3)); ctx.fill();
+        });
+
+        // médias móveis suaves com leve brilho
+        var line = function (arr, color) {
+          if (arr.length < 2) return;
+          ctx.save();
+          ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+          ctx.shadowColor = color; ctx.shadowBlur = 6;
+          ctx.beginPath(); ctx.moveTo(X(0), Y(arr[0]));
+          for (var i = 1; i < arr.length; i++) {
+            var mx = (X(i - 1) + X(i)) / 2, my = (Y(arr[i - 1]) + Y(arr[i])) / 2;
+            ctx.quadraticCurveTo(X(i - 1), Y(arr[i - 1]), mx, my);
+          }
+          ctx.lineTo(X(arr.length - 1), Y(arr[arr.length - 1]));
+          ctx.stroke(); ctx.restore();
+        };
+        line(model.ma2, '#e8e36a'); line(model.ma1, '#5fc8ff');
+
+        if (hover >= 0 && hover < cnt) {
+          ctx.strokeStyle = 'rgba(255,248,240,.3)'; ctx.lineWidth = 1; ctx.setLineDash([3, 4]);
+          ctx.beginPath(); ctx.moveTo(X(hover), PAD.t); ctx.lineTo(X(hover), H - PAD.b); ctx.stroke(); ctx.setLineDash([]);
+        }
       }
+
+      // etiqueta do saldo atual no eixo da direita
+      var tw = PAD.r - 8, th = 16;
+      ctx.save();
+      ctx.setLineDash([2, 4]); ctx.strokeStyle = hexA(lastColor, .45); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(PAD.l, Math.round(yLast) + .5); ctx.lineTo(W - PAD.r + 4, Math.round(yLast) + .5); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = lastColor; rr(W - PAD.r + 4, yLast - th / 2, tw, th, 8); ctx.fill();
+      ctx.fillStyle = '#0a0a0a'; ctx.textAlign = 'center';
+      ctx.font = '700 ' + (big ? 12 : 11) + 'px Coolvetica, "Segoe UI", system-ui, sans-serif';
+      ctx.fillText(fmt(last), W - PAD.r + 4 + tw / 2, yLast + 4);
+      ctx.restore();
     }
 
     function onMove(e) {
@@ -207,7 +282,7 @@
     var host = document.getElementById('sp-chart');
     if (!host) return false;
     if (inlineChart && host.contains(inlineChart.host.querySelector('canvas'))) return true;
-    host.innerHTML = '<span class="tc-expand" aria-hidden="true">\u2922</span>';
+    host.innerHTML = '<span class="tc-expand" aria-hidden="true"><span>Desempenho</span><i>\u2922</i></span>';
     host.setAttribute('role', 'button');
     host.setAttribute('tabindex', '0');
     host.setAttribute('aria-label', 'Gráfico de desempenho. Clique para ver detalhes');
