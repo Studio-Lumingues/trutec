@@ -4710,3 +4710,29 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   filter: grayscale(1) brightness(0.8);     /* mais claro = brightness maior (0.9); mais escuro = menor (0.65) */
 }
 .sp-collection .sp-slot.add:hover::before { filter: grayscale(1) brightness(0.95); }
+
+/* ===== Coleção vazia: mais escura + hand drawn animado (tremido do boil.js) ===== */
+/* O filtro vai no card inteiro (borda, fundo, boneco cinza e o "+"), então tudo "ferve" junto. */
+.sp-collection .sp-slot.empty,
+.sp-collection .sp-slot.add {
+  background: rgba(0,0,0,0.38);
+  border: 2px dashed rgba(255,255,255,0.14);
+  filter: url(#boil-sm);
+}
+.sp-collection .sp-slot.empty::before,
+.sp-collection .sp-slot.add::before {
+  filter: grayscale(1) brightness(0.45);    /* mais escuro = número menor (0.35); mais claro = maior (0.6) */
+}
+.sp-collection .sp-slot.add { color: rgba(255,255,255,0.4); }
+.sp-collection .sp-slot.add:hover { background: rgba(0,0,0,0.25); border-color: rgba(255,255,255,0.45); }
+.sp-collection .sp-slot.add:hover::before { filter: grayscale(1) brightness(0.65); }
+
+/* ===== Amigos (roleta): hand drawn animado ===== */
+/* A sombra sai do box-shadow (que o filtro cortaria) e vira drop-shadow depois do tremido. */
+.fr-wheel-fig {
+  box-shadow: none;
+  filter: url(#boil-sm) drop-shadow(0 0.8rem 1rem rgba(0,0,0,0.5));
+}
+.fr-wheel-name, .fr-wheel-handle { filter: url(#boil-ic); }
+/* lista de amigos (quando não é roleta) */
+.fr-open img { filter: url(#boil-sm); }
