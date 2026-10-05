@@ -110,7 +110,12 @@
     if (!cnt) {
       ctx.fillStyle = 'rgba(255,248,240,.6)';
       ctx.textAlign = 'center';
-      ctx.fillText('Ainda sem partidas registradas.', W / 2, H / 2);
+      if (model.prior > 0) {
+        ctx.fillText('Histórico detalhado ainda vazio.', W / 2, H / 2 - 8);
+        ctx.fillText(model.wins + 'V · ' + model.losses + 'D (' + model.prior + ' partida' + (model.prior > 1 ? 's' : '') + ' sem detalhes)', W / 2, H / 2 + 12);
+      } else {
+        ctx.fillText('Ainda sem partidas registradas.', W / 2, H / 2);
+      }
       return;
     }
     var lo = Infinity, hi = -Infinity;
@@ -213,7 +218,9 @@
         fit();
         var msg = model.n
           ? 'Cada vela agrupa ' + (model.size === 1 ? '1 partida' : model.size + ' partidas') + '. Verde = saldo subiu, vermelho = caiu.'
-          : 'Ainda sem partidas registradas. O gráfico aparece a partir das próximas partidas.';
+          : (model.prior > 0
+              ? 'Você já tem ' + model.wins + ' vitória(s) e ' + model.losses + ' derrota(s), mas elas foram contadas antes do histórico existir. O gráfico começa a partir das próximas partidas.'
+              : 'Ainda sem partidas registradas. O gráfico aparece a partir das próximas partidas.');
         if (model.n && model.prior > 0) msg += ' ' + model.prior + ' partida' + (model.prior > 1 ? 's' : '') + ' antiga' + (model.prior > 1 ? 's' : '') + ' sem detalhes entram como saldo inicial.';
         noteEl.textContent = msg;
         draw();
