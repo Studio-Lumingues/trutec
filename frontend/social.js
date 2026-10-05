@@ -515,7 +515,18 @@
     shownHandle = myHandle();   // o seu @ também pode ter o link copiado
     say('');
     paint(myData());
-    loadFriends();           // volta a mostrar os SEUS amigos
+    // volta a mostrar os SEUS amigos: se já tem a lista guardada, mostra na hora (e atualiza em silêncio);
+    // senão a rodinha gira até a lista chegar, pra o perfil e os amigos aparecerem juntos
+    var id = reqId;
+    if (!loggedIn()) { friendsReq++; showFriendsData({ own: true, ok: true, friends: [], requests: [] }); return; }
+    if (ownCache) { friendsReq++; showFriendsData(ownCache); loadFriends(); return; }
+    showLoading();
+    fetchOwnFriends().then(function (d) {
+      if (id !== reqId) return;
+      friendsReq++;
+      showFriendsData(d);
+      hideLoading();
+    });
   }
 
   // ---- editar perfil ----
@@ -598,8 +609,10 @@
     loadEl.classList.remove('msg');
     cardEl.setAttribute('aria-busy', 'true');
     loadEl.classList.add('show');
+    if (friendsEl) friendsEl.classList.add('fr-pending');       // a seção Amigos some junto e volta junto com o perfil
   }
   function hideNow() {
+    if (friendsEl) friendsEl.classList.remove('fr-pending');
     if (!loadEl) return;
     cardEl.removeAttribute('aria-busy');
     loadEl.classList.remove('show');
@@ -636,10 +649,13 @@
     var id = ++reqId;
     say('');
     showLoading();
-    fetch(RESOLVED_BACKEND_URL + '/api/profile/' + encodeURIComponent(handle))
-      .then(function (r) { return r.json(); })
-      .then(function (r) {
+    // perfil e amigos são buscados ao mesmo tempo e só aparecem juntos (a rodinha fica girando até os dois chegarem)
+    var profileP = fetch(RESOLVED_BACKEND_URL + '/api/profile/' + encodeURIComponent(handle)).then(function (r) { return r.json(); });
+    var friendsP = handle === myHandle() ? fetchOwnFriends() : fetchFriendsOf(handle);   // nunca rejeita
+    Promise.all([profileP, friendsP])
+      .then(function (res) {
         if (id !== reqId) return;
+        var r = res[0], fd = res[1];
         if (!r || !r.ok || !r.profile) return failLoading((r && r.error) || 'Perfil não encontrado.');
         var p = r.profile;
         shownHandle = String(p.handle || handle);
@@ -647,9 +663,9 @@
           name: p.displayName || p.name || shownHandle, bio: p.bio, handle: shownHandle, wins: p.wins, losses: p.losses,
           avatar: p.character, collection: p.collection, other: true
         });
-        if (Array.isArray(p.friends) && shownHandle !== myHandle()) { friendsReq++; renderOtherFriends(shownHandle, p.friends); }   // o servidor já mandou os amigos dele
-        else loadFriends();                        // amigos de quem está sendo visto
-        hideLoading();                             // fade out: revela o perfil novo
+        friendsReq++;                              // cancela atualizações silenciosas antigas
+        showFriendsData(fd);
+        hideLoading();                             // fade out: revela o perfil novo e os amigos juntos
       })
       .catch(function () {
         if (id !== reqId) return;
@@ -1212,7 +1228,9 @@
   }
   // A seção Amigos acompanha o perfil que está aberto: no SEU perfil mostra os seus amigos (e pedidos);
   // no perfil de outra pessoa mostra os amigos DELA (nunca os seus).
-  var friendsReq = 0;                               // ignora respostas de pedidos antigos
+  var friendsReq = 0;                               // ignora respostas de atualizações antigas
+  var friendsSig = '';                              // "assinatura" do que está na tela (evita redesenhar à toa)
+  var ownCache = null;                              // última lista dos SEUS amigos (abre o Social sem esperar)
   function viewingOtherFriends() { return viewingOther && shownHandle && shownHandle !== myHandle(); }
   function friendsMsg(text) {
     if (!friendsEl) return;
@@ -1225,23 +1243,68 @@
     if (!friends.length) return friendsMsg('@' + handle + ' ainda não tem amigos por aqui.');
     renderFriends({ friends: friends, requests: [] });
   }
+  function sigOf(d) {
+    var h = function (l) { return (l || []).map(function (f) { return f.handle + '|' + (f.displayName || ''); }).join(','); };
+    return (d.own ? 'own' : '@' + d.handle) + ':' + (d.ok ? 1 : 0) + ':' + h(d.friends) + ':' + h(d.requests);
+  }
+  function showFriendsData(d) {
+    if (!friendsEl || !d) return;
+    friendsSig = sigOf(d);
+    if (d.own) {
+      if (d.ok) renderFriends({ friends: d.friends, requests: d.requests });
+      else friendsMsg('Não foi possível carregar seus amigos agora.');
+    } else if (d.ok) renderOtherFriends(d.handle, d.friends);
+    else friendsMsg('Não foi possível carregar os amigos de @' + d.handle + '.');
+  }
+  // Baixa e decodifica o boneco dos amigos que aparecem na roleta logo de cara (o do meio e os dois vizinhos de cada lado),
+  // pra a roleta já nascer completa. Espera no máximo alguns segundos.
+  function decodeImg(src) {
+    return new Promise(function (res) {
+      var im = new Image();
+      im.onload = im.onerror = function () { res(); };
+      im.src = src;
+      if (im.decode) im.decode().then(res, res);
+    });
+  }
+  function prefetchAvatars(friends) {
+    var n = friends.length;
+    if (!n) return Promise.resolve();
+    var want = {};
+    [0, 1, 2, n - 1, n - 2].forEach(function (i) { if (i >= 0 && i < n) want[i] = true; });
+    var jobs = Object.keys(want).map(function (i) {
+      var f = friends[i], direct = safeImg(f.character) || safeImg(f.avatar);
+      if (direct) return decodeImg(direct);
+      return new Promise(function (res) { fetchSenderAvatar(f.handle, function (img) { if (img) decodeImg(img).then(res); else res(); }); });
+    });
+    return Promise.race([Promise.all(jobs), new Promise(function (res) { setTimeout(res, 6000); })]);
+  }
+  // Nunca rejeitam: devolvem { own, ok, handle?, friends, requests } já com os bonecos prontos.
+  function fetchFriendsOf(h) {
+    return fetch(RESOLVED_BACKEND_URL + '/api/profile/' + encodeURIComponent(h) + '/friends')
+      .then(function (r) { return r.json(); })
+      .then(function (r) { return r && r.ok && Array.isArray(r.friends) ? { own: false, ok: true, handle: h, friends: r.friends.filter(function (f) { return f && f.handle; }), requests: [] } : { own: false, ok: false, handle: h, friends: [], requests: [] }; })
+      .catch(function () { return { own: false, ok: false, handle: h, friends: [], requests: [] }; })
+      .then(function (d) { return d.ok ? prefetchAvatars(d.friends).then(function () { return d; }) : d; });
+  }
+  function fetchOwnFriends() {
+    if (!loggedIn()) return Promise.resolve({ own: true, ok: true, friends: [], requests: [] });
+    return mailApi('/api/friends').then(function (r) {
+      if (!r || !r.ok) return { own: true, ok: false, friends: [], requests: [] };
+      var d = { own: true, ok: true, friends: r.friends || [], requests: r.requests || [] };
+      return prefetchAvatars(d.friends).then(function () { ownCache = d; return d; });
+    }).catch(function () { return { own: true, ok: false, friends: [], requests: [] }; });
+  }
+  // Atualização silenciosa (depois de aceitar/remover amigo, ao voltar pra aba, ao logar): só redesenha se algo mudou.
   function loadFriends() {
     var id = ++friendsReq;
-    if (viewingOtherFriends()) {
-      var h = shownHandle;
-      if (friendsEl) friendsEl.textContent = '';    // some a lista do perfil anterior enquanto carrega
-      fetch(RESOLVED_BACKEND_URL + '/api/profile/' + encodeURIComponent(h) + '/friends')
-        .then(function (r) { return r.json(); })
-        .then(function (r) {
-          if (id !== friendsReq) return;
-          if (r && r.ok && Array.isArray(r.friends)) renderOtherFriends(h, r.friends);
-          else friendsMsg('Não foi possível carregar os amigos de @' + h + '.');
-        })
-        .catch(function () { if (id === friendsReq) friendsMsg('Não foi possível carregar os amigos de @' + h + '.'); });
-      return;
-    }
-    if (!loggedIn()) return renderFriends(null);
-    mailApi('/api/friends').then(function (r) { if (id === friendsReq && r && r.ok) renderFriends(r); });
+    var h = viewingOtherFriends() ? shownHandle : null;
+    (h ? fetchFriendsOf(h) : fetchOwnFriends()).then(function (d) {
+      if (id !== friendsReq) return;
+      if (h ? (!viewingOtherFriends() || shownHandle !== h) : viewingOtherFriends()) return;   // já trocou de perfil
+      if (!d.ok && d.own) return;                  // falha de rede: mantém o que já está na tela
+      if (sigOf(d) === friendsSig) return;
+      showFriendsData(d);
+    });
   }
 
   mailBtn.addEventListener('click', function () { if (shownHandle) openCompose(shownHandle); });
@@ -1275,7 +1338,6 @@
     input.value = '';
     setPane('friends');
     refreshBadge();
-    loadFriends();
     showScreen('screen-social');
   });
   logoBtn.addEventListener('click', function () { closeBox(); closeMenu(); showScreen('screen-lobby'); });

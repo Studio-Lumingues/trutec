@@ -4641,3 +4641,8 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
   .fr-wheel-wrap { --fr-w: 9.5rem; }
   .fr-wheel-name { font-size: 1.35rem; }
 }
+
+/* seção Amigos some/volta junto com o card do perfil (mesmo ritmo da rodinha de carregamento) */
+.social-friends { transition: opacity .45s ease; }
+.social-friends.fr-pending { opacity: 0; transition: opacity .5s ease; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .social-friends, .social-friends.fr-pending { transition: none; } }
