@@ -221,6 +221,17 @@ app.get('/api/profile/:handle', wrap(async (req, res) => {
   res.json({ ok: true, profile: p });
 }));
 
+// Amigos de qualquer perfil (público): só @ e nome de exibição de quem já é amigo.
+// Pedidos pendentes NÃO aparecem aqui (isso continua só em GET /api/friends, que exige login).
+app.get('/api/profile/:handle/friends', wrap(async (req, res) => {
+  const handle = db.normHandle(req.params.handle);
+  if (!/^[a-z0-9_]{3,16}$/.test(handle)) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });
+  const p = await db.byHandle(handle);
+  if (!p) return res.status(404).json({ ok: false, error: 'Perfil não encontrado.' });
+  const { friends } = await db.friendsOf(p.id);
+  res.json({ ok: true, friends });
+}));
+
 // Serve os arquivos estáticos do frontend só como conveniência para testar
 // localmente sem precisar rodar dois servidores. Em produção o frontend fica
 // hospedado separadamente na Vercel.
