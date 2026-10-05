@@ -104,6 +104,11 @@ app.put('/api/me/collection', wrap(async (req, res) => {
   if (!col) return res.status(400).json({ ok: false, error: 'Coleção inválida.' });
   const mine = await db.byId(u.id);
   if (!mine) return res.status(400).json({ ok: false, error: 'Escolha seu @ primeiro.' });
+  // proteção: um aparelho novo (sem nada local) manda coleção vazia e apagaria a que já está salva
+  if (col.every((v) => v === null)) {
+    const saved = await db.collectionOf(u.id);
+    if (saved.some((v) => v)) return res.json({ ok: true, kept: true });
+  }
   await db.setCollection(u.id, col);
   res.json({ ok: true });
 }));

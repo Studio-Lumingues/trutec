@@ -441,6 +441,8 @@
     var inp = document.getElementById('input-name');
     if (inp && inp.value.trim()) name = inp.value.trim();
     var st = window.TruStats ? TruStats.get() : { wins: 0, losses: 0 };
+    var pr = myProfile();
+    if (pr && typeof pr.wins === 'number' && typeof pr.losses === 'number') st = { wins: pr.wins, losses: pr.losses };   // com conta: vale o que está no servidor
     var avatar = null;
     try { avatar = localStorage.getItem('trutec_meu_personagem'); } catch (e) {}
     return {
