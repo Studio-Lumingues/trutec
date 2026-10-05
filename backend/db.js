@@ -112,6 +112,17 @@ async function collectionOf(userId) {
 async function recordResult(userId, win) {
   const { error } = await sb.rpc('record_result', { p_user: userId, p_win: !!win });
   if (error) throw error;
+  // histórico pro gráfico do perfil (tabela "match_history", veja supabase-historico.sql). Se ainda não existir, só avisa.
+  const h = await sb.from('match_history').insert({ user_id: userId, win: !!win });
+  if (h.error && !historyWarned) { historyWarned = true; console.warn('[db] match_history indisponível; rode supabase-historico.sql:', h.error.message); }
+}
+let historyWarned = false;
+// Últimas partidas (mais antiga primeiro): array de 1 (vitória) / 0 (derrota).
+async function historyOf(userId, limit) {
+  const { data, error } = await sb.from('match_history').select('win, created_at')
+    .eq('user_id', userId).order('created_at', { ascending: false }).limit(limit || 300);
+  if (error) return [];
+  return (data || []).reverse().map((r) => (r.win ? 1 : 0));
 }
 
 // ---------------------------------------------------------------------------
@@ -230,6 +241,6 @@ async function friendsOf(userId) {
   return { friends, requests };
 }
 
-module.exports = { enabled, verify, byId, byHandle, create, setCharacter, setProfileInfo, cleanCollection, setCollection, collectionOf, cleanText, recordResult, normHandle, checkHandle,
+module.exports = { enabled, verify, byId, byHandle, create, setCharacter, setProfileInfo, cleanCollection, setCollection, collectionOf, cleanText, recordResult, historyOf, normHandle, checkHandle,
   sendMessage, inboxOf, unreadCount, markRead, deleteMessage, sentRecently,
   friendState, requestFriend, acceptFriend, removeFriendship, friendsOf };
