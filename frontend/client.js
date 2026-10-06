@@ -339,6 +339,7 @@ function getSavedCharacter() {
   const brushSizeInput = document.getElementById('character-brush-size');
   const btnPen = document.getElementById('btn-tool-pen');
   const btnEraser = document.getElementById('btn-tool-eraser');
+  const btnBucket = document.getElementById('btn-tool-bucket');
   const btnUndo = document.getElementById('btn-character-undo');
   const btnClear = document.getElementById('btn-character-clear');
   const btnSave = document.getElementById('btn-character-save');
@@ -347,7 +348,7 @@ function getSavedCharacter() {
 
   let drawing = false;
   let currentColor = colorPicker.value;
-  let currentTool = 'pen'; // 'pen' | 'eraser'
+  let currentTool = 'pen'; // 'pen' | 'eraser' | 'bucket'
   let lastX = 0, lastY = 0;
   const undoStack = [];
 
@@ -640,8 +641,55 @@ function getSavedCharacter() {
     };
   }
 
+  // BALDE DE TINTA: pinta a área clicada. Olha o boneco (com o tom da pele) + o desenho juntos,
+  // então os contornos de qualquer um dos dois seguram a tinta. A tinta vai pra camada do desenho
+  // (a borracha apaga e o Desfazer volta).
+  function floodMask(d, w, h, sx, sy, tol) {
+    sx = Math.max(0, Math.min(w - 1, Math.floor(sx))); sy = Math.max(0, Math.min(h - 1, Math.floor(sy)));
+    var si = (sy * w + sx) * 4, r0 = d[si], g0 = d[si + 1], b0 = d[si + 2], a0 = d[si + 3];
+    var mask = new Uint8Array(w * h);
+    function match(p) { var i = p * 4; return Math.abs(d[i] - r0) + Math.abs(d[i + 1] - g0) + Math.abs(d[i + 2] - b0) + Math.abs(d[i + 3] - a0) <= tol; }
+    var stack = [sx, sy];
+    while (stack.length) {
+      var y = stack.pop(), x = stack.pop();
+      while (x >= 0 && !mask[y * w + x] && match(y * w + x)) x--;
+      x++;
+      var up = false, down = false;
+      while (x < w && !mask[y * w + x] && match(y * w + x)) {
+        mask[y * w + x] = 1;
+        if (y > 0) { var mu = !mask[(y - 1) * w + x] && match((y - 1) * w + x); if (mu && !up) { stack.push(x, y - 1); up = true; } else if (!mu) up = false; }
+        if (y < h - 1) { var md = !mask[(y + 1) * w + x] && match((y + 1) * w + x); if (md && !down) { stack.push(x, y + 1); down = true; } else if (!md) down = false; }
+        x++;
+      }
+    }
+    return mask;
+  }
+
+  function bucketFill(x, y) {
+    const w = canvas.width, h = canvas.height;
+    const comp = document.createElement('canvas'); comp.width = w; comp.height = h;
+    const cc = comp.getContext('2d');
+    try { drawSkinned(cc, characterBase, w, h); } catch (err) {}
+    cc.drawImage(canvas, 0, 0);
+    const mask = floodMask(cc.getImageData(0, 0, w, h).data, w, h, x, y, 60);
+    const rgb = hexToRgb(currentColor);
+    const id = ctx.getImageData(0, 0, w, h), d = id.data;
+    for (let p = 0; p < mask.length; p++) {
+      if (!mask[p]) continue;
+      const i = p * 4;
+      d[i] = rgb[0]; d[i + 1] = rgb[1]; d[i + 2] = rgb[2]; d[i + 3] = 255;
+    }
+    ctx.putImageData(id, 0, 0);
+  }
+
   function startDraw(e) {
     e.preventDefault();
+    if (currentTool === 'bucket') {
+      pushUndoState();
+      const bp = pointerPos(e);
+      bucketFill(bp.x, bp.y);
+      return;
+    }
     drawing = true;
     pushUndoState();
     const p = pointerPos(e);
@@ -694,11 +742,7 @@ function getSavedCharacter() {
     // cor personalizada: o botão do seletor mostra a cor escolhida no centro
     colorPicker.classList.toggle('active', !matched);
     if (!matched) colorPicker.style.setProperty('--picked', c);
-    if (currentTool === 'eraser') {            // escolher cor volta pra caneta
-      currentTool = 'pen';
-      btnPen.classList.add('active');
-      btnEraser.classList.remove('active');
-    }
+    if (currentTool === 'eraser') setTool('pen');   // escolher cor volta pra caneta (o balde continua)
   }
   document.querySelectorAll('.color-swatch').forEach(btn => {
     btn.addEventListener('click', () => setColor(btn.dataset.color));
@@ -706,17 +750,16 @@ function getSavedCharacter() {
 
   colorPicker.addEventListener('input', () => setColor(colorPicker.value));
 
-  btnPen.addEventListener('click', () => {
-    currentTool = 'pen';
-    btnPen.classList.add('active');
-    btnEraser.classList.remove('active');
-  });
-
-  btnEraser.addEventListener('click', () => {
-    currentTool = 'eraser';
-    btnEraser.classList.add('active');
-    btnPen.classList.remove('active');
-  });
+  function setTool(t) {
+    currentTool = t;
+    btnPen.classList.toggle('active', t === 'pen');
+    btnEraser.classList.toggle('active', t === 'eraser');
+    if (btnBucket) btnBucket.classList.toggle('active', t === 'bucket');
+    canvas.style.cursor = t === 'bucket' ? 'cell' : '';
+  }
+  btnPen.addEventListener('click', () => setTool('pen'));
+  btnEraser.addEventListener('click', () => setTool('eraser'));
+  if (btnBucket) btnBucket.addEventListener('click', () => setTool('bucket'));
 
   btnUndo.addEventListener('click', () => {
     if (!undoStack.length) return;

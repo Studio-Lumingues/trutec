@@ -577,6 +577,26 @@
   // (assets/personagem.svg), muda o tom da pele e o fundo, e baixa tudo em JPG (1000x1000).
   // Os traços ficam guardados como lista de pontos: dá pra desfazer/refazer à vontade.
   var drawUi = null;
+  function floodMask(d, w, h, sx, sy, tol) {
+    sx = Math.max(0, Math.min(w - 1, Math.floor(sx))); sy = Math.max(0, Math.min(h - 1, Math.floor(sy)));
+    var si = (sy * w + sx) * 4, r0 = d[si], g0 = d[si + 1], b0 = d[si + 2], a0 = d[si + 3];
+    var mask = new Uint8Array(w * h);
+    function match(p) { var i = p * 4; return Math.abs(d[i] - r0) + Math.abs(d[i + 1] - g0) + Math.abs(d[i + 2] - b0) + Math.abs(d[i + 3] - a0) <= tol; }
+    var stack = [sx, sy];
+    while (stack.length) {
+      var y = stack.pop(), x = stack.pop();
+      while (x >= 0 && !mask[y * w + x] && match(y * w + x)) x--;
+      x++;
+      var up = false, down = false;
+      while (x < w && !mask[y * w + x] && match(y * w + x)) {
+        mask[y * w + x] = 1;
+        if (y > 0) { var mu = !mask[(y - 1) * w + x] && match((y - 1) * w + x); if (mu && !up) { stack.push(x, y - 1); up = true; } else if (!mu) up = false; }
+        if (y < h - 1) { var md = !mask[(y + 1) * w + x] && match((y + 1) * w + x); if (md && !down) { stack.push(x, y + 1); down = true; } else if (!md) down = false; }
+        x++;
+      }
+    }
+    return mask;
+  }
   function openDraw(onClose) {
     if (drawUi) return;
     var W = 1000;                                   // resolução interna do desenho (e do JPG)
@@ -625,7 +645,8 @@
         '<div class="tt-dr-row" data-sw><label>Cor</label></div>' +
         '<div class="tt-dr-row"><label>Pincel: <span data-sz-val></span></label><input type="range" data-sz min="2" max="80" value="10"></div>' +
         '<div class="tt-dr-row"><button type="button" class="tt-dr-btn on" data-tool="pen">Caneta</button>' +
-          '<button type="button" class="tt-dr-btn" data-tool="eraser">Borracha</button></div>' +
+          '<button type="button" class="tt-dr-btn" data-tool="eraser">Borracha</button>' +
+          '<button type="button" class="tt-dr-btn" data-tool="bucket">Balde</button></div>' +
         '<div class="tt-dr-row"><button type="button" class="tt-dr-btn" data-undo>Desfazer</button>' +
           '<button type="button" class="tt-dr-btn" data-redo>Refazer</button>' +
           '<button type="button" class="tt-dr-btn" data-clear>Limpar</button></div>' +
@@ -658,10 +679,41 @@
       ctx.lineTo(p[p.length - 1][0], p[p.length - 1][1]);
       ctx.stroke();
     }
+    // ---- balde de tinta: olha o boneco (com o tom) + o desenho juntos; guarda a máscara pra desfazer/refazer ----
+    function applyFill(s) {
+      var n = parseInt(s.color.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+      var id = ctx.getImageData(0, 0, W, W), d = id.data, m = s.mask;
+      for (var p = 0; p < m.length; p++) {
+        if (!m[p]) continue;
+        var i = p * 4; d[i] = r; d[i + 1] = g; d[i + 2] = b; d[i + 3] = 255;
+      }
+      ctx.putImageData(id, 0, 0);
+    }
+    function bucketAt(pt) {
+      var comp = document.createElement('canvas'); comp.width = comp.height = W;
+      var cx = comp.getContext('2d');
+      if (showBase && img.naturalWidth) {
+        if (hue && !('filter' in cx)) {
+          var t2 = document.createElement('canvas'); t2.width = t2.height = W;
+          var tc = t2.getContext('2d'); tc.drawImage(img, 0, 0, W, W); hueFallback(tc, hue);
+          cx.drawImage(t2, 0, 0);
+        } else {
+          cx.filter = hue ? 'hue-rotate(' + hue + 'deg)' : 'none';
+          cx.drawImage(img, 0, 0, W, W);
+          cx.filter = 'none';
+        }
+      }
+      cx.drawImage(cv, 0, 0);
+      var mask = floodMask(cx.getImageData(0, 0, W, W).data, W, W, pt[0], pt[1], 60);
+      var s = { tool: 'fill', color: /^#[0-9a-f]{6}$/i.test(color) ? color : '#000000', mask: mask };
+      strokes.push(s); redo = [];
+      applyFill(s);
+      btnUndo.disabled = false; btnRedo.disabled = true;
+    }
     function repaint() {
       ctx.globalCompositeOperation = 'source-over';
       ctx.clearRect(0, 0, W, W);
-      strokes.forEach(function (s) { if (s.tool === 'clear') ctx.clearRect(0, 0, W, W); else drawAll(s); });
+      strokes.forEach(function (s) { if (s.tool === 'clear') ctx.clearRect(0, 0, W, W); else if (s.tool === 'fill') applyFill(s); else drawAll(s); });
       btnUndo.disabled = !strokes.length; btnRedo.disabled = !redo.length;
     }
     // desenha só o trecho novo enquanto o traço está sendo feito (mesma curva do repaint)
@@ -680,6 +732,7 @@
     cv.addEventListener('pointerdown', function (e) {
       if (e.button > 0) return;
       e.preventDefault();
+      if (tool === 'bucket') { bucketAt(pos(e)); return; }
       try { cv.setPointerCapture(e.pointerId); } catch (x) {}
       cur = { tool: tool, color: color, size: size, pts: [pos(e)] };
       redo = [];
@@ -708,9 +761,9 @@
     // ---- ferramentas ----
     var swBox = q('[data-sw]'), picker = document.createElement('input');
     function pickColor(col) {
-      color = col; tool = 'pen';
+      color = col;
       [].forEach.call(swBox.querySelectorAll('.tt-dr-sw'), function (b) { b.classList.toggle('on', b.dataset.c === col); });
-      setTool('pen');
+      if (tool === 'eraser') setTool('pen');
     }
     SW.forEach(function (col) {
       var b = document.createElement('button');
@@ -723,7 +776,7 @@
     swBox.appendChild(picker);
 
     function setTool(t) {
-      tool = t;
+      tool = t; cv.style.cursor = t === 'bucket' ? 'cell' : '';
       [].forEach.call(root.querySelectorAll('[data-tool]'), function (b) { b.classList.toggle('on', b.dataset.tool === t); });
     }
     [].forEach.call(root.querySelectorAll('[data-tool]'), function (b) { b.addEventListener('click', function () { setTool(b.dataset.tool); }); });
