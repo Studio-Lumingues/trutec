@@ -242,7 +242,7 @@
     ['server', '', 'testa o servidor (/health)'],
     ['auth', '<chave>', 'modo admin: placar, foto, efeito do nome (veja `auth`)'],
     ['settings', '', 'abre as configurações'],
-    ['desenhar', '', 'desenha o boneco sem limite de tempo e baixa em JPG'],
+    ['desenhar', '[jpg]', 'abre o editor de avatar (o mesmo do jogo) · jpg = editor livre que baixa JPG'],
     ['tutorial', '', 'o Jailson te ensina a jogar (tela inicial)'],
     ['cadastro', '', 'abre a tela de escolher o @ (modo teste, não salva nada)'],
     ['colors', '', 'paleta de cores do terminal'],
@@ -833,12 +833,34 @@
     },
     arroba: function () { return COMMANDS.cadastro(); },
 
-    desenhar: function () {
-      if (drawUi) return out(c('y', 'o editor de desenho já está aberto.'));
-      out(c('g', '✔ ') + 'abrindo o editor de desenho… ' + c('d', '(Esc fecha e volta pro terminal)'));
+    desenhar: function (args) {
+      // `desenhar jpg` mantém o editor livre antigo (baixa JPG com fundo)
+      if (args && args[0] === 'jpg') {
+        if (drawUi) return out(c('y', 'o editor de desenho já está aberto.'));
+        out(c('g', '✔ ') + 'abrindo o editor livre (JPG)… ' + c('d', '(Esc fecha e volta pro terminal)'));
+        setTimeout(function () {
+          hideWin();
+          openDraw(function () { showWin(); });
+        }, 250);
+        return;
+      }
+      // padrão: o MESMO editor de avatar que todo mundo usa (tela screen-character-editor),
+      // com Desenho, Pele, 3 espaços, Exportar/Importar e Salvar
+      var ed = document.getElementById('screen-character-editor');
+      var lobby = document.getElementById('screen-lobby');
+      if (!ed || typeof showScreen !== 'function') return out(c('r', 'editor de avatar indisponível.'));
+      if (!lobby || !lobby.classList.contains('active')) return out(c('y', 'volte pra tela inicial pra abrir o editor de avatar.'));
+      out(c('g', '✔ ') + 'abrindo o editor de avatar… ' + c('d', '(seta de voltar fecha e traz o terminal de volta)'));
       setTimeout(function () {
         hideWin();                                   // tira o terminal da frente
-        openDraw(function () { showWin(); });        // ao fechar o desenho, o terminal volta
+        showScreen('screen-character-editor');
+        // quando o editor deixa de ser a tela ativa (voltar), o terminal reaparece
+        var mo = new MutationObserver(function () {
+          if (ed.classList.contains('active')) return;
+          mo.disconnect();
+          showWin();
+        });
+        mo.observe(ed, { attributes: true, attributeFilter: ['class'] });
       }, 250);
     },
     draw: function () { return COMMANDS.desenhar(); },
