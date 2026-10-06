@@ -4736,3 +4736,14 @@ div.code-bar:focus-visible, .code-bar-input:focus-within { outline: none; border
 .btn-glass .glass-duo img { transition: opacity .35s ease; }
 .btn-glass .glass-duo img.gd-fade { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .btn-glass .glass-duo img { transition: none; } }
+
+
+/* ===== editor de avatar: camadas, conta-gotas e botões em grade ===== */
+#character-canvas-back,
+#character-canvas-mid { pointer-events: none; user-select: none; filter: url(#boil-lg); }
+#screen-character-editor .tool-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+#screen-character-editor .tool-buttons .tool-btn { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; }
+.layer-row { display: flex; flex-direction: column; gap: 0.35rem; width: 100%; }
+.layer-row label { font-size: 0.85rem; color: #fff8f0; }
+.layer-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+#screen-character-editor .layer-seg .tool-btn { padding: 0.6rem 0.3rem; }

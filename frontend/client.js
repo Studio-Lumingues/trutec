@@ -334,12 +334,40 @@ function getSavedCharacter() {
   const canvas = document.getElementById('character-canvas');
   if (!canvas) return; // painel não presente nesta tela/versão
 
-  const ctx = canvas.getContext('2d');
+  // CAMADAS (de trás pra frente): 0 = Fundo (atrás do boneco) · 1 = Cor (sobre o boneco, embaixo das linhas)
+  // · 2 = Linha (por cima de tudo; é o #character-canvas, que recebe o mouse/toque).
+  // `ctx` sempre aponta pra camada ativa: caneta, borracha, balde e limpar mexem só nela.
+  const layerCanvases = (function () {
+    const base = document.getElementById('character-base');
+    function mk(id, before) {
+      const c = document.createElement('canvas');
+      c.id = id; c.width = canvas.width; c.height = canvas.height; c.setAttribute('aria-hidden', 'true');
+      before.parentNode.insertBefore(c, before);
+      return c;
+    }
+    return [mk('character-canvas-back', base), mk('character-canvas-mid', canvas), canvas];
+  })();
+  const layerCtxs = layerCanvases.map(c => c.getContext('2d'));
+  const restoreTok = [0, 0, 0];   // evita que um "desfazer" atrasado sobrescreva outro mais novo
+  let activeLayer = 2;
+  let ctx = layerCtxs[2];
+  const layerBtns = document.querySelectorAll('[data-layer]');
+  function setLayer(i) {
+    activeLayer = i; ctx = layerCtxs[i];
+    layerBtns.forEach(b => b.classList.toggle('active', Number(b.dataset.layer) === i));
+  }
+  layerBtns.forEach(b => b.addEventListener('click', () => setLayer(Number(b.dataset.layer))));
+  function isBlank(c) {
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    for (let i = 3; i < d.length; i += 4) if (d[i]) return false;
+    return true;
+  }
   const colorPicker = document.getElementById('character-color-picker');
   const brushSizeInput = document.getElementById('character-brush-size');
   const btnPen = document.getElementById('btn-tool-pen');
   const btnEraser = document.getElementById('btn-tool-eraser');
   const btnBucket = document.getElementById('btn-tool-bucket');
+  const btnPicker = document.getElementById('btn-tool-picker');
   const btnUndo = document.getElementById('btn-character-undo');
   const btnClear = document.getElementById('btn-character-clear');
   const btnSave = document.getElementById('btn-character-save');
@@ -348,7 +376,8 @@ function getSavedCharacter() {
 
   let drawing = false;
   let currentColor = colorPicker.value;
-  let currentTool = 'pen'; // 'pen' | 'eraser' | 'bucket'
+  let currentTool = 'pen'; // 'pen' | 'eraser' | 'bucket' | 'picker'
+  let lastDrawTool = 'pen';
   let lastX = 0, lastY = 0;
   const undoStack = [];
 
@@ -627,7 +656,7 @@ function getSavedCharacter() {
   } catch (e) { /* localStorage indisponível, ignora */ }
 
   function pushUndoState() {
-    undoStack.push(canvas.toDataURL());
+    undoStack.push({ layer: activeLayer, url: ctx.canvas.toDataURL() });
     if (undoStack.length > 20) undoStack.shift();
   }
 
@@ -665,14 +694,27 @@ function getSavedCharacter() {
     return mask;
   }
 
+  // boneco (com o tom da pele) + as 3 camadas, na ordem certa, SEM o ruído/tremida (que é só filtro visual)
+  function skinnedBase() {
+    const b = document.createElement('canvas'); b.width = canvas.width; b.height = canvas.height;
+    try { drawSkinned(b.getContext('2d'), characterBase, b.width, b.height); } catch (err) {}
+    return b;
+  }
+  function compositeAll() {
+    const comp = document.createElement('canvas'); comp.width = canvas.width; comp.height = canvas.height;
+    const cc = comp.getContext('2d');
+    cc.drawImage(layerCanvases[0], 0, 0);
+    cc.drawImage(skinnedBase(), 0, 0);
+    cc.drawImage(layerCanvases[1], 0, 0);
+    cc.drawImage(layerCanvases[2], 0, 0);
+    return cc;
+  }
+
   function bucketFill(x, y) {
     const w = canvas.width, h = canvas.height;
-    const comp = document.createElement('canvas'); comp.width = w; comp.height = h;
-    const cc = comp.getContext('2d');
-    try { drawSkinned(cc, characterBase, w, h); } catch (err) {}
-    cc.drawImage(canvas, 0, 0);
-    const mask = floodMask(cc.getImageData(0, 0, w, h).data, w, h, x, y, 60);
+    const mask = floodMask(compositeAll().getImageData(0, 0, w, h).data, w, h, x, y, 60);
     const rgb = hexToRgb(currentColor);
+    ctx.globalCompositeOperation = 'source-over';
     const id = ctx.getImageData(0, 0, w, h), d = id.data;
     for (let p = 0; p < mask.length; p++) {
       if (!mask[p]) continue;
@@ -682,8 +724,24 @@ function getSavedCharacter() {
     ctx.putImageData(id, 0, 0);
   }
 
+  // CONTA-GOTAS: lê o pixel de verdade (boneco + camadas), não da tela. Assim não pega o ruído/tremida
+  // nem o brilho do vidro. Depois de pegar a cor, volta pra ferramenta que você estava usando.
+  function pickColorAt(x, y) {
+    const px = Math.max(0, Math.min(canvas.width - 1, Math.floor(x)));
+    const py = Math.max(0, Math.min(canvas.height - 1, Math.floor(y)));
+    const d = compositeAll().getImageData(px, py, 1, 1).data;
+    if (d[3] < 40) return flash('Aí não tem cor pra pegar (área vazia).', 2500);
+    setColor(rgbToHex([d[0], d[1], d[2]]));
+    setTool(lastDrawTool);
+  }
+
   function startDraw(e) {
     e.preventDefault();
+    if (currentTool === 'picker') {
+      const pp = pointerPos(e);
+      pickColorAt(pp.x, pp.y);
+      return;
+    }
     if (currentTool === 'bucket') {
       pushUndoState();
       const bp = pointerPos(e);
@@ -752,29 +810,44 @@ function getSavedCharacter() {
 
   function setTool(t) {
     currentTool = t;
+    if (t !== 'picker') lastDrawTool = t === 'eraser' ? 'pen' : t;
+    if (btnPicker) btnPicker.classList.toggle('active', t === 'picker');
     btnPen.classList.toggle('active', t === 'pen');
     btnEraser.classList.toggle('active', t === 'eraser');
     if (btnBucket) btnBucket.classList.toggle('active', t === 'bucket');
-    canvas.style.cursor = t === 'bucket' ? 'cell' : '';
+    canvas.style.cursor = t === 'bucket' ? 'cell' : (t === 'picker' ? 'copy' : '');
   }
   btnPen.addEventListener('click', () => setTool('pen'));
   btnEraser.addEventListener('click', () => setTool('eraser'));
   if (btnBucket) btnBucket.addEventListener('click', () => setTool('bucket'));
+  if (btnPicker) btnPicker.addEventListener('click', () => setTool('picker'));
 
-  btnUndo.addEventListener('click', () => {
-    if (!undoStack.length) return;
-    const last = undoStack.pop();
-    const img = new Image();
-    img.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  // Desfazer: devolve a camada ao estado de antes do último gesto.
+  // (Bug antigo: depois de usar a borracha o canvas ficava em modo "apagar" e o desfazer
+  // desenhava a imagem restaurada COM esse modo, ou seja, apagava o desenho inteiro.)
+  function restoreLayer(i, url) {
+    const c = layerCanvases[i], x = layerCtxs[i], tok = ++restoreTok[i];
+    const im = new Image();
+    im.onload = () => {
+      if (tok !== restoreTok[i]) return;
+      x.globalCompositeOperation = 'source-over';
+      x.clearRect(0, 0, c.width, c.height);
+      x.drawImage(im, 0, 0, c.width, c.height);
     };
-    img.src = last;
+    im.src = url;
+  }
+  btnUndo.addEventListener('click', () => {
+    const st = undoStack.pop();
+    if (st) restoreLayer(st.layer, st.url);
   });
 
+  // Limpar: esvazia SÓ a camada ativa (dá pra desfazer).
   btnClear.addEventListener('click', () => {
+    if (isBlank(ctx.canvas)) return;
     pushUndoState();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    restoreTok[activeLayer]++;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   });
 
   // ------------------------------------------------------------------
@@ -866,12 +939,26 @@ function getSavedCharacter() {
     }
   }
 
-  function loadDrawing(dataUrl) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (!dataUrl) return;
+  const PNG_URL = 'data:image/png;base64,';
+  function drawInto(i, url) {
     const im = new Image();
-    im.onload = () => { ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(im, 0, 0, canvas.width, canvas.height); };
-    im.src = dataUrl;
+    const tok = restoreTok[i];
+    im.onload = () => {
+      if (tok !== restoreTok[i]) return;
+      layerCtxs[i].globalCompositeOperation = 'source-over';
+      layerCtxs[i].drawImage(im, 0, 0, canvas.width, canvas.height);
+    };
+    im.src = url;
+  }
+  // layers = [fundo, cor, linha] (cada um PNG ou null). Avatares antigos/importados só têm `dataUrl`
+  // (o desenho inteiro), que entra na camada Linha.
+  function loadDrawing(dataUrl, layers) {
+    layerCtxs.forEach((x, i) => { restoreTok[i]++; x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, canvas.width, canvas.height); });
+    if (Array.isArray(layers)) {
+      layers.forEach((u, i) => { if (i < 3 && typeof u === 'string' && u.indexOf(PNG_URL) === 0) drawInto(i, u); });
+      return;
+    }
+    if (dataUrl) drawInto(2, dataUrl);
   }
 
   function onSlotClick(i) {
@@ -883,7 +970,7 @@ function getSavedCharacter() {
       applyActive(it.img, `Avatar ${i + 1} em uso! (esse não dá pra editar; comece um novo se quiser mudar)`);
     } else if (it) {
       setSkin(it.skin || DEFAULT_SKIN);
-      loadDrawing(it.draw);
+      loadDrawing(it.draw, it.layers);
       setActive(i);
       applyActive(it.img, `Avatar ${i + 1} em uso!`);
     } else {                       // espaço vazio: começa um avatar novo
@@ -923,7 +1010,7 @@ function getSavedCharacter() {
   function doSave(i) {
     if (!pendingSave) return closeSlotModal();
     const prev = slots[i];
-    slots[i] = { img: pendingSave.img, draw: pendingSave.draw, skin: pendingSave.skin };
+    slots[i] = { img: pendingSave.img, draw: pendingSave.draw, layers: pendingSave.layers || undefined, skin: pendingSave.skin };
     if (!writeSlots()) {            // sem espaço no navegador: desfaz
       slots[i] = prev;
       slotModal.classList.add('hidden'); pendingSave = null;
@@ -949,9 +1036,19 @@ function getSavedCharacter() {
     merged.width = canvas.width;
     merged.height = canvas.height;
     const mctx = merged.getContext('2d');
-    drawSkinned(mctx, document.getElementById('character-base'), merged.width, merged.height);
-    mctx.drawImage(canvas, 0, 0);
+    mctx.drawImage(layerCanvases[0], 0, 0);      // fundo (atrás do boneco)
+    mctx.drawImage(skinnedBase(), 0, 0);         // boneco com o tom da aba "Pele"
+    mctx.drawImage(layerCanvases[1], 0, 0);      // cor
+    mctx.drawImage(canvas, 0, 0);                // linha
     return merged;
+  }
+  // desenho "achatado" (Cor + Linha), usado no código de exportar e como `draw` do espaço
+  function flatDrawing() {
+    const f = document.createElement('canvas'); f.width = canvas.width; f.height = canvas.height;
+    const fx = f.getContext('2d');
+    fx.drawImage(layerCanvases[1], 0, 0);
+    fx.drawImage(layerCanvases[2], 0, 0);
+    return f;
   }
 
   // usado pelo terminal (`desenhar`) pra baixar o avatar atual como PNG transparente
@@ -960,7 +1057,8 @@ function getSavedCharacter() {
   btnSave.addEventListener('click', () => {
     pendingSave = {
       img: buildMerged().toDataURL('image/png'),
-      draw: canvas.toDataURL('image/png'),
+      draw: flatDrawing().toDataURL('image/png'),
+      layers: layerCanvases.map(c => isBlank(c) ? null : c.toDataURL('image/png')),
       skin: { h: skin.h, s: skin.s, b: skin.b }
     };
     openSlotModal();
@@ -1004,7 +1102,8 @@ function getSavedCharacter() {
   function encodeAvatar() {
     return new Promise((resolve, reject) => {
       const W = canvas.width, H = canvas.height;
-      const data = ctx.getImageData(0, 0, W, H).data;
+      const flat = flatDrawing();
+      const data = flat.getContext('2d').getImageData(0, 0, W, H).data;
       let x0 = W, y0 = H, x1 = -1, y1 = -1;
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
@@ -1019,7 +1118,7 @@ function getSavedCharacter() {
       if (x1 < 0) return resolve(CODE_PREFIX + bytesToB64url(enc.encode(sk + ',-\n')));   // sem desenho: código curtinho
       const c = document.createElement('canvas');
       c.width = x1 - x0 + 1; c.height = y1 - y0 + 1;
-      c.getContext('2d').drawImage(canvas, x0, y0, c.width, c.height, 0, 0, c.width, c.height);
+      c.getContext('2d').drawImage(flat, x0, y0, c.width, c.height, 0, 0, c.width, c.height);
       c.toBlob((blob) => {
         if (!blob) return reject(new Error('png'));
         blob.arrayBuffer().then((buf) => {
@@ -1092,6 +1191,7 @@ function getSavedCharacter() {
     encodeAvatar().then((code) => {
       exportCode.value = code;
       exportView.querySelector('.cb-code').textContent = shortCode(code);
+      if (!isBlank(layerCanvases[0])) exportMsg.textContent = 'Obs.: a camada Fundo não vai no código (ela fica só no avatar salvo).';
     }, () => { exportCode.value = ''; exportView.querySelector('.cb-code').textContent = '—'; exportMsg.textContent = 'Não consegui gerar o código.'; });
   }
   function closeExport() { exportModal.classList.add('hidden'); document.getElementById('btn-avatar-share').focus(); }
