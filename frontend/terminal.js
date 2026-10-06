@@ -850,14 +850,28 @@
       var lobby = document.getElementById('screen-lobby');
       if (!ed || typeof showScreen !== 'function') return out(c('r', 'editor de avatar indisponível.'));
       if (!lobby || !lobby.classList.contains('active')) return out(c('y', 'volte pra tela inicial pra abrir o editor de avatar.'));
-      out(c('g', '✔ ') + 'abrindo o editor de avatar… ' + c('d', '(seta de voltar fecha e traz o terminal de volta)'));
+      out(c('g', '✔ ') + 'abrindo o editor de avatar… ' + c('d', '(Salvar avatar grava nos espaços; Baixar PNG gera o arquivo; a seta volta pro terminal)'));
       setTimeout(function () {
         hideWin();                                   // tira o terminal da frente
         showScreen('screen-character-editor');
+        // botão extra (só quando aberto pelo terminal): baixa o avatar atual em PNG transparente
+        var dl = document.createElement('button');
+        dl.type = 'button';
+        dl.textContent = '⬇ Baixar PNG';
+        dl.style.cssText = 'position:fixed;right:1rem;bottom:1rem;z-index:9990;padding:.7rem 1.1rem;border:0;border-radius:.7rem;' +
+          'background:#2ecc71;color:#06210f;font:800 .95rem system-ui,sans-serif;cursor:pointer;box-shadow:0 .4rem 1.2rem rgba(0,0,0,.4)';
+        dl.addEventListener('click', function () {
+          if (!window.TruAvatarEditor) return;
+          var a = document.createElement('a');
+          a.href = TruAvatarEditor.png(); a.download = 'avatar-trutec.png';
+          document.body.appendChild(a); a.click(); a.remove();
+        });
+        document.body.appendChild(dl);
         // quando o editor deixa de ser a tela ativa (voltar), o terminal reaparece
         var mo = new MutationObserver(function () {
           if (ed.classList.contains('active')) return;
           mo.disconnect();
+          if (dl.parentNode) dl.parentNode.removeChild(dl);
           showWin();
         });
         mo.observe(ed, { attributes: true, attributeFilter: ['class'] });

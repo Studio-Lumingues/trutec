@@ -911,6 +911,9 @@ function getSavedCharacter() {
     return merged;
   }
 
+  // usado pelo terminal (`desenhar`) pra baixar o avatar atual como PNG transparente
+  window.TruAvatarEditor = { png: () => buildMerged().toDataURL('image/png') };
+
   btnSave.addEventListener('click', () => {
     pendingSave = {
       img: buildMerged().toDataURL('image/png'),
