@@ -123,3 +123,8 @@ body.mp-open .tut-fab { display: none !important; }      /* o Jailson (botão do
 .t-shop .tt-go { margin-top: 0; }
 .tt-demo .tt-sc-face:hover { transform: rotate(-2.5deg); box-shadow: .15rem .2rem 0 rgba(0,0,0,.5); }   /* demo não reage ao mouse: quem recebe o clique é o mosaico */
 @media (prefers-reduced-motion: reduce) { .mp, .d-val.hot, .tj.pop { animation: none; } }
+
+/* ---------- Trutec: a tela real, em miniatura, rodando sozinha (trutec.js → Trutec.demoStart) ---------- */
+.mp-trutec .mp-stage { background: radial-gradient(ellipse at 50% 0, #1d1530 0, #0c0a14 70%); }
+.mp-stage > #screen-trutec.screen.tt-demo-screen { display: flex; position: absolute; left: 0; top: 0; width: var(--dw); height: var(--dh); min-height: 0; margin: 0; font-size: 1rem;
+  transform-origin: 0 0; transform: translate(var(--dx), var(--dy)) scale(var(--dk)); pointer-events: none; }

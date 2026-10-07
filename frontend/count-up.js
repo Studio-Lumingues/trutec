@@ -20,6 +20,7 @@
     return actx;
   }
   function vol() {
+    if (window.TruCount && TruCount.silent) return 0;       // demo do mosaico "Jogar": sem som
     if (!window.GameAudio) return 0.6;
     if (GameAudio.isMuted && GameAudio.isMuted()) return 0;
     return GameAudio.getSfxLevel ? GameAudio.getSfxLevel() : 0.6;

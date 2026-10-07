@@ -117,7 +117,7 @@
   function vc(id) { return VOUCHERS.filter(function (v) { return v.id === id; })[0]; }
 
   // ---------- estado ----------
-  var R = null, H = null, tok = 0, built = false;
+  var R = null, H = null, tok = 0, built = false, DEMO = false;
   var $ = function (id) { return document.getElementById(id); };
   function hasJ(id) { return !!R && R.jokers.indexOf(id) >= 0; }
   function hasV(id) { return !!R && R.vouchers.indexOf(id) >= 0; }
@@ -125,12 +125,12 @@
   function other(w) { return w === 'me' ? 'opp' : 'me'; }
   function later(fn, ms) { var t = tok; setTimeout(function () { if (t === tok) fn(); }, ms); }
   function best() { try { return parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { return 0; } }
-  function saveBest(v) { try { if (v > best()) localStorage.setItem(BEST_KEY, String(v)); } catch (e) {} }
+  function saveBest(v) { if (DEMO) return; try { if (v > best()) localStorage.setItem(BEST_KEY, String(v)); } catch (e) {} }
   function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = rnd(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
   // sons de carta do truco convencional (audio.js): cardPlay = carta na mesa, cardDeal = carta distribuída/puxada
-  function cardSfx(kind, delay, variation) { try { var A = window.GameAudio; if (A && A[kind]) A[kind](delay || 0, variation || 0); } catch (e) {} }
-  function sfx(kind) { try { var A = window.GameAudio; if (!A) return; if (kind && A.playCall) A.playCall(kind); else if (A.click) A.click(); } catch (e) {} }
+  function cardSfx(kind, delay, variation) { if (DEMO) return; try { var A = window.GameAudio; if (A && A[kind]) A[kind](delay || 0, variation || 0); } catch (e) {} }
+  function sfx(kind) { if (DEMO) return; try { var A = window.GameAudio; if (!A) return; if (kind && A.playCall) A.playCall(kind); else if (A.click) A.click(); } catch (e) {} }
 
   function makeDeck() {
     var d = [];
@@ -349,6 +349,7 @@
     return ga.getSfxLevel ? ga.getSfxLevel() : 1;
   }
   function billyBlip(ch, question) {
+    if (DEMO) return;
     var lv = bvLevel();
     if (!lv) return;
     var now = performance.now();
@@ -877,7 +878,7 @@
     w.appendChild(f); w.appendChild(nm); w.appendChild(button);
     return w;
   }
-  function shopSnd(k) { try { if (window.TruCount && TruCount.sfx) TruCount.sfx(k); } catch (e) {} }
+  function shopSnd(k) { if (DEMO) return; try { if (window.TruCount && TruCount.sfx) TruCount.sfx(k); } catch (e) {} }
   function shopBtn(label, price, cls, fn, dis, title) {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.disabled = !!dis;
     var s = document.createElement('span'); s.textContent = label; b.appendChild(s);
@@ -1097,19 +1098,118 @@
       '<p>Correr: perde a mão, sem custo.</p>', btns);
   }
 
+
+  // ============================================================================
+  // DEMO NO MOSAICO "JOGAR" (mode-select.js)
+  // A própria tela do Trutec (a de verdade) é encaixada, em miniatura, dentro do tile e um bot joga nela
+  // clicando nos botões e nas cartas reais: truco, troca, loja, tudo. É como um vídeo do jogo ao vivo.
+  // Sem som, sem salvar recorde. Ao escolher o tile (ou fechar o mosaico) a tela volta pro lugar.
+  // ============================================================================
+  var demoTimer = 0, demoHome = null, demoHost = null, demoLast = 0;
+  var DLIKE = { zap: 9, manilheiro: 9, tres: 8, caradepau: 8, limpa: 7, ousadia: 6, virada: 6, maocheia: 7, sete: 7, maoextra: 9, baralho: 6, juros: 5, banqueiro: 6, moedeiro: 5, poupador: 5, coelho: 5 };
+
+  function demoFit() {
+    var s = $('screen-trutec');
+    if (!s || !demoHost) return;
+    var W = window.innerWidth, Hh = window.innerHeight, w = demoHost.clientWidth, h = demoHost.clientHeight;
+    if (!w || !h) return;
+    var k = Math.min(w / W, h / Hh);                       // cabe inteira no tile, com o mesmo tamanho que teria na tela cheia
+    s.style.setProperty('--dw', W + 'px'); s.style.setProperty('--dh', Hh + 'px'); s.style.setProperty('--dk', k);
+    s.style.setProperty('--dx', ((w - W * k) / 2) + 'px'); s.style.setProperty('--dy', ((h - Hh * k) / 2) + 'px');
+  }
+  function demoStart(host) {
+    if (!host) return;
+    build();
+    if (DEMO) demoStop();
+    var s = $('screen-trutec');
+    demoHome = s.parentNode; demoHost = host; DEMO = true;
+    if (window.TruCount) TruCount.silent = true;
+    tok++; R = null; H = null; closeModal();
+    ['tt-hand', 'tt-opphand', 'tt-vira', 'tt-slot-me', 'tt-slot-opp', 'tt-jokers'].forEach(function (id) { $(id).innerHTML = ''; });
+    $('tt-truco').disabled = true; $('tt-run').disabled = true; $('tt-swap').disabled = true;
+    setCalc(CHIPS0, 1, 1, 0); say('');
+    host.appendChild(s); s.classList.add('active', 'tt-demo-screen');
+    demoFit(); window.addEventListener('resize', demoFit);
+    demoLast = Date.now();
+    startRun();
+    demoTimer = setInterval(demoTick, 350);
+  }
+  function demoStop() {
+    if (!DEMO) return;
+    DEMO = false; clearInterval(demoTimer); demoTimer = 0; window.removeEventListener('resize', demoFit);
+    tok++; R = H = null; closeModal();
+    var s = $('screen-trutec');
+    if (s) {
+      s.classList.remove('active', 'tt-demo-screen');
+      ['--dw', '--dh', '--dk', '--dx', '--dy'].forEach(function (p) { s.style.removeProperty(p); });
+      if (demoHome) demoHome.appendChild(s);
+    }
+    if (window.TruCount) TruCount.silent = false;
+    demoHost = null;
+  }
+
+  // o bot: olha o estado real e aperta os botões reais (devagar, pra dar pra acompanhar)
+  function demoTick() {
+    if (!DEMO || !R) return;
+    var now = Date.now(), ov = $('tt-overlay');
+    if (!ov.classList.contains('hidden')) {                        // tem janela aberta
+      var m = $('tt-modal'), title = (m.querySelector('h2') || {}).textContent || '';
+      var byText = function (re) { return [].slice.call(m.querySelectorAll('.tt-mbtns .btn')).filter(function (b) { return re.test(b.textContent); })[0]; };
+      var isShop = /^Loja/.test(title);
+      if (now - demoLast < (isShop ? 1300 : 1900)) return;
+      demoLast = now;
+      var b;
+      if (isShop) {                                                // loja: compra o melhor que dá, rola às vezes, segue
+        var cards = [].slice.call(m.querySelectorAll('.tt-stall .tt-sc')), items = R.shop ? R.shop.items : [], bi = -1, bw = -1e9;
+        items.forEach(function (it, i) {
+          var bt = cards[i] && cards[i].querySelector('.tt-buy');
+          if (!bt || bt.disabled) return;
+          var wv = (DLIKE[it.id] || 3) * 10 - it.price;
+          if (wv > bw) { bw = wv; bi = i; }
+        });
+        if (bi >= 0) return cards[bi].querySelector('.tt-buy').click();
+        var rr = m.querySelector('.tt-reroll');
+        if (rr && !rr.disabled && R.shop && R.shop.rerolls < 2 && Math.random() < 0.6) return rr.click();
+        b = byText(/Próxima blind/); if (b) b.click();
+        return;
+      }
+      if (/pediu/i.test(title) && H) {                             // o rival pediu truco: aceita, corre ou aumenta
+        var e = est(H.me, H.results, 'me') + noise({ skill: 0.8 });
+        if (e < 0.4 + 0.05 * H.pending) b = byText(/^Correr/);
+        else if (e > 0.85 && H.pending < 4 && Math.random() < 0.4) b = byText(/^Pedir/);
+        b = b || byText(/^Aceitar/);
+        if (b) b.click();
+        return;
+      }
+      b = byText(/^(Jogar|Ir à loja|Nova corrida)/);
+      if (b) b.click();
+      return;
+    }
+    if (!H || H.scoring || !H.canAct || now - demoLast < 750) return;   // espera a animação acabar e a vez dele
+    demoLast = now;
+    var weakest = function () { var wi = 0; H.me.forEach(function (c, i) { if (power(c) < power(H.me[wi])) wi = i; }); return wi; };
+    var hand = $('tt-hand');
+    if (H.swapMode) { if (hand.children[weakest()]) hand.children[weakest()].click(); return; }
+    H.dSw = H.dSw || 0;
+    if (canSwap() && H.dSw < 2 && est(H.me, [], 'me') < 0.5) { H.dSw++; $('tt-swap').click(); return; }
+    if (H.level < 4 && H.lastRaiser !== 'me' && !$('tt-truco').disabled) {
+      var em = est(H.me, H.results, 'me') + noise({ skill: 0.75 });
+      if (Math.random() < (em > 0.68 ? 0.45 : 0.04)) { $('tt-truco').click(); return; }
+    }
+    var order = H.me.map(function (c, i) { return i; }).sort(function (a, b2) { return power(H.me[a]) - power(H.me[b2]); }), pick;
+    if (H.table.opp) {
+      var op = power(H.table.opp), beat = order.filter(function (i) { return power(H.me[i]) > op; });
+      pick = beat.length ? beat[0] : order[0];                     // cobre com a menor que ganha; senão descarta a menor
+    } else if (!H.results.length && order.length === 3) pick = Math.random() < 0.5 ? order[2] : order[1];
+    else pick = order[order.length - 1];
+    if (hand.children[pick]) hand.children[pick].click();
+  }
+
   // ---------- ligação com o lobby ----------
   function init() {
     var b = $('btn-open-trutec');
     if (b) b.addEventListener('click', open);
-    // dados e regras reais, usados pelas demos do mosaico "Jogar" (mode-demo.js)
-    window.TrutecData = {
-      ANTES: ANTES, HANDS: HANDS, TROCAS: TROCAS, JSLOTS: JSLOTS, CHIPS0: CHIPS0, START_MONEY: START_MONEY,
-      BASE: BASE, BMULT: BMULT, BREWARD: BREWARD, RANKS: RANKS, SUITS: SUITS, SYM: SYM, CHIPV: CHIPV,
-      STAKES: STAKES, CALLS: CALLS, SMALLOPP: SMALLOPP, BIGOPP: BIGOPP, BOSSES: BOSSES,
-      JOKERS: JOKERS, VOUCHERS: VOUCHERS,
-      withHand: function (h, fn) { var old = H; H = h; try { return fn(); } finally { H = old; } }
-    };
-    window.Trutec = { open: open };
+    window.Trutec = { open: open, demoStart: demoStart, demoStop: demoStop };
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
