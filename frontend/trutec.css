@@ -3,7 +3,7 @@
 /* ============================================================ */
 #screen-trutec.screen { flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 0; position: relative;
   background: radial-gradient(ellipse at 50% 40%, var(--felt) 0%, var(--felt-dark) 78%); color: var(--cream); overflow: hidden; }
-.tt-wrap { width: min(46rem, 100%); height: 100%; margin: 0 auto; padding: .5rem .7rem calc(.5rem + env(safe-area-inset-bottom, 0px));
+.tt-wrap { position: relative; width: min(46rem, 100%); height: 100%; margin: 0 auto; padding: .5rem .7rem calc(.5rem + env(safe-area-inset-bottom, 0px));
   display: flex; flex-direction: column; gap: .35rem; min-height: 0; }
 
 .tt-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
@@ -41,12 +41,13 @@
 .tt-opphand .card { --cw: 2.2rem; margin: 0 -.3rem; }
 .tt-peek { font-size: .75rem; min-height: .9rem; }
 
-.tt-center { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
-.tt-vira { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .15rem; font-size: .72rem; }
-.tt-vira .card { --cw: 2.8rem; }
-.tt-table { display: flex; flex-direction: column; align-items: center; gap: .4rem; }
-.tt-slot { width: 4rem; height: 5.6rem; border-radius: .6rem; border: 2px dashed rgba(255,248,240,.2); display: flex; align-items: center; justify-content: center; transition: box-shadow .2s; }
-.tt-slot .card { --cw: 4rem; animation: ttDrop .22s ease-out; }
+.tt-center { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: space-between; gap: .6rem; container-type: size; }
+.tt-vira { flex: 1; display: flex; flex-direction: column; align-items: center; gap: .15rem; font-size: .8rem; }
+.tt-vira .card { --cw: 3.8rem; }
+/* tamanho da carta da mesa = o que couber na altura (2 cartas empilhadas), no máximo 6,6rem */
+.tt-table { --sw: clamp(3.6rem, calc((100cqh - .6rem) / 2.8), 6.6rem); display: flex; flex-direction: column; align-items: center; gap: .4rem; }
+.tt-slot { width: var(--sw); height: calc(var(--sw) * 1.4); border-radius: .6rem; border: 2px dashed rgba(255,248,240,.2); display: flex; align-items: center; justify-content: center; transition: box-shadow .2s; }
+.tt-slot .card { --cw: var(--sw); animation: ttDrop .22s ease-out; }
 .tt-slot.won { box-shadow: 0 0 0 .2rem #ffd24a, 0 0 1.4rem rgba(255,210,74,.5); border-color: transparent; }
 @keyframes ttDrop { from { transform: translateY(-.8rem) scale(1.08); opacity: 0; } }
 
@@ -61,14 +62,14 @@
 .tt-pips i.on { background: #6be08a; border-color: #6be08a; } .tt-pips i.lost { background: #e0504a; border-color: #e0504a; } .tt-pips i.tie { background: #aaa; border-color: #aaa; }
 
 .tt-msg { min-height: 1.3rem; text-align: center; font-size: .98rem; font-weight: 600; }
-.tt-actions { display: flex; gap: .45rem; justify-content: center; }
-.tt-actions .action-btn { flex: 1 1 0; max-width: 11rem; min-height: 2.7rem; }
+.tt-actions { position: absolute; right: .7rem; bottom: calc(.5rem + env(safe-area-inset-bottom, 0px)); z-index: 6; display: flex; flex-direction: column; gap: .45rem; width: 7.4rem; }
+.tt-actions .action-btn { flex: none; width: 100%; max-width: none; min-height: 2.7rem; padding: .4rem .3rem; font-size: .9rem; white-space: nowrap; }
 .tt-actions .action-btn:disabled { opacity: .4; cursor: not-allowed; }
 .tt-actions .action-btn.active { outline: 2px solid var(--cream); }
 
 /* mão em leque, igual à do truco convencional (.my-hand do style.css) */
-.tt-hand { display: flex; justify-content: center; align-items: flex-end; gap: 0; min-height: 6.2rem; padding-top: .8rem; perspective: 56rem; }
-.tt-hand .card { --cw: 4.8rem; --r: 0deg; --y: -.1rem; margin-left: calc(var(--cw) * -.3); border-radius: .6rem; transform-origin: bottom center;
+.tt-hand { display: flex; justify-content: center; align-items: flex-end; gap: 0; min-height: 9rem; padding: .8rem 7.9rem 0; perspective: 56rem; }
+.tt-hand .card { --cw: 6.8rem; --r: 0deg; --y: -.1rem; margin-left: calc(var(--cw) * -.3); border-radius: .6rem; transform-origin: bottom center;
   transform: rotate(var(--r)) translateY(var(--y)); transition: transform .16s ease-out, margin-left .16s ease-out, box-shadow .16s ease-out; z-index: 2; }
 .tt-hand .card:first-child { margin-left: 0; }
 .tt-hand .card:first-child:nth-last-child(3) { --r: -9deg; --y: .2rem; z-index: 1; }
@@ -121,8 +122,7 @@
 
 @media (max-height: 700px) {
   .tt-opphand { min-height: 2.4rem; } .tt-opphand .card { --cw: 1.7rem; }
-  .tt-hand { min-height: 5rem; } .tt-hand .card { --cw: 3.5rem; }
-  .tt-slot { width: 3.2rem; height: 4.5rem; } .tt-slot .card { --cw: 3.2rem; }
+  .tt-hand { min-height: 7rem; } .tt-hand .card { --cw: 5.4rem; }
   .tt-joker { max-height: 2.8rem; } .tt-joker small { display: none; }
   .tt-oppinfo span:last-child { display: none; }
 }
@@ -198,3 +198,8 @@
 .tt-bigicon .tt-ic { width: 5.2rem; height: 5.2rem; }
 #tt-bicon .tt-ic, .tt-oppicon .tt-ic { width: 1.8rem; height: 1.8rem; }
 @media (max-height: 700px) { .tt-joker .tj-i .tt-ic { width: 1.5rem; height: 1.5rem; } }
+
+
+@media (max-width: 600px) {
+  .tt-hand { padding: .8rem 7.9rem 0 0; }
+}
