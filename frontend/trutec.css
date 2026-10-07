@@ -3,7 +3,7 @@
 /* ============================================================ */
 #screen-trutec.screen { flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 0; position: relative;
   background-color: #0a0a0a; isolation: isolate; color: var(--cream); overflow: hidden; }
-.tt-wrap { position: relative; width: min(70rem, 100%); height: 100%; margin: 0 auto; padding: .6rem .8rem calc(.6rem + env(safe-area-inset-bottom, 0px));
+.tt-wrap { position: relative; width: min(60rem, 100%); height: 100%; margin: 0 auto; padding: .6rem .8rem calc(.6rem + env(safe-area-inset-bottom, 0px));
   display: grid; grid-template-columns: clamp(13rem, 24vw, 17rem) minmax(0, 1fr); gap: .9rem; min-height: 0; }
 /* esquerda: tudo sobre a blind, a conta fichas × mult e o dinheiro */
 .tt-side { display: flex; flex-direction: column; gap: .6rem; min-height: 0; overflow-y: auto; padding: .6rem; border-radius: 1rem;
@@ -21,7 +21,7 @@
 .tt-side .tt-chips, .tt-side .tt-mult { flex: 1; font-size: 1.8rem; padding: .35rem .3rem; }
 .tt-side .tt-total { font-size: 1.5rem; }
 .tt-side .tt-pips i { width: .9rem; height: .9rem; }
-.tt-moneybox { margin-top: auto; text-align: center; padding: .6rem; border-radius: .8rem; background: rgba(4,3,3,.5); border: 1px solid rgba(255,248,240,.15); }
+.tt-moneybox { margin-top: 0; text-align: center; padding: .6rem; border-radius: .8rem; background: rgba(4,3,3,.5); border: 1px solid rgba(255,248,240,.15); }
 .tt-moneybox span { display: block; font-size: .8rem; opacity: .75; }
 .tt-moneybox .tt-money { min-width: 0; text-align: center; font-size: 2.1rem; line-height: 1.1; }
 .tt-main { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: .35rem; }
@@ -83,13 +83,13 @@
 .tt-pips i.on { background: #6be08a; border-color: #6be08a; } .tt-pips i.lost { background: #e0504a; border-color: #e0504a; } .tt-pips i.tie { background: #aaa; border-color: #aaa; }
 
 .tt-msg { min-height: 1.3rem; text-align: center; font-size: .98rem; font-weight: 600; }
-.tt-actions { position: absolute; right: .7rem; bottom: calc(1.6rem + env(safe-area-inset-bottom, 0px)); z-index: 6; display: flex; flex-direction: column; gap: .45rem; width: 7.4rem; }
-.tt-actions .action-btn { flex: none; width: 100%; max-width: none; min-height: 2.7rem; padding: .4rem .3rem; font-size: .9rem; white-space: nowrap; }
+.tt-actions { display: flex; flex-direction: column; gap: .5rem; width: 100%; margin: auto 0; }
+.tt-actions .action-btn { flex: none; width: 100%; max-width: none; min-height: 3rem; padding: .5rem .3rem; font-size: 1.05rem; white-space: nowrap; }
 .tt-actions .action-btn:disabled { opacity: .4; cursor: not-allowed; }
 .tt-actions .action-btn.active { outline: 2px solid var(--cream); }
 
 /* mão em leque, igual à do truco convencional (.my-hand do style.css) */
-.tt-hand { display: flex; justify-content: center; align-items: flex-end; gap: 0; padding: .8rem 7.9rem 1.6rem; perspective: 56rem; }
+.tt-hand { display: flex; justify-content: center; align-items: flex-end; gap: 0; padding: .8rem 0 1.6rem; perspective: 56rem; }
 .tt-hand .card { --cw: clamp(5.6rem, 15vh, 8.4rem); --r: 0deg; --y: -.1rem; margin-left: calc(var(--cw) * -.3); border-radius: .6rem; transform-origin: bottom center;
   transform: rotate(var(--r)) translateY(var(--y)); transition: transform .16s ease-out, margin-left .16s ease-out, box-shadow .16s ease-out; z-index: 2; }
 .tt-hand .card:first-child { margin-left: 0; }
@@ -221,7 +221,7 @@
 
 
 @media (max-width: 600px) {
-  .tt-hand { padding: .8rem 7.9rem 1.6rem 0; }
+  
 }
 
 

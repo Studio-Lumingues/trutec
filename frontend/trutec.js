@@ -188,6 +188,11 @@
             '<div class="tt-total" id="tt-total"></div>' +
             '<div class="tt-pips" id="tt-pips"><i></i><i></i><i></i></div>' +
           '</div>' +
+        '<div class="tt-actions">' +
+          '<button type="button" class="action-btn" id="tt-truco">TRUCO</button>' +
+          '<button type="button" class="action-btn" id="tt-swap">TROCAR</button>' +
+          '<button type="button" class="action-btn danger" id="tt-run">FUGIR</button>' +
+        '</div>' +
         '<div class="tt-moneybox"><span>Dinheiro</span><div class="tt-money" id="tt-money"></div></div>' +
       '</aside>' +
       '<div class="tt-main">' +
@@ -205,11 +210,6 @@
           '</div>' +
         '</section>' +
         '<div class="tt-msg" id="tt-msg" role="status" aria-live="polite"></div>' +
-        '<div class="tt-actions">' +
-          '<button type="button" class="action-btn" id="tt-truco">TRUCO</button>' +
-          '<button type="button" class="action-btn" id="tt-swap">TROCAR</button>' +
-          '<button type="button" class="action-btn danger" id="tt-run">FUGIR</button>' +
-        '</div>' +
         '<div class="tt-hand" id="tt-hand"></div>' +
       '</div>' +
       '</div>' +
@@ -823,7 +823,7 @@
       var b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.textContent = label; b.disabled = !!dis;
       b.addEventListener('click', fn); return b;
     }
-    var h = document.createElement('p'); h.className = 'tt-shopmoney'; h.textContent = 'Você tem $' + R.money; box.appendChild(h);
+    var h = document.createElement('p'); h.className = 'tt-shopmoney'; h.textContent = '$' + R.money; box.appendChild(h);
 
     var t1 = document.createElement('h3'); t1.textContent = 'Seus curingas (' + R.jokers.length + '/' + JSLOTS + ')'; box.appendChild(t1);
     var own = document.createElement('div'); own.className = 'tt-shopcards';
