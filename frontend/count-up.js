@@ -87,5 +87,18 @@
     })(t0);
   }
 
-  window.TruCount = { run: run, set: set };
+  // efeitos da loja: 'buy' (moedinha), 'sell' (moedinha descendo), 'roll' (embaralhando), 'deny' (não pode)
+  function sfx(kind) {
+    var seq, i;
+    if (kind === 'buy') seq = [[880, 0], [1320, 70], [1760, 140]];
+    else if (kind === 'sell') seq = [[1320, 0], [990, 80]];
+    else if (kind === 'roll') { seq = []; for (i = 0; i < 6; i++) seq.push([380 + Math.random() * 500, i * 55]); }
+    else if (kind === 'deny') { blip(150, 0.18, 0.16, 'sawtooth'); return; }
+    else return;
+    seq.forEach(function (n, k) {
+      setTimeout(function () { blip(n[0], kind === 'roll' ? 0.05 : 0.12, 0.13, kind === 'roll' ? 'square' : 'triangle'); }, n[1]);
+    });
+  }
+
+  window.TruCount = { run: run, set: set, sfx: sfx };
 })();

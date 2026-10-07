@@ -835,6 +835,7 @@
     var vs = VOUCHERS.filter(function (v) { return R.vouchers.indexOf(v.id) < 0; });
     if (vs.length) { var v = vs[rnd(vs.length)]; items.push({ type: 'voucher', id: v.id, price: v.price }); }
     R.shop = { items: items, rerolls: 0 };
+    shopShownMoney = null;
     renderShop('greet');
   }
 
@@ -858,69 +859,126 @@
   function emptySlot() {
     var w = document.createElement('div'); w.className = 'tt-sc empty';
     var f = document.createElement('div'); f.className = 'tt-sc-face';
+    var nm = document.createElement('span'); nm.className = 'tt-sc-name'; nm.textContent = '\u00a0';
     var ph = document.createElement('button'); ph.type = 'button'; ph.className = 'btn btn-secondary'; ph.textContent = 'Vender'; ph.tabIndex = -1; ph.setAttribute('aria-hidden', 'true');
-    w.appendChild(f); w.appendChild(ph);                        // o botão invisível só reserva a altura, pra alinhar com as cartas
+    w.appendChild(f); w.appendChild(nm); w.appendChild(ph);      // nome e botão invisíveis só reservam a altura, pra alinhar com as cartas
     return w;
   }
-  function shopCard(d, name, tag, button) {
-    var w = document.createElement('div'); w.className = 'tt-sc';
-    var f = document.createElement('div'); f.className = 'tt-sc-face'; f.tabIndex = 0;
+  // o: { label, voucher, poor, just, i }
+  function shopCard(d, name, tag, button, o) {
+    o = o || {};
+    var w = document.createElement('div'); w.className = 'tt-sc' + (o.poor ? ' poor' : '') + (o.just ? ' just' : '');
+    if (o.i !== undefined) w.style.setProperty('--i', o.i);
+    var f = document.createElement('div'); f.className = 'tt-sc-face' + (o.voucher ? ' voucher' : ''); f.tabIndex = 0;
     f.innerHTML = ic(d.icon) + (tag ? '<span class="tt-sc-tag">' + tag + '</span>' : '');
     f.setAttribute('aria-label', name + ': ' + d.desc);
     var on = function () { showTip(f, name, d.desc); };
     f.addEventListener('mouseenter', on); f.addEventListener('focus', on);
     f.addEventListener('mouseleave', hideTip); f.addEventListener('blur', hideTip);
-    w.appendChild(f); w.appendChild(button);
+    var nm = document.createElement('span'); nm.className = 'tt-sc-name'; nm.textContent = o.label || d.name;
+    w.appendChild(f); w.appendChild(nm); w.appendChild(button);
     return w;
   }
+  function shopSnd(k) { try { if (window.TruCount && TruCount.sfx) TruCount.sfx(k); } catch (e) {} }
+  function shopBtn(label, price, cls, fn, dis, title) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.disabled = !!dis;
+    var s = document.createElement('span'); s.textContent = label; b.appendChild(s);
+    if (price !== undefined) { var p = document.createElement('span'); p.className = 'tt-price'; p.textContent = '$' + price; b.appendChild(p); }
+    if (title) b.title = title;
+    b.addEventListener('click', fn);
+    return b;
+  }
+  function rollItems() {
+    var owned = R.jokers.slice();
+    var pool = shuffle(JOKERS.filter(function (j) { return owned.indexOf(j.id) < 0; })).slice(0, 3);
+    var items = pool.map(function (j) { return { type: 'joker', id: j.id, price: j.price }; });
+    var vs = VOUCHERS.filter(function (v) { return R.vouchers.indexOf(v.id) < 0; });
+    if (vs.length) { var v = vs[rnd(vs.length)]; items.push({ type: 'voucher', id: v.id, price: v.price }); }
+    return items;
+  }
+  function panel(cls, title, count, full) {
+    var p = document.createElement('section'); p.className = 'tt-panel ' + cls;
+    if (cls.indexOf('tt-stall') >= 0) { var a = document.createElement('div'); a.className = 'tt-awning'; a.setAttribute('aria-hidden', 'true'); p.appendChild(a); }
+    var h = document.createElement('h3'); h.className = 'tt-ribbon'; h.textContent = title;
+    if (count) { var c = document.createElement('span'); c.className = 'tt-slotcount' + (full ? ' full' : ''); c.textContent = count; h.appendChild(c); }
+    p.appendChild(h);
+    return p;
+  }
 
+  var shopShownMoney = null;      // dinheiro mostrado na última vez que a loja foi desenhada (pra animar a mudança)
   function renderShop(kind) {
     hideTip();
     var S = R.shop, box = document.createElement('div'); box.className = 'tt-shop';
-    function btn(label, cls, fn, dis) {
-      var b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.textContent = label; b.disabled = !!dis;
-      b.addEventListener('click', fn); return b;
-    }
-    var h = document.createElement('p'); h.className = 'tt-shopmoney'; h.textContent = '$' + R.money; box.appendChild(h);
 
-    var t1 = document.createElement('h3'); t1.textContent = 'Seus curingas (' + R.jokers.length + '/' + JSLOTS + ')'; box.appendChild(t1);
+    // ---- carteira: moeda + dinheiro (sobe contando quando ganha; treme e mostra "-$" quando gasta) ----
+    var row = document.createElement('div'); row.className = 'tt-walletrow';
+    var wal = document.createElement('div'); wal.className = 'tt-wallet';
+    var coin = document.createElement('span'); coin.className = 'tt-coin'; coin.textContent = '$'; coin.setAttribute('aria-hidden', 'true');
+    var num = document.createElement('b'); num.setAttribute('aria-label', 'Dinheiro: ' + R.money);
+    wal.appendChild(coin); wal.appendChild(num);
+    var prev = shopShownMoney; shopShownMoney = R.money;
+    if (prev === null || prev === R.money) num.textContent = R.money;
+    else {
+      var up = R.money > prev, dl = document.createElement('i');
+      dl.className = 'tt-delta ' + (up ? 'up' : 'down'); dl.textContent = (up ? '+$' : '−$') + Math.abs(R.money - prev);
+      wal.appendChild(dl); wal.classList.add(up ? 'gain' : 'lose');
+      if (up && window.TruCount) { num.textContent = prev; TruCount.run(num, R.money, { ding: false, max: 600 }); }
+      else num.textContent = R.money;
+    }
+    row.appendChild(wal);
+    if (R.vouchers.length) {                                    // vouchers já comprados (permanentes)
+      var pm = document.createElement('div'); pm.className = 'tt-perms'; pm.setAttribute('aria-label', 'Permanentes');
+      R.vouchers.forEach(function (id) {
+        var d = vc(id), sp = document.createElement('span'); sp.className = 'tt-perm';
+        sp.title = d.name + ': ' + d.desc; sp.innerHTML = ic(d.icon); pm.appendChild(sp);
+      });
+      row.appendChild(pm);
+    }
+    box.appendChild(row);
+
+    // ---- seus curingas ----
+    var pOwn = panel('tt-own' + (kind === 'greet' ? ' tt-fresh' : ''), 'Seus curingas', R.jokers.length + '/' + JSLOTS, R.jokers.length >= JSLOTS);
     var own = document.createElement('div'); own.className = 'tt-shopcards';
     for (var k = 0; k < JSLOTS; k++) {                          // os 5 slots existem sempre; os livres aparecem vazios
       if (k >= R.jokers.length) { own.appendChild(emptySlot()); continue; }
       (function (i) {
         var j = jk(R.jokers[i]), sell = Math.floor(j.price / 2);
-        own.appendChild(shopCard(j, j.name, '', btn('Vender $' + sell, 'btn-secondary', function () { R.jokers.splice(i, 1); R.money += sell; render(); renderShop('sell'); })));
+        var sb = shopBtn('Vender', sell, 'tt-sell', function () { shopSnd('sell'); R.jokers.splice(i, 1); R.money += sell; render(); renderShop('sell'); });
+        own.appendChild(shopCard(j, j.name, '', sb, { just: kind === 'buy' && i === R.jokers.length - 1, i: i }));
       })(k);
     }
-    box.appendChild(own);
+    pOwn.appendChild(own); box.appendChild(pOwn);
 
-    var t2 = document.createElement('h3'); t2.textContent = 'Loja'; box.appendChild(t2);
+    // ---- a barraquinha ----
+    var pShop = panel('tt-stall' + (kind === 'greet' || kind === 'reroll' ? ' tt-fresh' : ''), 'Loja');
     var list = document.createElement('div'); list.className = 'tt-shopcards';
     if (!S.items.length) { var e2 = document.createElement('p'); e2.className = 'tt-best'; e2.textContent = 'Esgotado. Role a loja!'; list.appendChild(e2); }
     S.items.forEach(function (it, i) {
       var d = it.type === 'joker' ? jk(it.id) : vc(it.id);
       var full = it.type === 'joker' && R.jokers.length >= JSLOTS;
-      var buy = btn(full ? 'Sem espaço' : 'Comprar $' + it.price, 'btn-primary', function () {
-        R.money -= it.price;
-        if (it.type === 'joker') R.jokers.push(it.id); else R.vouchers.push(it.id);
-        S.items.splice(i, 1); render(); renderShop('buy');
-      }, R.money < it.price || full);
-      list.appendChild(shopCard(d, d.name + (it.type === 'voucher' ? ' (permanente)' : ''), it.type === 'voucher' ? 'PERM.' : '', buy));
+      var poor = R.money < it.price;
+      var buy = full ? shopBtn('Sem espaço', undefined, 'tt-buy', function () {}, true, 'Venda um curinga pra abrir espaço')
+        : shopBtn('Comprar', it.price, 'tt-buy', function () {
+            shopSnd('buy');
+            R.money -= it.price;
+            if (it.type === 'joker') R.jokers.push(it.id); else R.vouchers.push(it.id);
+            S.items.splice(i, 1); render(); renderShop('buy');
+          }, poor, poor ? 'Faltam $' + (it.price - R.money) : '');
+      list.appendChild(shopCard(d, d.name + (it.type === 'voucher' ? ' (permanente)' : ''), it.type === 'voucher' ? 'PERM.' : '', buy,
+        { label: d.name, voucher: it.type === 'voucher', poor: poor || full, i: i }));
     });
-    box.appendChild(list);
+    pShop.appendChild(list);
     var cost = 3 + S.rerolls;
-    box.appendChild(btn('Rolar loja ($' + cost + ')', 'btn-secondary tt-reroll', function () {
+    pShop.appendChild(shopBtn('Rolar loja', cost, 'tt-reroll', function () {
+      shopSnd('roll');
       R.money -= cost; S.rerolls++;
-      var owned = R.jokers.slice();
-      var pool = shuffle(JOKERS.filter(function (j) { return owned.indexOf(j.id) < 0; })).slice(0, 3);
-      var items = pool.map(function (j) { return { type: 'joker', id: j.id, price: j.price }; });
-      var vs = VOUCHERS.filter(function (v) { return R.vouchers.indexOf(v.id) < 0; });
-      if (vs.length) { var v = vs[rnd(vs.length)]; items.push({ type: 'voucher', id: v.id, price: v.price }); }
-      S.items = items; render(); renderShop('reroll');
-    }, R.money < cost));
+      S.items = rollItems(); render(); renderShop('reroll');
+    }, R.money < cost, R.money < cost ? 'Faltam $' + (cost - R.money) : ''));
+    box.appendChild(pShop);
+
     var cheapest = S.items.reduce(function (m, it) { return Math.min(m, it.price); }, Infinity);
     var speech = (kind === 'greet' && S.items.length && R.money < cheapest) ? 'poor' : (kind || 'greet');
-    modal('Loja', box, [{ label: 'Próxima blind ›', cls: 'btn-primary', fn: function () { advance(); blindSelect(); } }], { billy: speech });
+    modal('Loja', box, [{ label: 'Próxima blind ›', cls: 'btn-primary tt-go', fn: function () { advance(); blindSelect(); } }], { billy: speech });
   }
 
   function gameOver() {
