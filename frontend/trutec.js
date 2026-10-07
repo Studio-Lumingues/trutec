@@ -243,7 +243,8 @@
   // ---------- BILLY, o vendedor ----------
   // Aparece grande à direita da loja, com balão de fala. Esquisitão e SEMPRE com pressa: fala rápido,
   // se impacienta quando você demora (a cada ~8-14s solta uma fala nova) e fica tremendo de ansiedade.
-  var BILLY_SRC = 'assets/billy.png';
+  // Tenta o arquivo principal e, se não existir, algumas variações comuns (a Vercel diferencia maiúsculas de minúsculas).
+  var BILLY_SRCS = ['assets/billy.png', 'assets/billy.webp', 'assets/billy.jpg', 'assets/billy.jpeg', 'assets/billy.svg', 'assets/Billy.png'];
   var BILLY = {
     greet: [
       'Entra, entra, anda! Não tenho o dia todo... só a noite toda, na verdade.',
@@ -292,18 +293,95 @@
       'Só um minuto, você disse. Foram nove. Eu contei.'
     ]
   };
-  var billyEl = null, billyTimer = 0, billyLast = '';
+  var billyEl = null, billyTimer = 0, billyLast = '', billyTyper = 0;
   function billyLine(kind) {
     var pool = BILLY[kind] || BILLY.greet, line = pool[rnd(pool.length)], tries = 0;
     while (line === billyLast && pool.length > 1 && tries++ < 6) line = pool[rnd(pool.length)];
     billyLast = line;
     return line;
   }
+
+  // ---- voz do Billy: bem mais GROSSA que a do Jailson ----
+  // Mesmo esquema do Jailson (um "blip" por letra), mas com onda serrada em ~65-130 Hz (o Jailson fica em ~250 Hz),
+  // formantes mais baixos e filtro passa-baixa, pra soar um vozeirão rouco. Segue o volume de "Efeitos sonoros".
+  var BV_BASE = 74;                 // tom médio (Hz): menor = mais grave
+  var BV_GAP_MS = 62;               // intervalo mínimo entre blips
+  var BV_FORMANT = { a: 700, e: 520, i: 340, o: 430, u: 290 };
+  var bvCtx = null, bvLast = 0;
+  function bvAudio() {
+    if (bvCtx) return bvCtx;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { bvCtx = new AC(); } catch (e) { bvCtx = null; }
+    return bvCtx;
+  }
+  function bvLevel() {
+    var ga = window.GameAudio;
+    if (!ga) return 1;
+    if (ga.isMuted && ga.isMuted()) return 0;
+    return ga.getSfxLevel ? ga.getSfxLevel() : 1;
+  }
+  function billyBlip(ch, question) {
+    var lv = bvLevel();
+    if (!lv) return;
+    var now = performance.now();
+    if (now - bvLast < BV_GAP_MS) return;
+    var ac = bvAudio();
+    if (!ac) return;
+    if (ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
+    if (ac.state !== 'running') return;
+    bvLast = now;
+    var c = ch.toLowerCase(), t = ac.currentTime;
+    var code = c.charCodeAt(0) - 97;
+    if (code < 0 || code > 25) code = c.charCodeAt(0) % 26;
+    var vowel = BV_FORMANT[c.normalize ? c.normalize('NFD').charAt(0) : c];
+    var scale = [0, 2, 3, 5, 7, 8, 10];                       // escala menor: soa sombrio/esquisito
+    var semi = scale[code % scale.length] + (code > 13 ? 5 : 0) - 4 + (Math.random() * 1.4 - 0.7);
+    var f = BV_BASE * Math.pow(2, semi / 12) * (question ? 1.12 : 1);
+    var dur = vowel ? 0.12 : 0.07;
+
+    var o1 = ac.createOscillator(), o2 = ac.createOscillator();
+    var body = ac.createBiquadFilter(), form = ac.createBiquadFilter(), g = ac.createGain();
+    o1.type = 'sawtooth'; o2.type = 'sawtooth';
+    o1.frequency.setValueAtTime(f * 1.05, t);                  // começa um pouco acima e "cai": rosnadinho de sílaba
+    o1.frequency.exponentialRampToValueAtTime(f * 0.94, t + dur);
+    o2.frequency.setValueAtTime(f * 1.012, t);                 // 2ª onda levemente desafinada = voz rouca/grossa
+    o2.frequency.exponentialRampToValueAtTime(f * 0.95, t + dur);
+    body.type = 'lowpass'; body.frequency.value = 760; body.Q.value = 0.8;
+    form.type = 'bandpass'; form.Q.value = vowel ? 3 : 1;
+    form.frequency.value = vowel || (480 + (code % 7) * 70);
+    var peak = 0.38 * lv * lv;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.018);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o1.connect(body); o2.connect(body); body.connect(form); form.connect(g); g.connect(ac.destination);
+    o1.start(t); o2.start(t); o1.stop(t + dur + 0.02); o2.stop(t + dur + 0.02);
+  }
+
+  // ---- fala letra por letra (igual ao Jailson) ----
+  function billyStopTyping() { clearInterval(billyTyper); billyTyper = 0; }
   function billySay(kind) {
     if (!billyEl) return;
+    var line = billyLine(kind);
     var b = billyEl.querySelector('.tt-bubble');
-    b.firstChild.textContent = billyLine(kind);
+    var full = b.querySelector('.tt-full'), typed = b.querySelector('.tt-typed');
+    b.setAttribute('aria-label', line);
+    full.textContent = line;                                   // texto invisível: já reserva o tamanho do balão
+    billyStopTyping();
     b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');   // balão "pula" a cada fala nova
+    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced) { typed.textContent = line; return; }
+    typed.textContent = '';
+    var pos = 0, isQ = /\?\s*$/.test(line);
+    billyTyper = setInterval(function () {
+      var from = pos;
+      pos += 1 + (pos > 40 ? 1 : 0);
+      typed.textContent = line.slice(0, pos);
+      for (var k = from; k < Math.min(pos, line.length); k++) {
+        if (/[A-Za-zÀ-ÿ]/.test(line.charAt(k))) { billyBlip(line.charAt(k), isQ && pos > line.length - 12); break; }
+      }
+      if (pos >= line.length) billyStopTyping();
+    }, 16);                                                    // o Billy está com pressa: fala mais rápido que o Jailson (18 ms)
   }
   function billyArmIdle() {
     clearTimeout(billyTimer);
@@ -316,9 +394,18 @@
     if (fresh) {
       billyEl = document.createElement('div');
       billyEl.className = 'tt-billy';
-      billyEl.innerHTML = '<div class="tt-bubble" aria-live="polite"><span></span></div>' +
-        '<img class="tt-billyimg" src="' + BILLY_SRC + '" alt="Billy, o vendedor" draggable="false">';
-      billyEl.querySelector('img').addEventListener('error', function () { this.style.display = 'none'; });
+      billyEl.innerHTML =
+        '<div class="tt-bubble" role="status">' +
+          '<span class="tt-bg"><i class="tt-tail"></i></span><span class="tt-name">Billy</span>' +
+          '<div class="tt-text"><span class="tt-full" aria-hidden="true"></span><span class="tt-typed" aria-hidden="true"></span></div>' +
+        '</div>' +
+        '<img class="tt-billyimg" src="' + BILLY_SRCS[0] + '" alt="Billy, o vendedor" draggable="false">';
+      var img = billyEl.querySelector('img'), tryN = 0;
+      img.addEventListener('error', function () {
+        if (++tryN < BILLY_SRCS.length) { this.src = BILLY_SRCS[tryN]; return; }   // tenta o próximo nome
+        this.style.display = 'none';
+        if (window.console) console.warn('[Billy] imagem não encontrada. Tentei: ' + BILLY_SRCS.join(', '));
+      });
       ov.appendChild(billyEl);
     }
     ov.classList.add('tt-shopmode');
@@ -327,6 +414,7 @@
   }
   function hideBilly() {
     clearTimeout(billyTimer); billyTimer = 0;
+    billyStopTyping();
     if (billyEl && billyEl.parentNode) billyEl.parentNode.removeChild(billyEl);
     billyEl = null;
     var ov = $('tt-overlay');
