@@ -797,6 +797,13 @@
     tipEl.style.left = x + 'px';
     tipEl.style.top = (above ? r.top - o.top - h - 10 : r.bottom - o.top + 10) + 'px';
   }
+  function emptySlot() {
+    var w = document.createElement('div'); w.className = 'tt-sc empty';
+    var f = document.createElement('div'); f.className = 'tt-sc-face';
+    var ph = document.createElement('button'); ph.type = 'button'; ph.className = 'btn btn-secondary'; ph.textContent = 'Vender'; ph.tabIndex = -1; ph.setAttribute('aria-hidden', 'true');
+    w.appendChild(f); w.appendChild(ph);                        // o botão invisível só reserva a altura, pra alinhar com as cartas
+    return w;
+  }
   function shopCard(d, name, tag, button) {
     var w = document.createElement('div'); w.className = 'tt-sc';
     var f = document.createElement('div'); f.className = 'tt-sc-face'; f.tabIndex = 0;
@@ -820,11 +827,13 @@
 
     var t1 = document.createElement('h3'); t1.textContent = 'Seus curingas (' + R.jokers.length + '/' + JSLOTS + ')'; box.appendChild(t1);
     var own = document.createElement('div'); own.className = 'tt-shopcards';
-    if (!R.jokers.length) { var e = document.createElement('p'); e.className = 'tt-best'; e.textContent = 'Nenhum ainda.'; own.appendChild(e); }
-    R.jokers.forEach(function (id, i) {
-      var j = jk(id), sell = Math.floor(j.price / 2);
-      own.appendChild(shopCard(j, j.name, '', btn('Vender $' + sell, 'btn-secondary', function () { R.jokers.splice(i, 1); R.money += sell; render(); renderShop('sell'); })));
-    });
+    for (var k = 0; k < JSLOTS; k++) {                          // os 5 slots existem sempre; os livres aparecem vazios
+      if (k >= R.jokers.length) { own.appendChild(emptySlot()); continue; }
+      (function (i) {
+        var j = jk(R.jokers[i]), sell = Math.floor(j.price / 2);
+        own.appendChild(shopCard(j, j.name, '', btn('Vender $' + sell, 'btn-secondary', function () { R.jokers.splice(i, 1); R.money += sell; render(); renderShop('sell'); })));
+      })(k);
+    }
     box.appendChild(own);
 
     var t2 = document.createElement('h3'); t2.textContent = 'Loja'; box.appendChild(t2);

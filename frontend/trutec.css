@@ -48,7 +48,7 @@
 
 .tt-jokers { display: flex; gap: .3rem; justify-content: center; }
 .tt-joker { position: relative; flex: 0 1 4.2rem; aspect-ratio: 3 / 4; max-height: 3.6rem; border-radius: .45rem; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; background: #fff8f0; color: #040303; border: 1px solid rgba(0,0,0,.2); cursor: help; text-align: center; }
+  align-items: center; justify-content: center; background: #fff8f0; color: #040303; border: 1px solid rgba(0,0,0,.2); cursor: default; text-align: center; }
 .tt-joker.empty { background: transparent; border: 2px dashed rgba(255,248,240,.2); }
 .tt-joker .tj-i { font-size: 1.4rem; line-height: 1; }
 .tt-joker small { font-size: .55rem; font-weight: 800; line-height: 1.05; padding: 0 .1rem; }
@@ -226,14 +226,16 @@
 
 
 /* ===== LOJA: card maior, curingas como cardzinhos (nome/descrição na dica) ===== */
-.tt-overlay.tt-shopmode .tt-modal { flex: 0 1 clamp(30rem, 46vw, 46rem); max-height: 100%; padding: clamp(.9rem, 2.4vh, 1.4rem) clamp(.9rem, 1.8vw, 1.5rem); }
-.tt-overlay.tt-shopmode .tt-modal h2 { font-size: clamp(1.5rem, 3.6vh, 2rem); margin-bottom: .2rem; }
-.tt-overlay.tt-shopmode .tt-shopmoney { font-size: clamp(1.3rem, 3vh, 1.7rem); }
-.tt-overlay.tt-shopmode .tt-modal h3 { font-size: clamp(.95rem, 2.1vh, 1.1rem); margin: clamp(.5rem, 1.6vh, .9rem) 0 .5rem; }
-.tt-shopcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.2rem, 6.6rem)); justify-content: center; gap: .9rem .7rem; padding-top: .2rem; }
-.tt-shopcards .tt-best { grid-column: 1 / -1; margin: .2rem 0; }
-.tt-sc { display: flex; flex-direction: column; align-items: stretch; gap: .5rem; min-width: 0; }
-.tt-sc-face { position: relative; aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; cursor: help; outline: none;
+.tt-overlay.tt-shopmode .tt-modal { flex: 0 1 clamp(36rem, 52vw, 54rem); max-height: 100%; padding: clamp(.9rem, 2.4vh, 1.4rem) clamp(.9rem, 1.8vw, 1.5rem); }
+.tt-overlay.tt-shopmode .tt-modal h2 { font-size: clamp(2rem, 5vh, 2.8rem); margin-bottom: .2rem; }
+.tt-overlay.tt-shopmode .tt-shopmoney { font-size: clamp(1.5rem, 3.6vh, 2.1rem); }
+.tt-overlay.tt-shopmode .tt-modal h3 { font-size: clamp(1.05rem, 2.5vh, 1.3rem); text-align: center; margin: clamp(.5rem, 1.6vh, .9rem) 0 .5rem; }
+.tt-shopcards { --scw: clamp(5.6rem, 12.5vh, 8.6rem); display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem .8rem; padding-top: .3rem; }
+.tt-shopcards .tt-best { flex: 1 1 100%; text-align: center; margin: .2rem 0; }
+.tt-sc { display: flex; flex-direction: column; align-items: stretch; gap: .5rem; width: var(--scw); flex: none; }
+.tt-sc.empty .tt-sc-face { background: rgba(255,248,240,.05); border: 2px dashed rgba(255,248,240,.25); box-shadow: none; transform: none; }
+.tt-sc.empty .btn { visibility: hidden; }
+.tt-sc-face { position: relative; aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; cursor: default; outline: none;
   background: #fff8f0; border: 2.5px solid #0a0a0a; border-radius: .7rem .5rem .8rem .55rem / .55rem .8rem .5rem .7rem;
   box-shadow: .15rem .2rem 0 rgba(0, 0, 0, .5); transform: rotate(-2.5deg); transition: transform .15s ease-out, box-shadow .15s; }
 .tt-sc:nth-child(even) .tt-sc-face { transform: rotate(2deg); }
@@ -241,7 +243,7 @@
 .tt-sc-face .tt-ic { width: 62%; height: auto; aspect-ratio: 1; }
 .tt-sc-tag { position: absolute; top: -.55rem; left: 50%; transform: translateX(-50%) rotate(-3deg); padding: .02rem .4rem; font-size: .62rem; font-weight: 800; color: #0a0a0a;
   background: #ffd23f; border: 2px solid #0a0a0a; border-radius: .4rem; white-space: nowrap; }
-.tt-sc .btn { width: 100%; padding: .4rem .2rem; font-size: clamp(.8rem, 1.9vh, .95rem); white-space: nowrap; }
+.tt-sc .btn { width: 100%; padding: .45rem .2rem; font-size: clamp(.85rem, 2vh, 1.05rem); white-space: nowrap; }
 .tt-overlay.tt-shopmode .tt-reroll { margin-top: .9rem; padding: clamp(.55rem, 1.5vh, .8rem); font-size: clamp(.95rem, 2.1vh, 1.1rem); }
 .tt-overlay.tt-shopmode .tt-mbtns .btn { padding: clamp(.65rem, 1.7vh, .95rem); font-size: clamp(1rem, 2.3vh, 1.2rem); }
 
