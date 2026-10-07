@@ -2,7 +2,7 @@
 /* TRUTEC — truco roguelike solo (estilo Balatro)                 */
 /* ============================================================ */
 #screen-trutec.screen { flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 0; position: relative;
-  background: radial-gradient(ellipse at 50% 40%, var(--felt) 0%, var(--felt-dark) 78%); color: var(--cream); overflow: hidden; }
+  background-color: #0a0a0a; isolation: isolate; color: var(--cream); overflow: hidden; }
 .tt-wrap { position: relative; width: min(70rem, 100%); height: 100%; margin: 0 auto; padding: .6rem .8rem calc(.6rem + env(safe-area-inset-bottom, 0px));
   display: grid; grid-template-columns: clamp(13rem, 24vw, 17rem) minmax(0, 1fr); gap: .9rem; min-height: 0; }
 /* esquerda: tudo sobre a blind, a conta fichas × mult e o dinheiro */
@@ -90,7 +90,7 @@
 
 /* mão em leque, igual à do truco convencional (.my-hand do style.css) */
 .tt-hand { display: flex; justify-content: center; align-items: flex-end; gap: 0; padding: .8rem 7.9rem 1.6rem; perspective: 56rem; }
-.tt-hand .card { --cw: clamp(7rem, 19vh, 10.5rem); --r: 0deg; --y: -.1rem; margin-left: calc(var(--cw) * -.3); border-radius: .6rem; transform-origin: bottom center;
+.tt-hand .card { --cw: clamp(5.6rem, 15vh, 8.4rem); --r: 0deg; --y: -.1rem; margin-left: calc(var(--cw) * -.3); border-radius: .6rem; transform-origin: bottom center;
   transform: rotate(var(--r)) translateY(var(--y)); transition: transform .16s ease-out, margin-left .16s ease-out, box-shadow .16s ease-out; z-index: 2; }
 .tt-hand .card:first-child { margin-left: 0; }
 .tt-hand .card:first-child:nth-last-child(3) { --r: -9deg; --y: .2rem; z-index: 1; }
@@ -160,7 +160,8 @@
 /* hand drawn: mesmo filtro "boil" do resto do jogo (boil.js troca a semente alguns quadros por segundo) */
 .tt-billyimg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom right;
   filter: url(#boil-lg); transform-origin: 50% 100%; user-select: none; -webkit-user-select: none;
-  animation: billyIdle 5.5s ease-in-out infinite; will-change: transform; }
+ }
+.tt-sway { position: absolute; inset: 0; transform-origin: 50% 100%; animation: billyIdle 5.5s ease-in-out infinite; will-change: transform; }
 /* corpo: balança de leve enquanto ele fala (separado do img: as duas animações somam, sem "pulo" ao trocar) */
 .tt-body { position: absolute; inset: 0; transform-origin: 50% 100%; }
 .tt-billy.talking .tt-body { animation: billyTalk .42s ease-in-out infinite; }
@@ -198,12 +199,13 @@
   .tt-overlay.tt-shopmode { flex-direction: column; }
   .tt-overlay.tt-shopmode .tt-modal { flex: 1 1 auto; min-height: 0; width: 100%; }
   .tt-billy { flex: 0 0 10.5rem; width: 100%; max-width: none; margin: .4rem -1rem -1rem; container-type: normal; }
-  .tt-stage, .tt-body { position: static; display: contents; }
+  .tt-stage, .tt-sway, .tt-body { position: static; display: contents; }
+  .tt-billyimg { animation: billyIdle 5.5s ease-in-out infinite; }
   .tt-billyimg { position: absolute; inset: auto 0 -2.5% auto; width: auto; height: 100%; max-width: 100%; }
   .tt-bubble { top: auto; bottom: 1rem; right: auto; left: .8rem; max-width: calc(100% - 10.5rem); font-size: 1.05rem; padding: 1rem 1rem .8rem; }
   .tt-tail { top: auto; bottom: 1.2rem; }
 }
-@media (prefers-reduced-motion: reduce) { .tt-billy, .tt-billyimg, .tt-body, .tt-bubble.pop { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .tt-billy, .tt-billyimg, .tt-sway, .tt-body, .tt-bubble.pop { animation: none !important; } }
 
 
 /* ===== ÍCONES DESENHADOS (no lugar dos emojis) ===== */

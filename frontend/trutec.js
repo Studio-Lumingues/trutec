@@ -170,6 +170,7 @@
     s.id = 'screen-trutec';
     s.className = 'screen';
     s.innerHTML =
+      '<div class="social-bg" aria-hidden="true"></div><div class="social-sheen" aria-hidden="true"></div>' +
       '<div class="tt-wrap">' +
         '<aside class="tt-side">' +
         '<header class="tt-top">' +
@@ -421,13 +422,13 @@
     if (fresh) {
       billyEl = document.createElement('div');
       billyEl.className = 'tt-billy';
-      billyEl.innerHTML = '<div class="tt-stage">' +
+      billyEl.innerHTML = '<div class="tt-stage"><div class="tt-sway"><div class="tt-body">' +
+        '<img class="tt-billyimg" src="' + BILLY_SRCS[0] + '" alt="Billy, o vendedor" draggable="false">' +
         '<div class="tt-bubble" role="status">' +
           '<span class="tt-bg"><i class="tt-tail"></i></span><span class="tt-name">Billy</span>' +
           '<div class="tt-text"><span class="tt-full" aria-hidden="true"></span><span class="tt-typed" aria-hidden="true"></span></div>' +
         '</div>' +
-        '<div class="tt-body"><img class="tt-billyimg" src="' + BILLY_SRCS[0] + '" alt="Billy, o vendedor" draggable="false"></div>' +
-        '</div>';
+        '</div></div></div>';
       var img = billyEl.querySelector('img'), tryN = 0;
       img.addEventListener('error', function () {
         if (++tryN < BILLY_SRCS.length) { this.src = BILLY_SRCS[tryN]; return; }   // tenta o próximo nome
