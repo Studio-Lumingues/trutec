@@ -145,7 +145,7 @@
 .tt-body { position: absolute; inset: 0; transform-origin: 50% 100%; }
 .tt-billy.talking .tt-body { animation: billyTalk .42s ease-in-out infinite; }
 /* balão igual ao do Jailson (tutorial.js): papel creme, borda grossa torta com tremido #boil-sm, perninha e etiqueta com o nome */
-.tt-bubble { position: absolute; z-index: 3; top: 17%; right: 68%; width: max-content; max-width: min(27rem, max(12rem, calc(100cqw - .67 * var(--S) - .5rem))); isolation: isolate;
+.tt-bubble { position: absolute; z-index: 3; top: 36%; right: 70%; width: max-content; max-width: min(27rem, max(12rem, calc(100cqw - .67 * var(--S) - .5rem))); isolation: isolate;
   padding: 1.2rem 1.5rem 1.05rem; font-size: clamp(1.1rem, calc(var(--S) / 30), 1.45rem); line-height: 1.35; font-weight: 500; color: #0a0a0a; }
 .tt-bubble .tt-bg { position: absolute; inset: 0; z-index: -1; background: #fff8f0; border: 3px solid #0a0a0a;
   border-radius: 1.4rem 1.1rem 1.5rem 1.2rem / 1.2rem 1.5rem 1.1rem 1.4rem; filter: url(#boil-sm); box-shadow: .25rem .3rem 0 rgba(0, 0, 0, .45); }
@@ -202,4 +202,33 @@
 
 @media (max-width: 600px) {
   .tt-hand { padding: .8rem 7.9rem 0 0; }
+}
+
+
+/* ===== LOJA: card ocupa toda a lateral esquerda, com tudo maior ===== */
+.tt-overlay.tt-shopmode { padding: 0; }
+.tt-overlay.tt-shopmode .tt-modal { display: flex; flex-direction: column; padding: clamp(1rem, 3vh, 1.8rem) clamp(1rem, 2vw, 1.8rem); }
+.tt-overlay.tt-shopmode .tt-modal h2 { font-size: clamp(1.7rem, 4.2vh, 2.3rem); margin-bottom: .2rem; }
+.tt-overlay.tt-shopmode .tt-mbody { flex: 1 0 auto; }
+.tt-overlay.tt-shopmode .tt-shopmoney { font-size: clamp(1.5rem, 3.6vh, 2rem); margin-bottom: .4rem !important; }
+.tt-overlay.tt-shopmode .tt-modal h3 { font-size: clamp(1rem, 2.4vh, 1.2rem); margin: clamp(.6rem, 2vh, 1.1rem) 0 .4rem; }
+.tt-overlay.tt-shopmode .tt-shoplist { gap: clamp(.4rem, 1.2vh, .7rem); }
+.tt-overlay.tt-shopmode .tt-shoprow { gap: clamp(.7rem, 1.6vw, 1.1rem); padding: clamp(.5rem, 1.4vh, .9rem) clamp(.6rem, 1.4vw, 1rem); border-radius: .9rem; }
+.tt-overlay.tt-shopmode .tt-shoprow .tj-i { width: clamp(3.4rem, 8vh, 5rem); height: clamp(3.4rem, 8vh, 5rem); }
+.tt-overlay.tt-shopmode .tt-shoprow .tj-i .tt-ic { width: clamp(2.6rem, 6.2vh, 3.9rem); height: clamp(2.6rem, 6.2vh, 3.9rem); }
+.tt-overlay.tt-shopmode .tt-st b { font-size: clamp(1.05rem, 2.7vh, 1.4rem); margin-bottom: .1rem; }
+.tt-overlay.tt-shopmode .tt-st small { font-size: clamp(.82rem, 2vh, 1.05rem); line-height: 1.3; opacity: .85; }
+.tt-overlay.tt-shopmode .tt-shoprow .btn { padding: clamp(.5rem, 1.5vh, .8rem) clamp(.7rem, 1.4vw, 1.1rem); font-size: clamp(.9rem, 2.2vh, 1.1rem); white-space: nowrap; }
+.tt-overlay.tt-shopmode .tt-reroll { margin-top: clamp(.6rem, 1.6vh, 1rem); padding: clamp(.65rem, 1.8vh, 1rem); font-size: clamp(1rem, 2.4vh, 1.2rem); }
+.tt-overlay.tt-shopmode .tt-mbtns .btn { padding: clamp(.75rem, 2vh, 1.1rem); font-size: clamp(1.05rem, 2.6vh, 1.3rem); }
+.tt-overlay.tt-shopmode .tt-mbtns { margin-top: clamp(.6rem, 1.6vh, 1rem); }
+
+@media (min-width: 761px) {
+  .tt-overlay.tt-shopmode { align-items: stretch; }
+  .tt-overlay.tt-shopmode .tt-modal { flex: 0 0 clamp(26rem, 44vw, 40rem); max-height: none; height: 100%; border-radius: 0 1.4rem 1.4rem 0; border-left: 0; overflow-y: auto; }
+  .tt-billy { margin: 0; }
+}
+@media (max-width: 760px) {
+  .tt-overlay.tt-shopmode .tt-modal { border-radius: 0 0 1.1rem 1.1rem; border-top: 0; }
+  .tt-billy { margin: .4rem 0 0; }
 }
