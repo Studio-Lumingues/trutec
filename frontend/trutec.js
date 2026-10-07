@@ -500,7 +500,10 @@
     var hand = $('tt-hand'); hand.innerHTML = '';
     H.me.forEach(function (c, i) {
       var el = cardEl(c, 'tt-mine' + (H.dealing ? ' dealing' : ''));
-      if (H.dealing) el.style.animationDelay = (i * 120) + 'ms';
+      if (H.dealing) {
+        el.style.animationDelay = (i * 120) + 'ms';
+        el.addEventListener('animationend', function () { el.classList.remove('dealing'); el.style.animationDelay = ''; });
+      }
       el.addEventListener('click', function () { onCard(i); });
       hand.appendChild(el);
     });
