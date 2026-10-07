@@ -377,13 +377,40 @@
   .tt-fresh .tt-sc, .tt-sc.just .tt-sc-face, .tt-sc-face.voucher, .tt-wallet.lose, .tt-wallet.gain, .tt-delta, #screen-trutec .tt-mbtns .btn.tt-go { animation: none !important; }
 }
 
-/* as cartinhas sempre cabem numa linha só (encolhem se faltar largura); seus curingas ficam menores pra loja caber na tela */
+
+/* ============================================================================
+   LOJA SEM ROLAGEM + CARTAS MAIORES
+   Tudo é medido pela altura da tela (vh). O "Vender" dos seus curingas fica
+   pendurado na própria cartinha (sem linha extra), e o JS (fitShop) encolhe
+   um pouquinho as cartas se ainda assim a tela for muito baixa.
+   ============================================================================ */
 .tt-shopcards { flex-wrap: nowrap; }
 .tt-sc { flex: 0 1 var(--scw); min-width: 0; }
-.tt-own .tt-shopcards { --scw: clamp(4rem, 9vh, 6.4rem); gap: .6rem; }
-.tt-own .tt-sc-face .tt-ic { width: 58%; }
+.tt-stall .tt-shopcards { --scw: calc(clamp(5.2rem, 16vh, 11rem) * var(--shopscale, 1)); gap: .8rem .7rem; }
+.tt-own .tt-shopcards   { --scw: calc(clamp(4.6rem, 13.5vh, 9rem) * var(--shopscale, 1)); gap: .6rem; }
+
+.tt-overlay.tt-shopmode .tt-modal h2 { font-size: clamp(1.5rem, 4vh, 2.2rem); margin: 0; }
+.tt-wallet { font-size: clamp(1.1rem, 2.8vh, 1.6rem); }
+.tt-shop { gap: clamp(.4rem, 1.2vh, .7rem); }
+.tt-awning { height: .7rem; margin-bottom: .4rem; }
+#screen-trutec .tt-shop h3.tt-ribbon { margin-bottom: .35rem; font-size: clamp(.85rem, 1.9vh, 1.05rem); }
+.tt-overlay.tt-shopmode .tt-mbtns { margin-top: .4rem; }
+.tt-overlay.tt-shopmode .tt-reroll { margin-top: .3rem; padding: clamp(.4rem, 1.2vh, .65rem); }
+
+/* seus curingas: sem nome embaixo; "Vender" encostado na parte de baixo da cartinha */
+.tt-own { padding-bottom: .95rem; }
+.tt-own .tt-sc { position: relative; }
+.tt-own .tt-sc .tt-sc-name { display: none; }
+.tt-own .tt-sc.empty .btn { display: none; }
+#screen-trutec .tt-own .tt-sc .btn.tt-sell { position: absolute; left: 4%; right: 4%; bottom: -.6rem; margin: 0; z-index: 3; padding: .22rem .1rem; gap: .2rem; letter-spacing: 0; font-size: clamp(.68rem, 1.6vh, .88rem); }
+#screen-trutec .tt-own .tt-sc .tt-price { padding: 0 .28rem; }
 @media (max-width: 760px) { .tt-shopcards { gap: .5rem; } }
 
-/* botão "Vender" dos seus curingas: menor, pra caber no cartãozinho menor */
-#screen-trutec .tt-own .tt-sc .btn { font-size: clamp(.66rem, 1.5vh, .82rem); gap: .2rem; padding: .3rem .1rem; letter-spacing: 0; }
-#screen-trutec .tt-own .tt-sc .tt-price { padding: 0 .28rem; }
+/* telas estreitas (coluna): a regra de desktop acima (flex: 0 1 36rem) prenderia a ALTURA da loja; aqui ela ocupa o espaço que sobra */
+@media (max-width: 760px) { .tt-overlay.tt-shopmode .tt-modal { flex: 1 1 auto; min-height: 0; width: 100%; } }
+
+/* celular: cartinhas estreitas, então o botão mostra só o preço (a cor já diz a função: verde compra, vermelho vende) */
+@media (max-width: 520px) {
+  #screen-trutec .tt-sc .btn.tt-buy > span:first-child, #screen-trutec .tt-sc .btn.tt-sell > span:first-child { display: none; }
+  #screen-trutec .tt-sc .btn .tt-price { font-size: 1.05em; padding: 0 .5rem; }
+}

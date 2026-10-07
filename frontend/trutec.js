@@ -859,9 +859,7 @@
   function emptySlot() {
     var w = document.createElement('div'); w.className = 'tt-sc empty';
     var f = document.createElement('div'); f.className = 'tt-sc-face';
-    var nm = document.createElement('span'); nm.className = 'tt-sc-name'; nm.textContent = '\u00a0';
-    var ph = document.createElement('button'); ph.type = 'button'; ph.className = 'btn btn-secondary'; ph.textContent = 'Vender'; ph.tabIndex = -1; ph.setAttribute('aria-hidden', 'true');
-    w.appendChild(f); w.appendChild(nm); w.appendChild(ph);      // nome e botão invisíveis só reservam a altura, pra alinhar com as cartas
+    w.appendChild(f);
     return w;
   }
   // o: { label, voucher, poor, just, i }
@@ -979,7 +977,18 @@
     var cheapest = S.items.reduce(function (m, it) { return Math.min(m, it.price); }, Infinity);
     var speech = (kind === 'greet' && S.items.length && R.money < cheapest) ? 'poor' : (kind || 'greet');
     modal('Loja', box, [{ label: 'Próxima blind ›', cls: 'btn-primary tt-go', fn: function () { advance(); blindSelect(); } }], { billy: speech });
+    fitShop();
   }
+
+  // a loja não deve precisar de rolagem: se a tela for baixa demais, encolhe as cartinhas aos poucos até caber
+  function fitShop() {
+    var m = $('tt-modal');
+    if (!m || !m.querySelector('.tt-shop')) return;
+    m.style.removeProperty('--shopscale');
+    var sc = 1, n = 0;
+    while (m.scrollHeight > m.clientHeight + 1 && n++ < 10 && sc > 0.4) { sc -= 0.06; m.style.setProperty('--shopscale', sc.toFixed(2)); }
+  }
+  window.addEventListener('resize', function () { var ov = $('tt-overlay'); if (ov && !ov.classList.contains('hidden') && ov.classList.contains('tt-shopmode')) fitShop(); });
 
   function gameOver() {
     var b = R.blind;
