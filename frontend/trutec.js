@@ -128,6 +128,8 @@
   function saveBest(v) { try { if (v > best()) localStorage.setItem(BEST_KEY, String(v)); } catch (e) {} }
   function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = rnd(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  // sons de carta do truco convencional (audio.js): cardPlay = carta na mesa, cardDeal = carta distribuída/puxada
+  function cardSfx(kind, delay, variation) { try { var A = window.GameAudio; if (A && A[kind]) A[kind](delay || 0, variation || 0); } catch (e) {} }
   function sfx(kind) { try { var A = window.GameAudio; if (!A) return; if (kind && A.playCall) A.playCall(kind); else if (A.click) A.click(); } catch (e) {} }
 
   function makeDeck() {
@@ -497,10 +499,12 @@
     if (!H.scoring) setCalc(CHIPS0, stakeMult(H.level), 1, 0);
     var hand = $('tt-hand'); hand.innerHTML = '';
     H.me.forEach(function (c, i) {
-      var el = cardEl(c, 'tt-mine');
+      var el = cardEl(c, 'tt-mine' + (H.dealing ? ' dealing' : ''));
+      if (H.dealing) el.style.animationDelay = (i * 120) + 'ms';
       el.addEventListener('click', function () { onCard(i); });
       hand.appendChild(el);
     });
+    H.dealing = false;
     renderActions();
   }
 
@@ -611,10 +615,11 @@
       me: [d.pop(), d.pop(), d.pop()], opp: [d.pop(), d.pop(), d.pop()], vira: d.pop(), deck: d,
       level: 0, pending: 0, lastRaiser: null, called: false, results: [], table: { me: null, opp: null },
       turn: R.leader, trickLeader: R.leader, canAct: false, swapMode: false, scoring: false,
-      played: [], won: []
+      played: [], won: [], dealing: true
     };
     H.mani = RANKS[(RANKS.indexOf(H.vira.rank) + 1) % RANKS.length];
     render();
+    for (var di = 0; di < H.me.length; di++) cardSfx('cardDeal', di * 0.12, di);
     say(R.leader === 'me' ? 'Você abre a mão.' : 'O rival abre a mão.');
     later(nextAction, 900);
   }
@@ -630,7 +635,7 @@
       if (!H.deck.length || R.trocasLeft < 1) return;
       H.me[i] = H.deck.pop();
       R.trocasLeft--; H.swapMode = false;
-      sfx(); say('Carta trocada.'); render();
+      cardSfx('cardDeal'); say('Carta trocada.'); render();
       return;
     }
     playCard('me', i);
@@ -640,7 +645,7 @@
     var c = H[who].splice(idx, 1)[0];
     H.table[who] = c; H.canAct = false; H.swapMode = false;
     if (who === 'me') H.played.push(c);
-    sfx(); render();
+    cardSfx('cardPlay'); render();
     if (H.table.me && H.table.opp) { later(resolveTrick, 900); return; }
     H.turn = other(who);
     later(nextAction, who === 'me' ? 600 : 0);

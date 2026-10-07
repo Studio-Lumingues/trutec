@@ -66,12 +66,23 @@
 .tt-actions .action-btn:disabled { opacity: .4; cursor: not-allowed; }
 .tt-actions .action-btn.active { outline: 2px solid var(--cream); }
 
-.tt-hand { display: flex; justify-content: center; align-items: flex-end; gap: .5rem; min-height: 6.2rem; }
-.tt-hand .card { --cw: 4.4rem; }
+/* mão em leque, igual à do truco convencional (.my-hand do style.css) */
+.tt-hand { display: flex; justify-content: center; align-items: flex-end; gap: 0; min-height: 6.2rem; padding-top: .8rem; perspective: 56rem; }
+.tt-hand .card { --cw: 4.8rem; --r: 0deg; --y: -.1rem; margin-left: calc(var(--cw) * -.3); border-radius: .6rem; transform-origin: bottom center;
+  transform: rotate(var(--r)) translateY(var(--y)); transition: transform .16s ease-out, margin-left .16s ease-out, box-shadow .16s ease-out; z-index: 2; }
+.tt-hand .card:first-child { margin-left: 0; }
+.tt-hand .card:first-child:nth-last-child(3) { --r: -9deg; --y: .2rem; z-index: 1; }
+.tt-hand .card:nth-child(3):last-child       { --r: 9deg;  --y: .2rem; z-index: 1; }
+.tt-hand .card:first-child:nth-last-child(2) { --r: -5deg; --y: 0rem;  z-index: 1; }
+.tt-hand .card:nth-child(2):last-child       { --r: 5deg;  --y: 0rem;  z-index: 2; }
 .tt-hand .card.playable { cursor: pointer; }
-.tt-hand .card.playable:hover { transform: translateY(-.6rem); }
+.tt-hand .card.playable:hover { transform: rotate(var(--r)) translateY(calc(var(--y) - .9rem)) scale(1.05); z-index: 5;
+  box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 .875rem 1.625rem rgba(0,0,0,.55); }
 .tt-hand .card.swapping { animation: ttSwap .8s ease-in-out infinite; }
 @keyframes ttSwap { 50% { box-shadow: 0 0 0 .2rem #ff7700, 0 .4rem 1rem rgba(0,0,0,.5); } }
+/* cartas subindo de baixo ao começar a mão (mesma animação do truco convencional) */
+@keyframes ttDealRise { 0% { translate: 0 45vh; opacity: 0; } 25% { opacity: 1; } 75% { translate: 0 -1.2vh; opacity: 1; } 100% { translate: 0 0; opacity: 1; } }
+.tt-hand .card.dealing { animation: ttDealRise 550ms cubic-bezier(.2, .8, .25, 1) backwards; pointer-events: none; }
 
 #screen-trutec .card { width: var(--cw, 4rem); height: calc(var(--cw, 4rem) * 1.4); }
 #screen-trutec .card .rank { font-size: calc(var(--cw, 4rem) * .32); }
@@ -115,7 +126,7 @@
   .tt-joker { max-height: 2.8rem; } .tt-joker small { display: none; }
   .tt-oppinfo span:last-child { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .tt-slot .card, .tt-hand .card.swapping, .tt-joker.pop { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tt-slot .card, .tt-hand .card.swapping, .tt-hand .card.dealing, .tt-joker.pop { animation: none; } }
 
 
 /* ===== BILLY, o vendedor da loja ===== */
@@ -134,7 +145,7 @@
 .tt-body { position: absolute; inset: 0; transform-origin: 50% 100%; }
 .tt-billy.talking .tt-body { animation: billyTalk .42s ease-in-out infinite; }
 /* balão igual ao do Jailson (tutorial.js): papel creme, borda grossa torta com tremido #boil-sm, perninha e etiqueta com o nome */
-.tt-bubble { position: absolute; z-index: 3; top: 2%; right: 68%; width: max-content; max-width: min(27rem, max(12rem, calc(100cqw - .67 * var(--S) - .5rem))); isolation: isolate;
+.tt-bubble { position: absolute; z-index: 3; top: 17%; right: 68%; width: max-content; max-width: min(27rem, max(12rem, calc(100cqw - .67 * var(--S) - .5rem))); isolation: isolate;
   padding: 1.2rem 1.5rem 1.05rem; font-size: clamp(1.1rem, calc(var(--S) / 30), 1.45rem); line-height: 1.35; font-weight: 500; color: #0a0a0a; }
 .tt-bubble .tt-bg { position: absolute; inset: 0; z-index: -1; background: #fff8f0; border: 3px solid #0a0a0a;
   border-radius: 1.4rem 1.1rem 1.5rem 1.2rem / 1.2rem 1.5rem 1.1rem 1.4rem; filter: url(#boil-sm); box-shadow: .25rem .3rem 0 rgba(0, 0, 0, .45); }
