@@ -71,7 +71,13 @@
 .tt-vira { grid-column: 1; justify-self: end; margin-right: clamp(1rem, 4vw, 3rem); }
 .tt-table { grid-column: 2; }
 .tt-vira { flex: none; display: flex; flex-direction: column; align-items: center; gap: .15rem; font-size: .8rem; }
-.tt-vira .card { --cw: 3.8rem; }
+.tt-vira { --vw: clamp(4.6rem, 12vh, 6.8rem); }
+.tt-vira .card { --cw: var(--vw); }
+.tt-vira small { display: none; }
+.tt-deck { position: relative; width: var(--vw); height: calc(var(--vw) * 1.4); margin: .2rem 1.1rem 1.1rem .2rem; }
+.tt-deck .card { position: absolute; left: 0; top: 0; }
+.tt-deck .card.facedown { transform: translate(var(--dx, 0), var(--dy, 0)) rotate(var(--rot, 0deg)); border: 1px solid rgba(255,248,240,.35); }
+.tt-deck .tt-viracard { z-index: 5; transform: rotate(-3deg); }
 /* tamanho da carta da mesa = o que couber na altura (2 cartas empilhadas), no máximo 6,6rem */
 .tt-table { --sw: clamp(3.6rem, calc((100cqh - .6rem) / 2.8), 6.6rem); display: flex; flex-direction: column; align-items: center; gap: .4rem; }
 .tt-slot { width: var(--sw); height: calc(var(--sw) * 1.4); border-radius: .6rem; border: 2px dashed rgba(255,248,240,.2); display: flex; align-items: center; justify-content: center; transition: box-shadow .2s; }

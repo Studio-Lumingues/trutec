@@ -484,7 +484,18 @@
     $('tt-oppname').textContent = b.opp.name;
     $('tt-oppicon').innerHTML = ic(b.opp.icon);
     if (!H) return;
-    var vi = $('tt-vira'); vi.innerHTML = ''; vi.appendChild(cardEl(H.vira, 'tt-mini'));
+    // vira por cima do monte: algumas cartas viradas aparecem escapando por baixo (o "tombo")
+    var vi = $('tt-vira'); vi.innerHTML = '';
+    var deck = document.createElement('div'); deck.className = 'tt-deck';
+    var nb = Math.min(4, H.deck.length);
+    for (var bi = 0; bi < nb; bi++) {
+      var bk = backEl(), d = (nb - bi) * 0.28;
+      bk.style.setProperty('--dx', d + 'rem'); bk.style.setProperty('--dy', d + 'rem');
+      bk.style.setProperty('--rot', (bi % 2 ? 1.6 : -1.2) + 'deg');
+      deck.appendChild(bk);
+    }
+    deck.appendChild(cardEl(H.vira, 'tt-viracard'));
+    vi.appendChild(deck);
     $('tt-mani').textContent = 'Manilha: ' + H.mani;
     var oh = $('tt-opphand'); oh.innerHTML = '';
     H.opp.forEach(function () { oh.appendChild(backEl()); });
