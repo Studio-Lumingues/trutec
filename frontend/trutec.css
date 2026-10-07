@@ -120,16 +120,18 @@
 
 /* ===== BILLY, o vendedor da loja ===== */
 .tt-overlay.tt-shopmode { align-items: center; justify-content: center; gap: 0; }
-.tt-overlay.tt-shopmode .tt-modal { flex: 0 1 28rem; min-width: 0; }
-.tt-billy { position: relative; align-self: stretch; flex: 0 1 32rem; min-width: 0; margin: -1rem -1rem -1rem 0;
-  display: flex; align-items: flex-end; justify-content: flex-end; overflow: hidden; pointer-events: none;
-  animation: billyIn .28s cubic-bezier(.2, 1.3, .4, 1) both; }
+.tt-overlay.tt-shopmode .tt-modal { flex: 0 1 26rem; min-width: 0; position: relative; z-index: 2; }
+/* o Billy ocupa o resto da tela e é grande (altura da tela); se faltar largura, ele "entra" um pouco atrás da loja */
+.tt-billy { position: relative; align-self: stretch; flex: 1 1 0; min-width: 0; max-width: 58rem; margin: -1rem -1rem -1rem 0;
+  pointer-events: none; container-type: size; animation: billyIn .28s cubic-bezier(.2, 1.3, .4, 1) both; }
+/* "palco" quadrado (mesma proporção do desenho): a imagem preenche e o balão se posiciona em % dele, sempre do lado da cabeça */
+.tt-stage { --S: min(92cqh, 52rem, 112cqw); position: absolute; right: -1%; bottom: -3%; width: var(--S); height: var(--S); }
 /* hand drawn: mesmo filtro "boil" do resto do jogo (boil.js troca a semente alguns quadros por segundo) */
-.tt-billyimg { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; object-position: bottom right;
-  margin-bottom: -2.5%; filter: url(#boil-lg); transform-origin: 50% 100%; user-select: none; -webkit-user-select: none;
+.tt-billyimg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom right;
+  filter: url(#boil-lg) drop-shadow(0 0 .7rem rgba(255, 248, 240, .22)); transform-origin: 50% 100%; user-select: none; -webkit-user-select: none;
   animation: billyFidget 1.1s steps(1) infinite; }
 /* balão igual ao do Jailson (tutorial.js): papel creme, borda grossa torta com tremido #boil-sm, perninha e etiqueta com o nome */
-.tt-bubble { position: absolute; z-index: 1; top: 1.9rem; left: .5rem; width: max-content; max-width: 62%; isolation: isolate;
+.tt-bubble { position: absolute; z-index: 3; top: 2%; right: 68%; width: max-content; max-width: min(18rem, 58%); isolation: isolate;
   padding: 1rem 1.15rem .85rem; font-size: 1.1rem; line-height: 1.35; font-weight: 500; color: #0a0a0a; }
 .tt-bubble .tt-bg { position: absolute; inset: 0; z-index: -1; background: #fff8f0; border: 3px solid #0a0a0a;
   border-radius: 1.4rem 1.1rem 1.5rem 1.2rem / 1.2rem 1.5rem 1.1rem 1.4rem; filter: url(#boil-sm); box-shadow: .25rem .3rem 0 rgba(0, 0, 0, .45); }
@@ -154,9 +156,10 @@
 @media (max-width: 760px) {
   .tt-overlay.tt-shopmode { flex-direction: column; }
   .tt-overlay.tt-shopmode .tt-modal { flex: 1 1 auto; min-height: 0; width: 100%; }
-  .tt-billy { flex: 0 0 10.5rem; width: 100%; margin: .4rem -1rem -1rem; }
-  .tt-billyimg { width: auto; height: 100%; }
-  .tt-bubble { top: auto; bottom: 1rem; left: .8rem; max-width: calc(100% - 10.5rem); font-size: .92rem; padding: .85rem .9rem .7rem; }
+  .tt-billy { flex: 0 0 10.5rem; width: 100%; max-width: none; margin: .4rem -1rem -1rem; container-type: normal; }
+  .tt-stage { position: static; display: contents; }
+  .tt-billyimg { position: absolute; inset: auto 0 -2.5% auto; width: auto; height: 100%; max-width: 100%; }
+  .tt-bubble { top: auto; bottom: 1rem; right: auto; left: .8rem; max-width: calc(100% - 10.5rem); font-size: .92rem; padding: .85rem .9rem .7rem; }
   .tt-tail { top: auto; bottom: 1rem; }
 }
 @media (prefers-reduced-motion: reduce) { .tt-billy, .tt-billyimg, .tt-bubble.pop { animation: none; } }
