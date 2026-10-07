@@ -122,44 +122,68 @@
 .tt-overlay.tt-shopmode { align-items: center; justify-content: center; gap: 0; }
 .tt-overlay.tt-shopmode .tt-modal { flex: 0 1 26rem; min-width: 0; position: relative; z-index: 2; }
 /* o Billy ocupa o resto da tela e é grande (altura da tela); se faltar largura, ele "entra" um pouco atrás da loja */
-.tt-billy { position: relative; align-self: stretch; flex: 1 1 0; min-width: 0; max-width: 58rem; margin: -1rem -1rem -1rem 0;
+.tt-billy { position: relative; z-index: 3; align-self: stretch; flex: 1 1 0; min-width: 0; max-width: 58rem; margin: -1rem -1rem -1rem 0;
   pointer-events: none; container-type: size; animation: billyIn .28s cubic-bezier(.2, 1.3, .4, 1) both; }
 /* "palco" quadrado (mesma proporção do desenho): a imagem preenche e o balão se posiciona em % dele, sempre do lado da cabeça */
-.tt-stage { --S: min(92cqh, 52rem, 112cqw); position: absolute; right: -1%; bottom: -3%; width: var(--S); height: var(--S); }
+.tt-stage { --S: min(92cqh, 52rem, 95cqw); position: absolute; right: -1%; bottom: -3%; width: var(--S); height: var(--S); }
 /* hand drawn: mesmo filtro "boil" do resto do jogo (boil.js troca a semente alguns quadros por segundo) */
 .tt-billyimg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom right;
-  filter: url(#boil-lg) drop-shadow(0 0 .7rem rgba(255, 248, 240, .22)); transform-origin: 50% 100%; user-select: none; -webkit-user-select: none;
-  animation: billyFidget 1.1s steps(1) infinite; }
+  filter: url(#boil-lg); transform-origin: 50% 100%; user-select: none; -webkit-user-select: none;
+  animation: billyIdle 5.5s ease-in-out infinite; will-change: transform; }
+/* corpo: balança de leve enquanto ele fala (separado do img: as duas animações somam, sem "pulo" ao trocar) */
+.tt-body { position: absolute; inset: 0; transform-origin: 50% 100%; }
+.tt-billy.talking .tt-body { animation: billyTalk .42s ease-in-out infinite; }
 /* balão igual ao do Jailson (tutorial.js): papel creme, borda grossa torta com tremido #boil-sm, perninha e etiqueta com o nome */
-.tt-bubble { position: absolute; z-index: 3; top: 2%; right: 68%; width: max-content; max-width: min(18rem, 58%); isolation: isolate;
-  padding: 1rem 1.15rem .85rem; font-size: 1.1rem; line-height: 1.35; font-weight: 500; color: #0a0a0a; }
+.tt-bubble { position: absolute; z-index: 3; top: 2%; right: 68%; width: max-content; max-width: min(27rem, max(12rem, calc(100cqw - .67 * var(--S) - .5rem))); isolation: isolate;
+  padding: 1.2rem 1.5rem 1.05rem; font-size: clamp(1.1rem, calc(var(--S) / 30), 1.45rem); line-height: 1.35; font-weight: 500; color: #0a0a0a; }
 .tt-bubble .tt-bg { position: absolute; inset: 0; z-index: -1; background: #fff8f0; border: 3px solid #0a0a0a;
   border-radius: 1.4rem 1.1rem 1.5rem 1.2rem / 1.2rem 1.5rem 1.1rem 1.4rem; filter: url(#boil-sm); box-shadow: .25rem .3rem 0 rgba(0, 0, 0, .45); }
 /* perninha apontando pro Billy (à direita): triângulo preto + triângulo creme menor por cima, dentro do .tt-bg pra tremer junto */
-.tt-tail { position: absolute; top: 1.6rem; right: 0; width: 0; height: 22px; }
+.tt-tail { position: absolute; top: 2.2rem; right: 0; width: 0; height: 22px; }
 .tt-tail::before, .tt-tail::after { content: ""; position: absolute; }
 .tt-tail::before { left: 0; top: 0; width: 14px; height: 22px; background: #0a0a0a; clip-path: polygon(100% 50%, 0 0, 0 100%); }
 .tt-tail::after { left: -4px; top: 3.8px; width: 13.2px; height: 14.4px; background: #fff8f0;
   clip-path: polygon(100% 50%, calc(100% - 9.2px) 0, 0 0, 0 100%, calc(100% - 9.2px) 100%); }
-.tt-name { position: absolute; left: 1rem; top: -1rem; z-index: 1; padding: .1rem .7rem .15rem; font-size: 1.05rem; font-weight: 800; color: #0a0a0a;
+.tt-name { position: absolute; left: 1.2rem; top: -1.25rem; z-index: 1; padding: .12rem .85rem .18rem; font-size: 1.3rem; font-weight: 800; color: #0a0a0a;
   background: #ffd23f; border: 2.5px solid #0a0a0a; border-radius: .7rem .5rem .8rem .55rem / .55rem .8rem .5rem .7rem; transform: rotate(-3deg);
   box-shadow: .1rem .12rem 0 rgba(0, 0, 0, .45); }
-.tt-text { position: relative; min-height: 2.6rem; margin-top: .25rem; }
+.tt-text { position: relative; min-height: 3.4rem; margin-top: .25rem; }
 .tt-full { visibility: hidden; }
 .tt-typed { position: absolute; left: 0; top: 0; right: 0; }
 .tt-bubble.pop { animation: bubblePop .2s ease-out; }
 @keyframes billyIn { from { transform: translateX(45%); opacity: 0; } }
-@keyframes billyFidget { 0% { transform: none; } 25% { transform: translate(.18rem, 0) rotate(.7deg); }
-  50% { transform: translate(-.12rem, .12rem) rotate(-.6deg); } 75% { transform: translate(.1rem, 0) rotate(.3deg); } }
+@keyframes billyIdle {            /* respirando + balançando devagar, tudo com ease-in-out */
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  25%      { transform: translate(.25rem, -.2rem) rotate(.6deg) scale(1.004); }
+  50%      { transform: translate(0, -.45rem) rotate(0deg) scale(1.009); }
+  75%      { transform: translate(-.25rem, -.2rem) rotate(-.6deg) scale(1.004); } }
+@keyframes billyTalk {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  35%      { transform: translateY(-.55rem) rotate(.8deg); }
+  70%      { transform: translateY(-.2rem) rotate(-.8deg); } }
 @keyframes bubblePop { from { transform: scale(.82) rotate(-5deg); opacity: .2; } }
 
 @media (max-width: 760px) {
   .tt-overlay.tt-shopmode { flex-direction: column; }
   .tt-overlay.tt-shopmode .tt-modal { flex: 1 1 auto; min-height: 0; width: 100%; }
   .tt-billy { flex: 0 0 10.5rem; width: 100%; max-width: none; margin: .4rem -1rem -1rem; container-type: normal; }
-  .tt-stage { position: static; display: contents; }
+  .tt-stage, .tt-body { position: static; display: contents; }
   .tt-billyimg { position: absolute; inset: auto 0 -2.5% auto; width: auto; height: 100%; max-width: 100%; }
-  .tt-bubble { top: auto; bottom: 1rem; right: auto; left: .8rem; max-width: calc(100% - 10.5rem); font-size: .92rem; padding: .85rem .9rem .7rem; }
-  .tt-tail { top: auto; bottom: 1rem; }
+  .tt-bubble { top: auto; bottom: 1rem; right: auto; left: .8rem; max-width: calc(100% - 10.5rem); font-size: 1.05rem; padding: 1rem 1rem .8rem; }
+  .tt-tail { top: auto; bottom: 1.2rem; }
 }
-@media (prefers-reduced-motion: reduce) { .tt-billy, .tt-billyimg, .tt-bubble.pop { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tt-billy, .tt-billyimg, .tt-body, .tt-bubble.pop { animation: none !important; } }
+
+
+/* ===== ÍCONES DESENHADOS (no lugar dos emojis) ===== */
+.tt-ic { display: inline-block; width: 1.9rem; height: 1.9rem; vertical-align: middle; overflow: visible; filter: url(#boil-ic); }
+.tt-ic-inline { width: 1.15em; height: 1.15em; vertical-align: -.22em; margin-right: .1em; }
+/* lojinha: o desenho fica num "cartãozinho" creme, pra o contorno escuro aparecer no fundo escuro */
+.tt-shoprow .tj-i { flex: none; display: flex; align-items: center; justify-content: center; width: 2.9rem; height: 2.9rem; background: #fff8f0;
+  border: 2px solid #0a0a0a; border-radius: .7rem .5rem .8rem .55rem / .55rem .8rem .5rem .7rem; box-shadow: .12rem .15rem 0 rgba(0, 0, 0, .45); transform: rotate(-3deg); }
+.tt-shoprow .tj-i .tt-ic { width: 2.2rem; height: 2.2rem; }
+.tt-joker .tj-i { display: flex; align-items: center; justify-content: center; line-height: 1; }
+.tt-joker .tj-i .tt-ic { width: 1.8rem; height: 1.8rem; }
+.tt-bigicon .tt-ic { width: 5.2rem; height: 5.2rem; }
+#tt-bicon .tt-ic, .tt-oppicon .tt-ic { width: 1.8rem; height: 1.8rem; }
+@media (max-height: 700px) { .tt-joker .tj-i .tt-ic { width: 1.5rem; height: 1.5rem; } }

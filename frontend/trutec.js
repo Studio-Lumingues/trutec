@@ -29,69 +29,89 @@
   var CALLS = ['', 'TRUCO', 'SEIS', 'NOVE', 'DOZE'];
   var CHIPV = { '4': 4, '5': 5, '6': 6, '7': 7, 'Q': 10, 'J': 10, 'K': 10, 'A': 11, '2': 12, '3': 13 };
 
+  // ---------- ÍCONES DESENHADOS (no lugar dos emojis) ----------
+  // Cada curinga/rival/chefe tem um desenho próprio (cores + contorno escuro), igual ao estilo "hand drawn" do resto do jogo.
+  // O tremido vem do filtro #boil-ic (CSS .tt-ic). Uso: ic('gato') devolve o <svg> pronto; ic('olho', 'tt-ic-inline') pra ficar do tamanho do texto.
+  var IC_SPRITE = '<symbol id="tt-ic-zap" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8.2" r="3.9" fill="#26231f"/><circle cx="7" cy="13.4" r="3.9" fill="#26231f"/><circle cx="17" cy="13.4" r="3.9" fill="#26231f"/><path d="M12 12.5 L10.2 21 L13.9 21 Z" fill="#26231f"/><path d="M9.3 6.8 C9.8 5.8 10.8 5.4 11.8 5.5 M4.8 12 C5.2 11.2 5.9 10.8 6.6 10.8" stroke="#fff8f0" stroke-width="1"/><path d="M19 1.5 L15.2 7.8 L18 7.8 L16.4 12.6 L21.8 5.9 L18.9 5.9 L20.6 1.5 Z" fill="#ffd23f"/></g></symbol><symbol id="tt-ic-manilheiro" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2.6 L14.8 8.8 L21.4 9.4 L16.4 13.8 L17.9 20.4 L12 17 L6.1 20.4 L7.6 13.8 L2.6 9.4 L9.2 8.8 Z" fill="#ffd23f"/><path d="M9.6 9.8 L12 5.6" stroke="#fff8f0" stroke-width="1.1"/></g></symbol><symbol id="tt-ic-tres" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><rect x="4.8" y="2.6" width="14.4" height="18.8" rx="2" fill="#fff8f0"/><path d="M8.6 6.8 C11 4.6 15.2 5.8 14.9 8.7 C14.7 10.6 12.7 11.4 11.2 11.6 C13.8 11.6 15.8 13 15.5 15.6 C15.1 18.6 10.6 19.6 8.2 17.4" stroke="#1f6fd1" stroke-width="2.3"/></g></symbol><symbol id="tt-ic-sete" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><rect x="4.8" y="2.6" width="14.4" height="18.8" rx="2" fill="#fff8f0"/><path d="M8 6.4 L16.2 6.2 L11.4 19 M9.6 12.8 L14.2 12.7" stroke="#d1302a" stroke-width="2.3"/></g></symbol><symbol id="tt-ic-caradepau" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2.8 C17.4 2.6 21.4 6.8 21.2 12.2 C21 17.6 17 21.4 12 21.2 C6.8 21.4 2.8 17.4 2.8 12 C2.7 6.8 6.8 2.7 12 2.8 Z" fill="#ffd23f"/><path d="M6.8 9.2 L10.2 9.4 M13.8 9.4 L17.2 9.2 M8.4 11.6 h.01 M15.6 11.6 h.01 M7.6 16.4 L16.4 16.2" stroke-width="1.7"/></g></symbol><symbol id="tt-ic-ousadia" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M12.4 2.4 C13 6.2 16.8 8.2 17.8 12.4 C18.8 16.6 16.2 21 12 21.2 C7.6 21.4 5 17.8 5.8 13.8 C6.2 11.8 7.4 10.4 8.5 9.2 C8.7 10.9 9.5 11.9 10.6 12.4 C10.3 8.4 10.7 5.2 12.4 2.4 Z" fill="#ff7a3d"/><path d="M12 20.4 C10.3 19.8 9.9 18 10.7 16.6 C11.3 15.6 12.1 15 12.4 14 C13.9 15.2 14.7 16.5 14.5 18 C14.3 19.3 13.2 20.2 12 20.4 Z" fill="#ffd23f" stroke-width="1.1"/></g></symbol><symbol id="tt-ic-virada" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><g stroke="#1a1209" stroke-width="4.4"><path d="M5 11.4 C5 7.4 9 4.6 13 5.4 C15.5 5.8 17.4 7.2 18.4 9 M18.6 4.2 L18.7 9.6 L13.8 9.5"/><path d="M19 12.8 C19 16.8 15 19.6 11 18.8 C8.5 18.4 6.6 17 5.6 15.2 M5.4 19.8 L5.3 14.4 L10.2 14.5"/></g><g stroke="#3fae5a" stroke-width="2.2"><path d="M5 11.4 C5 7.4 9 4.6 13 5.4 C15.5 5.8 17.4 7.2 18.4 9 M18.6 4.2 L18.7 9.6 L13.8 9.5"/><path d="M19 12.8 C19 16.8 15 19.6 11 18.8 C8.5 18.4 6.6 17 5.6 15.2 M5.4 19.8 L5.3 14.4 L10.2 14.5"/></g></g></symbol><symbol id="tt-ic-limpa" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M20.4 2.8 L12.2 12.6" stroke="#8a5a2b" stroke-width="2.4"/><path d="M20.4 2.8 L12.2 12.6" stroke="#1a1209" stroke-width=".7" opacity=".5"/><path d="M9.3 11 L15 14.4 L12.6 21 C9.6 21.6 6.4 20.6 4.4 19 C6.4 16.6 8 14 9.3 11 Z" fill="#e8b84a"/><path d="M9.3 11 L15 14.4 M7.6 16.2 L9.6 19.8 M10.4 14.6 L12 19.6" stroke-width="1"/></g></symbol><symbol id="tt-ic-poupador" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M13.8 7.4 L15.4 3.8 L17.4 8.4 Z" fill="#ff8aa5"/><ellipse cx="11.6" cy="12.8" rx="8" ry="6.2" fill="#ff9bb5"/><ellipse cx="20" cy="13.4" rx="2" ry="2.7" fill="#ff7a96"/><path d="M7.4 17.6 L7.2 21 L9.6 21 L9.8 18.6 M13.8 18.4 L14 21 L16.4 21 L16.2 17.4" fill="#ff9bb5"/><path d="M8.4 7.6 L12.6 7.4 M3.6 11 C1.8 10 1.8 8.2 3.4 8" /><path d="M16.8 11.2 h.01" stroke-width="2"/></g></symbol><symbol id="tt-ic-maocheia" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><g transform="rotate(-26 12 22)"><rect x="7.4" y="4.6" width="9.2" height="14" rx="1.6" fill="#fff8f0"/><path d="M12 9.6 L13.6 12 L12 14.4 L10.4 12 Z" fill="#d1302a" stroke-width="1"/></g><g transform="rotate(26 12 22)"><rect x="7.4" y="4.6" width="9.2" height="14" rx="1.6" fill="#fff8f0"/><circle cx="12" cy="12" r="1.9" fill="#1a1209" stroke-width="1"/></g><g><rect x="7.4" y="3.4" width="9.2" height="14.6" rx="1.6" fill="#fff8f0"/><path d="M12 11.4 C10 9.2 8.6 10.4 9.2 12 C9.6 13.4 11.2 14.4 12 15.2 C12.8 14.4 14.4 13.4 14.8 12 C15.4 10.4 14 9.2 12 11.4 Z" fill="#d1302a" stroke-width="1"/></g></g></symbol><symbol id="tt-ic-maoextra" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M7.2 21.2 C5 18.4 4.4 15.4 5 12.8 L5.4 9.4 C5.5 8.2 7.2 8.2 7.2 9.4 L7.4 12.2 L7.6 5.4 C7.6 4.2 9.4 4.2 9.4 5.4 L9.6 11.2 L10 3.8 C10 2.6 12 2.6 12 3.8 L12.1 11.2 L12.8 5.4 C12.9 4.2 14.7 4.4 14.6 5.6 L14.2 12.4 L16.4 9.8 C17.2 9 18.6 9.9 18 11 C16.8 13.8 16.7 15.8 15.7 18.4 C15 20.2 14.2 21.2 12.8 21.2 Z" fill="#f2c9a0"/><circle cx="18.4" cy="18.6" r="4.3" fill="#d1302a"/><path d="M18.4 16.4 L18.4 20.8 M16.2 18.6 L20.6 18.6" stroke="#fff8f0" stroke-width="1.7"/></g></symbol><symbol id="tt-ic-blefe" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><g transform="translate(8.2 -2.4) scale(.8)"><path d="M4 6.5 C7 5 12 5 15 6.5 C15.5 12 14 17.5 9.5 19 C5 17.5 3.5 12 4 6.5 Z" fill="#4ba3d9"/><path d="M6 10 C7 9 8.4 9.2 9 10.2 C8 11 6.8 11 6 10 Z M10.5 10.2 C11.2 9.2 12.7 9 13.5 10 C12.8 11 11.4 11 10.5 10.2 Z" fill="#1a1209"/><path d="M6.8 16 C8.5 14 11.5 14 13 16" /></g><path d="M2.6 8.4 C6 6.8 11.4 6.8 14.6 8.4 C15.2 14.4 13.4 20 8.6 21.4 C3.8 20 2 14.4 2.6 8.4 Z" fill="#ffd23f"/><path d="M4.8 12 C5.8 10.8 7.2 11 7.8 12.2 C6.8 13 5.6 13 4.8 12 Z M9.4 12.2 C10.2 11 11.6 10.8 12.6 12 C11.8 13 10.4 13 9.4 12.2 Z" fill="#1a1209" stroke-width="1"/><path d="M5.4 16.4 C7.2 18.6 10.2 18.6 11.9 16.4"/></g></symbol><symbol id="tt-ic-banqueiro" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M2.8 9.6 L12 3.2 L21.2 9.6 Z" fill="#ffd23f"/><rect x="4.6" y="10.8" width="2.8" height="7.4" fill="#fff8f0"/><rect x="10.6" y="10.8" width="2.8" height="7.4" fill="#fff8f0"/><rect x="16.6" y="10.8" width="2.8" height="7.4" fill="#fff8f0"/><path d="M2.8 18.4 L21.2 18.3 L21 21.4 L3 21.5 Z" fill="#8a5a2b"/><circle cx="12" cy="7.2" r="1.3" fill="#fff8f0" stroke-width="1"/></g></symbol><symbol id="tt-ic-moedeiro" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="8.8" fill="#ffd23f"/><circle cx="12" cy="12" r="5.8" stroke="#b8860b" stroke-width="1"/><path d="M13.8 9.4 C13.2 8.2 10.2 8.2 10.2 10 C10.2 11.8 14 11.4 14 13.4 C14 15.4 11 15.4 10.2 14.2 M12 7.2 L12 16.8" stroke-width="1.5"/><path d="M6.4 8.4 C7 7.4 7.8 6.8 8.8 6.4" stroke="#fff8f0" stroke-width="1"/></g></symbol><symbol id="tt-ic-coelho" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M12.4 12.4 C12.8 16 14.4 19 17.4 21" stroke="#2c7a3f" stroke-width="1.8"/><path d="M12 11.6 C9.4 9.6 8.4 6 9.8 4.4 C10.9 3.3 12 4 12 5.4 C12 4 13.1 3.3 14.2 4.4 C15.6 6 14.6 9.6 12 11.6 Z" fill="#3fae5a"/><g transform="rotate(90 12 12)"><path d="M12 11.6 C9.4 9.6 8.4 6 9.8 4.4 C10.9 3.3 12 4 12 5.4 C12 4 13.1 3.3 14.2 4.4 C15.6 6 14.6 9.6 12 11.6 Z" fill="#3fae5a"/></g><g transform="rotate(180 12 12)"><path d="M12 11.6 C9.4 9.6 8.4 6 9.8 4.4 C10.9 3.3 12 4 12 5.4 C12 4 13.1 3.3 14.2 4.4 C15.6 6 14.6 9.6 12 11.6 Z" fill="#3fae5a"/></g><g transform="rotate(270 12 12)"><path d="M12 11.6 C9.4 9.6 8.4 6 9.8 4.4 C10.9 3.3 12 4 12 5.4 C12 4 13.1 3.3 14.2 4.4 C15.6 6 14.6 9.6 12 11.6 Z" fill="#3fae5a"/></g></g></symbol><symbol id="tt-ic-covarde" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M5.8 2.6 L5.9 21.4" stroke-width="2.2"/><path d="M6.4 4.4 C9.8 2.8 13 6.2 16.6 4.6 C18 4 19.4 4 20.4 4.4 L19.4 11.8 C16.2 13 13 10.2 9.8 11.8 L6.6 12.2 Z" fill="#fff8f0"/></g></symbol><symbol id="tt-ic-olho" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M2.4 12 C6 6.2 18 6.2 21.6 12 C18 17.8 6 17.8 2.4 12 Z" fill="#fff8f0"/><circle cx="12" cy="12" r="4" fill="#1f9bd1"/><circle cx="12" cy="12" r="1.8" fill="#1a1209" stroke-width="1"/><circle cx="13.3" cy="10.7" r=".9" fill="#fff8f0" stroke="none"/></g></symbol><symbol id="tt-ic-gato" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M4.8 10 L4.6 3.6 L9.6 6.6 C11.1 6.2 12.9 6.2 14.4 6.6 L19.4 3.6 L19.2 10 C20.2 12.2 20 15 17.8 17.4 C15.8 19.8 8.2 19.8 6.2 17.4 C4 15 3.8 12.2 4.8 10 Z" fill="#ff9b4a"/><path d="M10.6 8 L10.6 9.6 M12 7.6 L12 9.4 M13.4 8 L13.4 9.6" stroke="#b5561a" stroke-width="1.1"/><ellipse cx="8.8" cy="12.2" rx="1.9" ry="1.6" fill="#9be07a" stroke-width="1"/><ellipse cx="15.2" cy="12.2" rx="1.9" ry="1.6" fill="#9be07a" stroke-width="1"/><path d="M8.8 11.2 L8.8 13.2 M15.2 11.2 L15.2 13.2" stroke-width="1.1"/><path d="M11 14.4 L13 14.4 L12 15.6 Z" fill="#ff7a96" stroke-width="1"/><path d="M12 15.6 L12 16.6 M10.2 17.2 C11 17.6 11.7 17.2 12 16.6 C12.3 17.2 13 17.6 13.8 17.2" stroke-width="1"/><path d="M2.2 14 L6 14.6 M2.4 16.8 L6.2 15.8 M21.8 14 L18 14.6 M21.6 16.8 L17.8 15.8" stroke-width=".9"/></g></symbol><symbol id="tt-ic-baralho" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><rect x="7.4" y="1.8" width="13.6" height="18.6" rx="2" fill="#1f6fd1" transform="rotate(8 14 11)"/><rect x="4" y="2.8" width="13.8" height="18.6" rx="2" fill="#d1302a"/><rect x="6.2" y="5" width="9.4" height="14.2" rx="1" stroke="#fff8f0" stroke-width="1"/><path d="M10.9 8.4 L13.6 12.1 L10.9 15.8 L8.2 12.1 Z" fill="#fff8f0" stroke-width="1"/><path d="M14.4 18 L16.8 20.4 M16.8 18 L14.4 20.4" stroke="#ffd23f" stroke-width="1.5"/></g></symbol><symbol id="tt-ic-juros" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><rect x="4" y="15" width="4.2" height="6.4" fill="#3fae5a"/><rect x="9.9" y="12" width="4.2" height="9.4" fill="#3fae5a"/><rect x="15.8" y="9.4" width="4.2" height="12" fill="#3fae5a"/><path d="M3.6 10 L9 6.6 L12.6 8.6 L19.6 3.2 M15.8 3 L19.8 3.1 L19.5 7.2" stroke-width="1.7"/></g></symbol><symbol id="tt-ic-pao" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><g transform="rotate(-35 12 12)"><ellipse cx="12" cy="12" rx="10.2" ry="4.4" fill="#e8b86a"/><path d="M6.6 9.4 L8.6 14.2 M11 8.8 L13 15 M15.4 9.4 L17.2 14.2" stroke="#a8742a" stroke-width="1.3"/></g></g></symbol><symbol id="tt-ic-novelo" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><circle cx="11" cy="12" r="8.4" fill="#d1302a"/><path d="M4.4 9 C8 10.6 12.4 10 16.2 6.4 M3.6 13 C8.2 14.6 13.4 14 18.2 9.4 M5 17 C9.2 18.2 13.8 17.2 17.6 13.4" stroke="#7a1a16" stroke-width="1.1"/><path d="M16.8 18.4 C19.2 20.4 21 18.6 22.2 20.6" stroke="#d1302a" stroke-width="2"/></g></symbol><symbol id="tt-ic-vo" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="4.8" r="3" fill="#e9e9e9"/><ellipse cx="12" cy="13.6" rx="7.2" ry="7.8" fill="#f2c9a0"/><path d="M4.8 12.6 C4.4 6.8 19.6 6.8 19.2 12.6 C17.6 9.6 14.2 8.4 12 8.4 C9.8 8.4 6.4 9.6 4.8 12.6 Z" fill="#e9e9e9"/><circle cx="8.8" cy="13.6" r="2.3" fill="#fff8f0" fill-opacity=".5" stroke-width="1.2"/><circle cx="15.2" cy="13.6" r="2.3" fill="#fff8f0" fill-opacity=".5" stroke-width="1.2"/><path d="M11.1 13.4 L12.9 13.4 M8.8 13.6 h.01 M15.2 13.6 h.01 M9.4 18 C11 19.4 13 19.4 14.6 18" stroke-width="1.3"/><circle cx="6.9" cy="16.6" r="1" fill="#ff9bb5" stroke="none"/><circle cx="17.1" cy="16.6" r="1" fill="#ff9bb5" stroke="none"/></g></symbol><symbol id="tt-ic-cartola" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><ellipse cx="12" cy="18.2" rx="9.6" ry="2.8" fill="#26231f"/><path d="M6.4 18 L7.2 4.6 C9.6 3.6 14.4 3.6 16.8 4.6 L17.6 18 C14.6 19.4 9.4 19.4 6.4 18 Z" fill="#26231f"/><path d="M6.7 14.4 C10 15.8 14 15.8 17.3 14.4 L17.5 17.6 C14.4 19 9.6 19 6.5 17.6 Z" fill="#d1302a"/><path d="M8.4 6.4 L8.8 12" stroke="#fff8f0" stroke-width="1" opacity=".6"/></g></symbol><symbol id="tt-ic-cupcake" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M6 12.6 L18 12.6 L16.4 21 L7.6 21 Z" fill="#e0a06a"/><path d="M9.2 13 L9.8 20.6 M12 13 L12 20.8 M14.8 13 L14.2 20.6" stroke-width="1"/><path d="M4.8 13 C3.4 9.2 7 7.6 8 7.4 C8 4.8 10.4 3.8 12.4 4.8 C14.6 3.8 17 5.2 16.6 7.4 C19 8 20.6 10.6 19.2 13 Z" fill="#ff9bb5"/><circle cx="12.4" cy="3.4" r="1.8" fill="#d1302a"/></g></symbol><symbol id="tt-ic-peixe" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M17.4 13 L22 9.2 L22 16.8 Z" fill="#2f7fb8"/><ellipse cx="11" cy="13.4" rx="7.4" ry="4.6" fill="#4ba3d9"/><circle cx="7.4" cy="12.2" r="1.1" fill="#1a1209" stroke="none"/><path d="M11 9.2 C12.4 6.8 14.6 7 15.4 9.4 M9.6 14.4 C11 15.8 13 15.8 14.2 14.4" stroke-width="1"/><path d="M3.4 1.8 L3.4 9 C3.4 11.4 1.4 11.2 1.6 9.4" stroke-width="1.5"/></g></symbol><symbol id="tt-ic-velho" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><ellipse cx="12" cy="13.6" rx="7" ry="7.6" fill="#f2c9a0"/><path d="M4.8 11.6 C4.6 6.4 9.2 4.8 13 5 C17.6 5.2 19.6 7.6 19.2 11.6 L22.4 12.4 L4.4 12.2 Z" fill="#7a5a3a"/><path d="M8 12.6 L10.4 13.4 M14 13.4 L16.4 12.6 M9.4 14.8 h.01 M14.6 14.8 h.01" stroke-width="1.4"/><path d="M6.4 17 C8.2 14.8 11 15.4 12 16.6 C13 15.4 15.8 14.8 17.6 17 C16.4 19.4 13.8 18.8 12 18.4 C10.2 18.8 7.6 19.4 6.4 17 Z" fill="#f0f0f0"/></g></symbol><symbol id="tt-ic-estetoscopio" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M6 2.8 L6 9.6 C6 14.4 10.6 14.8 12 14.8 C13.4 14.8 18 14.4 18 9.6 L18 2.8" stroke="#1a1209" stroke-width="3.6"/><path d="M6 2.8 L6 9.6 C6 14.4 10.6 14.8 12 14.8 C13.4 14.8 18 14.4 18 9.6 L18 2.8" stroke="#4ba3d9" stroke-width="1.6"/><path d="M12 14.8 C12 19.2 14 20 16.2 19.4" stroke="#1a1209" stroke-width="3.6"/><path d="M12 14.8 C12 19.2 14 20 16.2 19.4" stroke="#4ba3d9" stroke-width="1.6"/><circle cx="6" cy="2.8" r="1.6" fill="#cfcfcf"/><circle cx="18" cy="2.8" r="1.6" fill="#cfcfcf"/><circle cx="18.6" cy="18" r="3.2" fill="#cfcfcf"/><circle cx="18.6" cy="18" r="1.3" fill="#8f8f8f" stroke-width="1"/></g></symbol><symbol id="tt-ic-cerveja" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M5 8 L5.4 19.8 C5.4 20.8 6 21.4 7 21.4 L13.4 21.4 C14.4 21.4 15 20.8 15 19.8 L15.4 8 Z" fill="#ffc23f"/><path d="M15.2 10.6 L18.4 10.6 C20 10.6 20.6 11.6 20.6 13 L20.6 15.2 C20.6 16.8 19.6 17.6 18 17.6 L15 17.6" stroke-width="2"/><circle cx="6.8" cy="6.8" r="2.4" fill="#fff8f0"/><circle cx="10.2" cy="5.6" r="2.9" fill="#fff8f0"/><circle cx="13.6" cy="6.8" r="2.4" fill="#fff8f0"/><path d="M8 12 L8 17 M11 13 L11 15.5 M13 11.5 L13 13" stroke="#fff8f0" stroke-width="1" opacity=".8"/></g></symbol><symbol id="tt-ic-curinga" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M3.8 15 C2.4 11 3.4 6.6 6 4.4 C6.6 8.6 8.6 11.6 11 13.2 Z" fill="#d1302a"/><path d="M8 13.4 C8.8 8.8 10.4 4.8 12 3 C13.6 4.8 15.2 8.8 16 13.4 Z" fill="#4ba3d9"/><path d="M13 13.2 C15.4 11.6 17.4 8.6 18 4.4 C20.6 6.6 21.6 11 20.2 15 Z" fill="#ffd23f"/><circle cx="6" cy="3.8" r="1.5" fill="#ffd23f"/><circle cx="12" cy="2.6" r="1.5" fill="#d1302a"/><circle cx="18" cy="3.8" r="1.5" fill="#4ba3d9"/><path d="M3.6 14.4 C8 17 16 17 20.4 14.4 L20.8 19 C16 21.6 8 21.6 3.2 19 Z" fill="#3fae5a"/><path d="M8 17.6 L9.2 19.4 L10.4 17.6 M13.6 17.8 L14.8 19.6 L16 17.8" stroke="#fff8f0" stroke-width="1"/></g></symbol><symbol id="tt-ic-oculos" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M2.4 8.6 L10.6 8.6 C11 12.4 9.8 15.6 6.8 15.6 C3.8 15.6 2.6 12.4 2.4 8.6 Z" fill="#26231f"/><path d="M13.4 8.6 L21.6 8.6 C21.4 12.4 20.2 15.6 17.2 15.6 C14.2 15.6 13 12.4 13.4 8.6 Z" fill="#26231f"/><path d="M10.6 9.8 C11.4 8.8 12.6 8.8 13.4 9.8 M2.4 8.6 L1.2 7.4 M21.6 8.6 L22.8 7.4" stroke-width="1.7"/><path d="M4.2 10 L5.6 12 M15.4 10 L16.8 12" stroke="#fff8f0" stroke-width="1" opacity=".7"/><path d="M12 16.6 L13.1 19 L15.6 19.2 L13.7 20.8 L14.4 23 L12 21.8 L9.6 23 L10.3 20.8 L8.4 19.2 L10.9 19 Z" fill="#ffd23f" stroke-width="1"/></g></symbol><symbol id="tt-ic-coroa" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M3 8 L7.4 12.6 L12 4.4 L16.6 12.6 L21 8 L19.6 19.4 L4.4 19.4 Z" fill="#ffd23f"/><path d="M4.6 16.4 C9 17.6 15 17.6 19.4 16.4" stroke-width="1.2"/><circle cx="3" cy="7.4" r="1.5" fill="#d1302a"/><circle cx="12" cy="3.8" r="1.5" fill="#4ba3d9"/><circle cx="21" cy="7.4" r="1.5" fill="#3fae5a"/><circle cx="12" cy="14.2" r="1.4" fill="#d1302a" stroke-width="1"/></g></symbol><symbol id="tt-ic-alerta" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 L22 20.6 L2 20.6 Z" fill="#ffd23f"/><path d="M12 9 L12 14.6 M12 17.2 h.01" stroke-width="2"/></g></symbol><symbol id="tt-ic-trofeu" viewBox="0 0 24 24"><g fill="none" stroke="#1a1209" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M7 3.6 L17 3.6 L16.6 10.6 C16.4 13.8 14.4 15.4 12 15.4 C9.6 15.4 7.6 13.8 7.4 10.6 Z" fill="#ffd23f"/><path d="M7 5.4 C4.2 5.2 3.4 6.4 3.8 8.2 C4.2 10.2 5.8 10.8 7.4 10.8 M17 5.4 C19.8 5.2 20.6 6.4 20.2 8.2 C19.8 10.2 18.2 10.8 16.6 10.8"/><path d="M12 15.6 L12 18.6 M7.8 21 L16.2 20.9 L15.4 18.4 L8.6 18.5 Z" fill="#8a5a2b"/><path d="M9.4 6 L9.6 10" stroke="#fff8f0" stroke-width="1.1"/></g></symbol>';
+  function ic(key, cls) {
+    return '<svg class="tt-ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="#tt-ic-' + key + '"/></svg>';
+  }
+  (function mountIcons() {
+    function go() {
+      if (document.getElementById('tt-icons')) return;
+      var d = document.createElement('div');
+      d.id = 'tt-icons';
+      d.setAttribute('aria-hidden', 'true');
+      d.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+      d.innerHTML = '<svg width="0" height="0" focusable="false"><defs>' + IC_SPRITE + '</defs></svg>';
+      document.body.appendChild(d);
+    }
+    if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
+  })();
+
   // ---------- rivais e chefes ----------
   var SMALLOPP = [
-    { name: 'Seu Zé da Padaria', icon: '🥖', bio: 'Joga no feeling.' },
-    { name: 'Dona Cida',         icon: '🧶', bio: 'Paciente e cuidadosa.' },
-    { name: 'Vó Nena',           icon: '👵', bio: 'Ninguém sabe o que ela tem.' },
-    { name: 'Zé do Truco',       icon: '🎩', bio: 'Lenda do bar.' }
+    { name: 'Seu Zé da Padaria', icon: 'pao', bio: 'Joga no feeling.' },
+    { name: 'Dona Cida',         icon: 'novelo', bio: 'Paciente e cuidadosa.' },
+    { name: 'Vó Nena',           icon: 'vo', bio: 'Ninguém sabe o que ela tem.' },
+    { name: 'Zé do Truco',       icon: 'cartola', bio: 'Lenda do bar.' }
   ];
   var BIGOPP = [
-    { name: 'Tia Marta',     icon: '🧁', bio: 'Doce, mas competitiva.' },
-    { name: 'Seu Jorge',     icon: '🎣', bio: 'Pescador de blefes.' },
-    { name: 'Seu Raimundo',  icon: '🧓', bio: 'Jogou truco antes de você nascer.' },
-    { name: 'Dr. Almeida',   icon: '🩺', bio: 'Calcula tudo.' }
+    { name: 'Tia Marta',     icon: 'cupcake', bio: 'Doce, mas competitiva.' },
+    { name: 'Seu Jorge',     icon: 'peixe', bio: 'Pescador de blefes.' },
+    { name: 'Seu Raimundo',  icon: 'velho', bio: 'Jogou truco antes de você nascer.' },
+    { name: 'Dr. Almeida',   icon: 'estetoscopio', bio: 'Calcula tudo.' }
   ];
   var BOSSES = [
-    { key: 'beto',       name: 'Tio Beto',         icon: '🍺', bio: 'Grita TRUCO por qualquer coisa.', effect: 'O rival pede truco o tempo todo.' },
-    { key: 'marquinhos', name: 'Marquinhos Blefe', icon: '🃏', bio: 'Mestre do blefe.',                 effect: 'Sem trocas nesta blind.' },
-    { key: 'delegado',   name: 'Delegado Tavares', icon: '🕶️', bio: 'Não aceita desaforo.',            effect: 'O mult do truco vale só a metade.' },
-    { key: 'coringa',    name: 'O Coringa',        icon: '👑', bio: 'O chefe final.',                   effect: 'Só 3 mãos e o rival é craque.' }
+    { key: 'beto',       name: 'Tio Beto',         icon: 'cerveja', bio: 'Grita TRUCO por qualquer coisa.', effect: 'O rival pede truco o tempo todo.' },
+    { key: 'marquinhos', name: 'Marquinhos Blefe', icon: 'curinga', bio: 'Mestre do blefe.',                 effect: 'Sem trocas nesta blind.' },
+    { key: 'delegado',   name: 'Delegado Tavares', icon: 'oculos', bio: 'Não aceita desaforo.',            effect: 'O mult do truco vale só a metade.' },
+    { key: 'coringa',    name: 'O Coringa',        icon: 'coroa', bio: 'O chefe final.',                   effect: 'Só 3 mãos e o rival é craque.' }
   ];
 
   // ---------- curingas ----------
   // calc(x) devolve { chips, mult, xmult, money } ou null. x = contexto da mão ganha.
   function isManilha(c) { return H && c.rank === H.mani; }
   var JOKERS = [
-    { id: 'zap',       icon: '♣', name: 'Zap!',          price: 6, desc: '+10 Mult se você jogou o Zap (manilha de paus).',
+    { id: 'zap',       icon: 'zap', name: 'Zap!',          price: 6, desc: '+10 Mult se você jogou o Zap (manilha de paus).',
       calc: function (x) { return x.played.some(function (c) { return isManilha(c) && c.suit === 'paus'; }) ? { mult: 10 } : null; } },
-    { id: 'manilheiro', icon: '⭐', name: 'Manilheiro',   price: 5, desc: '+4 Mult por manilha que ganhou vaza.',
+    { id: 'manilheiro', icon: 'manilheiro', name: 'Manilheiro',   price: 5, desc: '+4 Mult por manilha que ganhou vaza.',
       calc: function (x) { var n = x.won.filter(isManilha).length; return n ? { mult: 4 * n } : null; } },
-    { id: 'tres',      icon: '3️⃣', name: 'Três Amigo',    price: 4, desc: '+25 Fichas por Três que ganhou vaza.',
+    { id: 'tres',      icon: 'tres', name: 'Três Amigo',    price: 4, desc: '+25 Fichas por Três que ganhou vaza.',
       calc: function (x) { var n = x.won.filter(function (c) { return c.rank === '3'; }).length; return n ? { chips: 25 * n } : null; } },
-    { id: 'sete',      icon: '7️⃣', name: 'Sete Belo',     price: 4, desc: '+7 Mult se você jogou um Sete.',
+    { id: 'sete',      icon: 'sete', name: 'Sete Belo',     price: 4, desc: '+7 Mult se você jogou um Sete.',
       calc: function (x) { return x.played.some(function (c) { return c.rank === '7'; }) ? { mult: 7 } : null; } },
-    { id: 'caradepau', icon: '😐', name: 'Cara de Pau',   price: 6, desc: 'x1,5 Mult se você pediu truco (ou mais) e ganhou.',
+    { id: 'caradepau', icon: 'caradepau', name: 'Cara de Pau',   price: 6, desc: 'x1,5 Mult se você pediu truco (ou mais) e ganhou.',
       calc: function (x) { return x.called ? { xmult: 1.5 } : null; } },
-    { id: 'ousadia',   icon: '🔥', name: 'Ousadia',       price: 5, desc: '+6 Mult se a mão valia SEIS ou mais.',
+    { id: 'ousadia',   icon: 'ousadia', name: 'Ousadia',       price: 5, desc: '+6 Mult se a mão valia SEIS ou mais.',
       calc: function (x) { return x.level >= 2 ? { mult: 6 } : null; } },
-    { id: 'virada',    icon: '🔄', name: 'Virada',        price: 6, desc: 'x2 Mult se perdeu a 1ª vaza e ganhou a mão.',
+    { id: 'virada',    icon: 'virada', name: 'Virada',        price: 6, desc: 'x2 Mult se perdeu a 1ª vaza e ganhou a mão.',
       calc: function (x) { return x.results[0] === 'opp' ? { xmult: 2 } : null; } },
-    { id: 'limpa',     icon: '🧹', name: 'Limpa',         price: 5, desc: 'x1,5 Mult se ganhou por 2 a 0.',
+    { id: 'limpa',     icon: 'limpa', name: 'Limpa',         price: 5, desc: 'x1,5 Mult se ganhou por 2 a 0.',
       calc: function (x) { return x.results.length === 2 && x.results.every(function (r) { return r === 'me'; }) ? { xmult: 1.5 } : null; } },
-    { id: 'poupador',  icon: '🐷', name: 'Poupador',      price: 5, desc: '+1 Mult a cada $4 que você tem.',
+    { id: 'poupador',  icon: 'poupador', name: 'Poupador',      price: 5, desc: '+1 Mult a cada $4 que você tem.',
       calc: function (x) { var n = Math.floor(x.money / 4); return n ? { mult: n } : null; } },
     { id: 'paciencia', icon: '⏳', name: 'Paciência',     price: 4, desc: '+25 Fichas por mão que ainda sobra.',
       calc: function (x) { return x.handsLeft > 0 ? { chips: 25 * x.handsLeft } : null; } },
-    { id: 'maocheia',  icon: '🖐️', name: 'Mão Cheia',     price: 4, desc: '+60 Fichas se jogou as 3 cartas.',
+    { id: 'maocheia',  icon: 'maocheia', name: 'Mão Cheia',     price: 4, desc: '+60 Fichas se jogou as 3 cartas.',
       calc: function (x) { return x.played.length === 3 ? { chips: 60 } : null; } },
-    { id: 'blefe',     icon: '🎭', name: 'Blefe',         price: 6, desc: 'x2,5 Mult quando o rival corre do seu pedido.',
+    { id: 'blefe',     icon: 'blefe', name: 'Blefe',         price: 6, desc: 'x2,5 Mult quando o rival corre do seu pedido.',
       calc: function (x) { return x.how === 'oppRun' ? { xmult: 2.5 } : null; } },
-    { id: 'banqueiro', icon: '🏦', name: 'Banqueiro',     price: 5, desc: '+$2 sempre que ganhar uma mão.',
+    { id: 'banqueiro', icon: 'banqueiro', name: 'Banqueiro',     price: 5, desc: '+$2 sempre que ganhar uma mão.',
       calc: function () { return { money: 2 }; } },
-    { id: 'moedeiro',  icon: '🪙', name: 'Moedeiro',      price: 4, desc: '+$1 por vaza que você ganhou na mão.',
+    { id: 'moedeiro',  icon: 'moedeiro', name: 'Moedeiro',      price: 4, desc: '+$1 por vaza que você ganhou na mão.',
       calc: function (x) { return x.won.length ? { money: x.won.length } : null; } },
-    { id: 'coelho',    icon: '🍀', name: 'Pé de Coelho',  price: 6, desc: 'Empate (cangou) vale vaza sua. +15 Fichas.',
+    { id: 'coelho',    icon: 'coelho', name: 'Pé de Coelho',  price: 6, desc: 'Empate (cangou) vale vaza sua. +15 Fichas.',
       calc: function () { return { chips: 15 }; } },
-    { id: 'covarde',   icon: '🏃', name: 'Covarde',       price: 4, desc: 'Fugir ainda marca 60 pontos.', onRun: true,
+    { id: 'covarde',   icon: 'covarde', name: 'Covarde',       price: 4, desc: 'Fugir ainda marca 60 pontos.', onRun: true,
       calc: function () { return { chips: 60 }; } },
-    { id: 'olho',      icon: '👁️', name: 'Olho de Vidro', price: 4, desc: 'Mostra quantas manilhas e treses o rival tem.' },
-    { id: 'gato',      icon: '🐈', name: 'Gato de Sete',  price: 5, desc: '+1 troca em cada blind.' }
+    { id: 'olho',      icon: 'olho', name: 'Olho de Vidro', price: 4, desc: 'Mostra quantas manilhas e treses o rival tem.' },
+    { id: 'gato',      icon: 'gato', name: 'Gato de Sete',  price: 5, desc: '+1 troca em cada blind.' }
   ];
   var VOUCHERS = [
-    { id: 'maoextra', icon: '✋', name: 'Mão Extra',      price: 8, desc: '+1 mão em toda blind.' },
-    { id: 'baralho',  icon: '🂠',  name: 'Baralho Marcado', price: 6, desc: '+1 troca em toda blind.' },
-    { id: 'juros',    icon: '📈', name: 'Poupança',       price: 7, desc: 'Juros por $5 guardados vão até $10 (em vez de $5).' }
+    { id: 'maoextra', icon: 'maoextra', name: 'Mão Extra',      price: 8, desc: '+1 mão em toda blind.' },
+    { id: 'baralho',  icon: 'baralho',  name: 'Baralho Marcado', price: 6, desc: '+1 troca em toda blind.' },
+    { id: 'juros',    icon: 'juros', name: 'Poupança',       price: 7, desc: 'Juros por $5 guardados vão até $10 (em vez de $5).' }
   ];
   function jk(id) { return JOKERS.filter(function (j) { return j.id === id; })[0]; }
   function vc(id) { return VOUCHERS.filter(function (v) { return v.id === id; })[0]; }
@@ -359,7 +379,7 @@
   }
 
   // ---- fala letra por letra (igual ao Jailson) ----
-  function billyStopTyping() { clearInterval(billyTyper); billyTyper = 0; }
+  function billyStopTyping() { clearInterval(billyTyper); billyTyper = 0; if (billyEl) billyEl.classList.remove('talking'); }
   function billySay(kind) {
     if (!billyEl) return;
     var line = billyLine(kind);
@@ -372,6 +392,7 @@
     var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) { typed.textContent = line; return; }
     typed.textContent = '';
+    billyEl.classList.add('talking');                          // enquanto fala, o corpo balança de leve
     var pos = 0, isQ = /\?\s*$/.test(line);
     billyTyper = setInterval(function () {
       var from = pos;
@@ -399,7 +420,7 @@
           '<span class="tt-bg"><i class="tt-tail"></i></span><span class="tt-name">Billy</span>' +
           '<div class="tt-text"><span class="tt-full" aria-hidden="true"></span><span class="tt-typed" aria-hidden="true"></span></div>' +
         '</div>' +
-        '<img class="tt-billyimg" src="' + BILLY_SRCS[0] + '" alt="Billy, o vendedor" draggable="false">' +
+        '<div class="tt-body"><img class="tt-billyimg" src="' + BILLY_SRCS[0] + '" alt="Billy, o vendedor" draggable="false"></div>' +
         '</div>';
       var img = billyEl.querySelector('img'), tryN = 0;
       img.addEventListener('error', function () {
@@ -434,7 +455,7 @@
       var id = R && R.jokers[i], j = id && jk(id);
       var el = document.createElement('div');
       el.className = 'tt-joker' + (j ? '' : ' empty'); el.dataset.i = i;
-      if (j) { el.title = j.name + ': ' + j.desc; el.innerHTML = '<span class="tj-i"></span><small></small>'; el.firstChild.textContent = j.icon; el.lastChild.textContent = j.name; }
+      if (j) { el.title = j.name + ': ' + j.desc; el.innerHTML = '<span class="tj-i">' + ic(j.icon) + '</span><small></small>'; el.lastChild.textContent = j.name; }
       box.appendChild(el);
     }
   }
@@ -446,7 +467,7 @@
     renderJokers();
     var b = R.blind;
     if (!b) return;
-    $('tt-bicon').textContent = b.opp.icon;
+    $('tt-bicon').innerHTML = ic(b.opp.icon);
     $('tt-bname').textContent = b.title;
     $('tt-beffect').textContent = b.boss ? b.effect : '';
     $('tt-target').textContent = fmt(b.target);
@@ -455,7 +476,7 @@
     $('tt-hands').textContent = R.handsLeft;
     $('tt-trocas').textContent = R.trocasLeft;
     $('tt-oppname').textContent = b.opp.name;
-    $('tt-oppicon').textContent = b.opp.icon;
+    $('tt-oppicon').innerHTML = ic(b.opp.icon);
     if (!H) return;
     var vi = $('tt-vira'); vi.innerHTML = ''; vi.appendChild(cardEl(H.vira, 'tt-mini'));
     $('tt-mani').textContent = 'Manilha: ' + H.mani;
@@ -465,7 +486,7 @@
     if (hasJ('olho') && H.opp.length) {
       var mn = 0, th = 0;
       H.opp.forEach(function (c) { if (power(c) >= 100) mn++; else if (c.rank === '3') th++; });
-      pk.textContent = '👁️ ' + mn + ' manilha' + (mn === 1 ? '' : 's') + ' e ' + th + ' três no rival';
+      pk.innerHTML = ic('olho', 'tt-ic-inline') + ' ' + mn + ' manilha' + (mn === 1 ? '' : 's') + ' e ' + th + ' três no rival';
     } else pk.textContent = '';
     ['me', 'opp'].forEach(function (w) {
       var slot = $('tt-slot-' + w); slot.innerHTML = ''; slot.className = 'tt-slot';
@@ -511,7 +532,7 @@
     tok++; R = null; H = null;
     ['tt-hand', 'tt-opphand', 'tt-vira', 'tt-slot-me', 'tt-slot-opp', 'tt-jokers'].forEach(function (id) { $(id).innerHTML = ''; });
     $('tt-ante').textContent = 'Trutec'; $('tt-money').textContent = ''; $('tt-bname').textContent = 'Roguelike solo';
-    $('tt-bicon').textContent = '🃏'; $('tt-beffect').textContent = ''; $('tt-oppname').textContent = ''; $('tt-oppicon').textContent = '';
+    $('tt-bicon').innerHTML = ic('maocheia'); $('tt-beffect').textContent = ''; $('tt-oppname').textContent = ''; $('tt-oppicon').textContent = '';
     $('tt-target').textContent = '0'; $('tt-score').textContent = '0'; $('tt-barfill').style.width = '0';
     $('tt-hands').textContent = '0'; $('tt-trocas').textContent = '0'; $('tt-mani').textContent = ''; $('tt-peek').textContent = '';
     setCalc(CHIPS0, 1, 1, 0); say('');
@@ -561,10 +582,10 @@
     R.blind = makeBlind(); R.score = 0; H = null;
     render();
     var b = R.blind;
-    var body = '<p class="tt-bigicon">' + b.opp.icon + '</p><p><b>' + b.opp.name + '</b><br>' + b.opp.bio + '</p>' +
+    var body = '<p class="tt-bigicon">' + ic(b.opp.icon) + '</p><p><b>' + b.opp.name + '</b><br>' + b.opp.bio + '</p>' +
       '<p class="tt-goalbig">Meta: <b>' + fmt(b.target) + '</b> pontos</p>' +
       '<p>Recompensa: <b>$' + b.reward + '</b> + $1 por mão que sobrar + juros</p>' +
-      (b.boss ? '<p class="tt-bosseffect">⚠ ' + b.effect + '</p>' : '');
+      (b.boss ? '<p class="tt-bosseffect">' + ic('alerta', 'tt-ic-inline') + ' ' + b.effect + '</p>' : '');
     var btns = [{ label: 'Jogar', cls: 'btn-primary', fn: beginBlind }];
     if (b.kind !== 'boss') btns.push({ label: 'Pular (+$3, sem loja)', fn: function () { R.money += 3; advance(); blindSelect(); } });
     modal('Ante ' + R.ante + ' — ' + b.title, body, btns);
@@ -733,7 +754,7 @@
       '<li><span>Mãos que sobraram (' + hl + ')</span><b>$' + hl + '</b></li>' +
       '<li><span>Juros ($1 a cada $5)</span><b>$' + interest + '</b></li></ul>' +
       '<p class="tt-best">Você tem $' + R.money + '</p>';
-    if (isLast) return modal('🏆 Campeão do Trutec!', '<p>Você derrotou O Coringa e venceu os ' + ANTES + ' Antes!</p>' + body,
+    if (isLast) return modal('Campeão do Trutec!', '<p class="tt-bigicon">' + ic('trofeu') + '</p><p>Você derrotou O Coringa e venceu os ' + ANTES + ' Antes!</p>' + body,
       [{ label: 'Nova corrida', cls: 'btn-primary', fn: startRun }, { label: 'Sair', fn: leave }]);
     modal('Blind vencida!', body, [{ label: 'Ir à loja', cls: 'btn-primary', fn: openShop }]);
   }
@@ -761,7 +782,7 @@
     R.jokers.forEach(function (id, i) {
       var j = jk(id), row = document.createElement('div'); row.className = 'tt-shoprow';
       row.innerHTML = '<span class="tj-i"></span><span class="tt-st"><b></b><small></small></span>';
-      row.querySelector('.tj-i').textContent = j.icon; row.querySelector('b').textContent = j.name; row.querySelector('small').textContent = j.desc;
+      row.querySelector('.tj-i').innerHTML = ic(j.icon); row.querySelector('b').textContent = j.name; row.querySelector('small').textContent = j.desc;
       var sell = Math.floor(j.price / 2);
       row.appendChild(btn('Vender $' + sell, 'btn-secondary', function () { R.jokers.splice(i, 1); R.money += sell; render(); renderShop('sell'); }));
       own.appendChild(row);
@@ -774,7 +795,7 @@
     S.items.forEach(function (it, i) {
       var d = it.type === 'joker' ? jk(it.id) : vc(it.id), row = document.createElement('div'); row.className = 'tt-shoprow';
       row.innerHTML = '<span class="tj-i"></span><span class="tt-st"><b></b><small></small></span>';
-      row.querySelector('.tj-i').textContent = d.icon;
+      row.querySelector('.tj-i').innerHTML = ic(d.icon);
       row.querySelector('b').textContent = d.name + (it.type === 'voucher' ? ' (permanente)' : '');
       row.querySelector('small').textContent = d.desc;
       var full = it.type === 'joker' && R.jokers.length >= JSLOTS;
