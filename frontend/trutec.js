@@ -171,10 +171,10 @@
     s.className = 'screen';
     s.innerHTML =
       '<div class="tt-wrap">' +
+        '<aside class="tt-side">' +
         '<header class="tt-top">' +
           '<button type="button" class="btn btn-secondary tt-exit" id="tt-exit">‹ Sair</button>' +
           '<div class="tt-ante" id="tt-ante">Trutec</div>' +
-          '<div class="tt-money" id="tt-money"></div>' +
         '</header>' +
         '<div class="tt-blind" id="tt-blind">' +
           '<div class="tt-bname"><span id="tt-bicon"></span><b id="tt-bname"></b><small id="tt-beffect"></small></div>' +
@@ -182,6 +182,14 @@
           '<div class="tt-bar"><i id="tt-barfill"></i></div>' +
           '<div class="tt-counters"><span>Mãos <b id="tt-hands">0</b></span><span>Trocas <b id="tt-trocas">0</b></span></div>' +
         '</div>' +
+        '<div class="tt-calc" id="tt-calc">' +
+            '<div class="tt-cm"><span class="tt-chips" id="tt-chips">30</span><i>×</i><span class="tt-mult" id="tt-mult">1</span></div>' +
+            '<div class="tt-total" id="tt-total"></div>' +
+            '<div class="tt-pips" id="tt-pips"><i></i><i></i><i></i></div>' +
+          '</div>' +
+        '<div class="tt-moneybox"><span>Dinheiro</span><div class="tt-money" id="tt-money"></div></div>' +
+      '</aside>' +
+      '<div class="tt-main">' +
         '<div class="tt-jokers" id="tt-jokers"></div>' +
         '<section class="tt-opp">' +
           '<div class="tt-oppinfo"><span class="tt-oppicon" id="tt-oppicon"></span><span id="tt-oppname"></span></div>' +
@@ -194,11 +202,6 @@
             '<div class="tt-slot" id="tt-slot-opp"></div>' +
             '<div class="tt-slot" id="tt-slot-me"></div>' +
           '</div>' +
-          '<div class="tt-calc" id="tt-calc">' +
-            '<div class="tt-cm"><span class="tt-chips" id="tt-chips">30</span><i>×</i><span class="tt-mult" id="tt-mult">1</span></div>' +
-            '<div class="tt-total" id="tt-total"></div>' +
-            '<div class="tt-pips" id="tt-pips"><i></i><i></i><i></i></div>' +
-          '</div>' +
         '</section>' +
         '<div class="tt-msg" id="tt-msg" role="status" aria-live="polite"></div>' +
         '<div class="tt-actions">' +
@@ -207,6 +210,7 @@
           '<button type="button" class="action-btn danger" id="tt-run">FUGIR</button>' +
         '</div>' +
         '<div class="tt-hand" id="tt-hand"></div>' +
+      '</div>' +
       '</div>' +
       '<div class="tt-overlay hidden" id="tt-overlay"><div class="tt-modal" id="tt-modal"></div></div>';
     host.appendChild(s);
