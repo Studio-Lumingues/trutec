@@ -474,7 +474,7 @@
     var b = R.blind;
     if (!b) return;
     $('tt-bicon').innerHTML = ic(b.opp.icon);
-    $('tt-bname').textContent = b.title;
+    $('tt-bname').textContent = b.opp.name;
     $('tt-beffect').textContent = b.boss ? b.effect : '';
     $('tt-target').textContent = fmt(b.target);
     $('tt-score').textContent = fmt(R.score);

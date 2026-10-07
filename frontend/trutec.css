@@ -3,12 +3,10 @@
 /* ============================================================ */
 #screen-trutec.screen { flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 0; position: relative;
   background-color: #0a0a0a; isolation: isolate; color: var(--cream); overflow: hidden; }
-.tt-wrap { position: relative; width: min(96rem, 100%); height: 100%; margin: 0 auto; padding: .6rem .8rem calc(.6rem + env(safe-area-inset-bottom, 0px));
-  --tsw: clamp(13rem, 24vw, 17rem);
-  /* 3 colunas: [barra à esquerda] [JOGO, sempre no centro da tela] [espaço igual ao da esquerda] */
-  display: grid; grid-template-columns: minmax(var(--tsw), 1fr) minmax(0, 42rem) minmax(0, 1fr); gap: .9rem; min-height: 0; }
+.tt-wrap { position: relative; --tsw: clamp(13rem, 24vw, 17rem); width: min(42rem, 100%); height: 100%; margin: 0 auto;
+  padding: .6rem .8rem calc(.6rem + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; min-height: 0; }
 /* esquerda: tudo sobre a blind, a conta fichas × mult e o dinheiro */
-.tt-side { grid-column: 1; justify-self: end; width: var(--tsw); display: flex; flex-direction: column; gap: .6rem; min-height: 0; overflow-y: auto; padding: .6rem; border-radius: 1rem;
+.tt-side { position: absolute; right: calc(100% + .9rem); top: .6rem; bottom: calc(.6rem + env(safe-area-inset-bottom, 0px)); width: var(--tsw); display: flex; flex-direction: column; gap: .6rem; min-height: 0; overflow-y: auto; padding: .6rem; border-radius: 1rem;
   background: rgba(4,3,3,.45); border: 1px solid rgba(255,248,240,.15); }
 .tt-side .tt-blind { background: rgba(4,3,3,.45); }
 .tt-side .tt-bname b { font-size: 1.15rem; }
@@ -26,7 +24,7 @@
 .tt-moneybox { margin-top: 0; text-align: center; padding: .6rem; border-radius: .8rem; background: rgba(4,3,3,.5); border: 1px solid rgba(255,248,240,.15); }
 .tt-moneybox span { display: block; font-size: .8rem; opacity: .75; }
 .tt-moneybox .tt-money { min-width: 0; text-align: center; font-size: 2.1rem; line-height: 1.1; }
-.tt-main { grid-column: 2; position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: .35rem; }
+.tt-main { flex: 1; position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: .35rem; }
 
 .tt-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
 .tt-side .tt-ante { text-align: right; }
@@ -48,16 +46,20 @@
 .tt-counters b { font-size: 1.05rem; color: #7fd3ff; }
 .tt-counters span:first-child b { color: #ff8a7a; }
 
-.tt-jokers { display: flex; gap: .3rem; justify-content: center; }
-.tt-joker { position: relative; flex: 0 1 4.2rem; aspect-ratio: 3 / 4; max-height: 3.6rem; border-radius: .45rem; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; background: #fff8f0; color: #040303; border: 1px solid rgba(0,0,0,.2); cursor: default; text-align: center; }
-.tt-joker.empty { background: transparent; border: 2px dashed rgba(255,248,240,.2); }
+.tt-jokers { --jw: clamp(4.6rem, 9.5vh, 6.6rem); display: flex; gap: .6rem; justify-content: center; padding-top: .2rem; }
+.tt-joker { position: relative; flex: 0 0 var(--jw); width: var(--jw); aspect-ratio: 3 / 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem;
+  background: #fff8f0; color: #0a0a0a; border: 2.5px solid #0a0a0a; border-radius: .7rem .5rem .8rem .55rem / .55rem .8rem .5rem .7rem;
+  box-shadow: .15rem .2rem 0 rgba(0,0,0,.5); cursor: default; text-align: center; transform: rotate(-2deg); transition: transform .15s ease-out; }
+.tt-joker:nth-child(even) { transform: rotate(2deg); }
+.tt-joker:not(.empty):hover { transform: rotate(0deg) translateY(-.25rem) scale(1.06); }
+.tt-joker.empty { background: rgba(255,248,240,.05); border: 2px dashed rgba(255,248,240,.25); box-shadow: none; transform: none; }
 .tt-joker .tj-i { font-size: 1.4rem; line-height: 1; }
-.tt-joker small { font-size: .55rem; font-weight: 800; line-height: 1.05; padding: 0 .1rem; }
+.tt-joker small { font-size: clamp(.6rem, 1.5vh, .8rem); font-weight: 800; line-height: 1.05; padding: 0 .2rem; }
 .tt-joker.pop { animation: ttPop .5s ease-out; }
 @keyframes ttPop { 30% { transform: translateY(-.5rem) scale(1.2) rotate(-4deg); box-shadow: 0 0 1.2rem #ffd24a; } }
 
 .tt-opp { display: flex; flex-direction: column; align-items: center; gap: .15rem; }
+.tt-oppinfo, .tt-opphand { display: none !important; }
 .tt-oppinfo { display: flex; align-items: center; gap: .4rem; font-size: .85rem; opacity: .9; }
 .tt-oppicon { font-size: 1.3rem; }
 .tt-opphand { display: flex; justify-content: center; min-height: 3.1rem; }
@@ -145,7 +147,6 @@
 
 @media (max-height: 700px) {
   .tt-opphand { min-height: 2.4rem; } .tt-opphand .card { --cw: 1.7rem; }
-  .tt-joker { max-height: 2.8rem; } .tt-joker small { display: none; }
   .tt-oppinfo span:last-child { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .tt-slot .card, .tt-hand .card.swapping, .tt-hand .card.dealing, .tt-joker.pop { animation: none; } }
@@ -216,15 +217,11 @@
   border: 2px solid #0a0a0a; border-radius: .7rem .5rem .8rem .55rem / .55rem .8rem .5rem .7rem; box-shadow: .12rem .15rem 0 rgba(0, 0, 0, .45); transform: rotate(-3deg); }
 .tt-shoprow .tj-i .tt-ic { width: 2.2rem; height: 2.2rem; }
 .tt-joker .tj-i { display: flex; align-items: center; justify-content: center; line-height: 1; }
-.tt-joker .tj-i .tt-ic { width: 1.8rem; height: 1.8rem; }
+.tt-joker .tj-i .tt-ic { width: calc(var(--jw) * .5); height: calc(var(--jw) * .5); }
 .tt-bigicon .tt-ic { width: 5.2rem; height: 5.2rem; }
 #tt-bicon .tt-ic, .tt-oppicon .tt-ic { width: 1.8rem; height: 1.8rem; }
-@media (max-height: 700px) { .tt-joker .tj-i .tt-ic { width: 1.5rem; height: 1.5rem; } }
 
 
-@media (max-width: 600px) {
-  
-}
 
 
 /* ===== LOJA: card maior, curingas como cardzinhos (nome/descrição na dica) ===== */
@@ -256,3 +253,19 @@
 .tt-tip.show { display: block; }
 .tt-tip b { display: block; font-size: 1.1rem; margin-bottom: .15rem; }
 .tt-tip small { display: block; font-size: .92rem; line-height: 1.3; font-weight: 500; }
+
+/* telas estreitas: a barra não cabe ao lado do jogo, então empilha em cima */
+@media (max-width: 900px) {
+  .tt-wrap { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: .4rem; }
+  .tt-side { position: static; width: auto; flex-direction: row; flex-wrap: wrap; align-items: stretch; overflow: visible; padding: .4rem; gap: .4rem; }
+  .tt-side .tt-top { flex: 1 1 100%; }
+  .tt-side .tt-blind { flex: 1 1 55%; }
+  .tt-side .tt-goal b, .tt-side .tt-counters b { font-size: 1.15rem; }
+  .tt-side .tt-calc { flex: 1 1 35%; }
+  .tt-side .tt-chips, .tt-side .tt-mult { font-size: 1.2rem; }
+  .tt-side .tt-actions { flex: 1 1 100%; flex-direction: row; margin: 0; }
+  .tt-side .tt-actions .action-btn { min-height: 2.6rem; font-size: .9rem; }
+  .tt-moneybox { flex: 1 1 100%; display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .25rem; }
+  .tt-moneybox .tt-money { font-size: 1.4rem; }
+  .tt-jokers { --jw: clamp(3.6rem, 16vw, 5rem); gap: .4rem; }
+}
