@@ -219,8 +219,9 @@
   function backEl() { var el = document.createElement('div'); el.className = 'card facedown'; return el; }
   function say(t) { var m = $('tt-msg'); if (m) m.textContent = t; }
 
-  function modal(title, body, buttons) {
+  function modal(title, body, buttons, opts) {
     var m = $('tt-modal');
+    if (opts && opts.billy) showBilly(opts.billy); else hideBilly();
     m.innerHTML = '<h2></h2><div class="tt-mbody"></div><div class="tt-mbtns"></div>';
     m.querySelector('h2').textContent = title;
     var b = m.querySelector('.tt-mbody');
@@ -237,7 +238,100 @@
     $('tt-overlay').classList.remove('hidden');
     var f = box.querySelector('button') || m.querySelector('.tt-mbody button'); if (f) f.focus();
   }
-  function closeModal() { $('tt-overlay').classList.add('hidden'); }
+  function closeModal() { hideBilly(); $('tt-overlay').classList.add('hidden'); }
+
+  // ---------- BILLY, o vendedor ----------
+  // Aparece grande à direita da loja, com balão de fala. Esquisitão e SEMPRE com pressa: fala rápido,
+  // se impacienta quando você demora (a cada ~8-14s solta uma fala nova) e fica tremendo de ansiedade.
+  var BILLY_SRC = 'assets/billy.png';
+  var BILLY = {
+    greet: [
+      'Entra, entra, anda! Não tenho o dia todo... só a noite toda, na verdade.',
+      'Você demorou. Eu já estava atrasado desde ontem.',
+      'Rápido! O que vai ser? O relógio está me olhando torto.',
+      'Pisca menos, compra mais. Tenho um compromisso com um corvo.',
+      'Shhh. Fala baixo e compra rápido. As cartas têm ouvidos.',
+      'Três segundos. Contei dois. Anda!',
+      'Meu chapéu está me apressando. Ele nunca se engana.',
+      'Ah, é você. Compra logo antes que eu me lembre onde estacionei meu cavalo.'
+    ],
+    poor: [
+      'Sem dinheiro? Então volta quando tiver. E rápido!',
+      'Seus bolsos fazem eco. Eu odeio eco. Anda, vai ganhar mais!',
+      'Olhar não custa nada, mas meu tempo custa. Muito.',
+      'Nada no bolso, nada no balcão. Próximo! ...não tem próximo. Vai logo.'
+    ],
+    buy: [
+      'Isso! Agora some... quer dizer, volte sempre. Mas já!',
+      'Vendido! Nunca vi esse curinga antes na vida. Não pergunte.',
+      'Ótimo, ótimo. Negócio feito. Não conte pro meu chefe.',
+      'Pega e vai! Se perguntarem, você nunca me viu.',
+      'Dinheiro bom. Cheira a pressa. Gostei.',
+      'Pronto! Próximo! ...não tem próximo, é só você. Anda.'
+    ],
+    sell: [
+      'Hm. Vale menos do que parece. Pega o troco e solta!',
+      'Já estava de olho nele. Ele também estava de olho em mim.',
+      'Aceito! Rápido, antes que ele se arrependa.',
+      'Que cheiro é esse? Ah, nostalgia. Passa pra cá.'
+    ],
+    reroll: [
+      'Mais? Tudo bem, tudo bem. Olha só isso, rapidinho!',
+      'Chacoalhei a caixa. Ela reclamou. Ignora.',
+      'De novo?! Meu tempo é dinheiro. O seu dinheiro, na verdade.',
+      'Pronto, sem olhar. Mágica... ou não. Confia.'
+    ],
+    idle: [
+      'Hum? Ainda aqui? Os minutos estão acabando. Os meus, não os seus.',
+      'Tic-tac. Tic-tac. Isso sou eu batendo o pé.',
+      'Tenho um enterro às cinco. Não é meu. Acho.',
+      'Escolhe! A caixa registradora está ficando impaciente.',
+      'Vai comprar ou vai só ficar me encarando?',
+      'Meus olhos estão secando de tanto esperar.',
+      'Psiu. Psiu. Já decidiu? E agora? E agora?',
+      'Só um minuto, você disse. Foram nove. Eu contei.'
+    ]
+  };
+  var billyEl = null, billyTimer = 0, billyLast = '';
+  function billyLine(kind) {
+    var pool = BILLY[kind] || BILLY.greet, line = pool[rnd(pool.length)], tries = 0;
+    while (line === billyLast && pool.length > 1 && tries++ < 6) line = pool[rnd(pool.length)];
+    billyLast = line;
+    return line;
+  }
+  function billySay(kind) {
+    if (!billyEl) return;
+    var b = billyEl.querySelector('.tt-bubble');
+    b.firstChild.textContent = billyLine(kind);
+    b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');   // balão "pula" a cada fala nova
+  }
+  function billyArmIdle() {
+    clearTimeout(billyTimer);
+    billyTimer = setTimeout(function () { if (!billyEl) return; billySay('idle'); billyArmIdle(); }, 8000 + rnd(6000));
+  }
+  function showBilly(kind) {
+    var ov = $('tt-overlay');
+    if (!ov) return;
+    var fresh = !billyEl;
+    if (fresh) {
+      billyEl = document.createElement('div');
+      billyEl.className = 'tt-billy';
+      billyEl.innerHTML = '<div class="tt-bubble" aria-live="polite"><span></span></div>' +
+        '<img class="tt-billyimg" src="' + BILLY_SRC + '" alt="Billy, o vendedor" draggable="false">';
+      billyEl.querySelector('img').addEventListener('error', function () { this.style.display = 'none'; });
+      ov.appendChild(billyEl);
+    }
+    ov.classList.add('tt-shopmode');
+    billySay(kind);
+    billyArmIdle();
+  }
+  function hideBilly() {
+    clearTimeout(billyTimer); billyTimer = 0;
+    if (billyEl && billyEl.parentNode) billyEl.parentNode.removeChild(billyEl);
+    billyEl = null;
+    var ov = $('tt-overlay');
+    if (ov) ov.classList.remove('tt-shopmode');
+  }
 
   function setCalc(chips, mult, xm, total) {
     $('tt-chips').textContent = Math.round(chips);
@@ -561,10 +655,10 @@
     var vs = VOUCHERS.filter(function (v) { return R.vouchers.indexOf(v.id) < 0; });
     if (vs.length) { var v = vs[rnd(vs.length)]; items.push({ type: 'voucher', id: v.id, price: v.price }); }
     R.shop = { items: items, rerolls: 0 };
-    renderShop();
+    renderShop('greet');
   }
 
-  function renderShop() {
+  function renderShop(kind) {
     var S = R.shop, box = document.createElement('div'); box.className = 'tt-shop';
     function btn(label, cls, fn, dis) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.textContent = label; b.disabled = !!dis;
@@ -580,7 +674,7 @@
       row.innerHTML = '<span class="tj-i"></span><span class="tt-st"><b></b><small></small></span>';
       row.querySelector('.tj-i').textContent = j.icon; row.querySelector('b').textContent = j.name; row.querySelector('small').textContent = j.desc;
       var sell = Math.floor(j.price / 2);
-      row.appendChild(btn('Vender $' + sell, 'btn-secondary', function () { R.jokers.splice(i, 1); R.money += sell; render(); renderShop(); }));
+      row.appendChild(btn('Vender $' + sell, 'btn-secondary', function () { R.jokers.splice(i, 1); R.money += sell; render(); renderShop('sell'); }));
       own.appendChild(row);
     });
     box.appendChild(own);
@@ -598,7 +692,7 @@
       row.appendChild(btn(full ? 'Sem espaço' : 'Comprar $' + it.price, 'btn-primary', function () {
         R.money -= it.price;
         if (it.type === 'joker') R.jokers.push(it.id); else R.vouchers.push(it.id);
-        S.items.splice(i, 1); render(); renderShop();
+        S.items.splice(i, 1); render(); renderShop('buy');
       }, R.money < it.price || full));
       list.appendChild(row);
     });
@@ -611,9 +705,11 @@
       var items = pool.map(function (j) { return { type: 'joker', id: j.id, price: j.price }; });
       var vs = VOUCHERS.filter(function (v) { return R.vouchers.indexOf(v.id) < 0; });
       if (vs.length) { var v = vs[rnd(vs.length)]; items.push({ type: 'voucher', id: v.id, price: v.price }); }
-      S.items = items; render(); renderShop();
+      S.items = items; render(); renderShop('reroll');
     }, R.money < cost));
-    modal('Loja', box, [{ label: 'Próxima blind ›', cls: 'btn-primary', fn: function () { advance(); blindSelect(); } }]);
+    var cheapest = S.items.reduce(function (m, it) { return Math.min(m, it.price); }, Infinity);
+    var speech = (kind === 'greet' && S.items.length && R.money < cheapest) ? 'poor' : (kind || 'greet');
+    modal('Loja', box, [{ label: 'Próxima blind ›', cls: 'btn-primary', fn: function () { advance(); blindSelect(); } }], { billy: speech });
   }
 
   function gameOver() {
