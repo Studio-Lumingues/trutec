@@ -16,7 +16,7 @@
   box-shadow: 0 0 0 2px rgba(255,248,240,.18), .3rem .4rem 0 rgba(0,0,0,.6); transition: transform .18s ease-out, box-shadow .18s; }
 .mp-tile:hover, .mp-tile:focus-visible { transform: translateY(-.3rem) scale(1.008); outline: none; box-shadow: 0 0 0 3px #ffd23f, .35rem .6rem 0 rgba(0,0,0,.6); }
 .mp-tile:active { transform: translateY(.1rem) scale(.995); }
-.mp-demo { position: absolute; inset: 0; container-type: size; display: block; }
+.mp-demo { position: absolute; inset: 0; container-type: size; display: block; pointer-events: none; }
 .mp-stage { position: absolute; inset: 0; display: block; font-size: clamp(7px, 2.6cqmin, 17px); }
 .mp-veil { position: absolute; inset: 0; pointer-events: none; transition: opacity .2s;
   background: linear-gradient(180deg, rgba(4,3,3,.12) 0%, rgba(4,3,3,.1) 45%, rgba(4,3,3,.8) 100%),

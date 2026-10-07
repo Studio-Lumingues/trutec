@@ -286,7 +286,7 @@
    clicar. Cores por função: verde = comprar, vermelho = vender, roxo = rolar,
    dourado = avançar. Vale pra todos os botões da tela do Trutec.
    ============================================================================ */
-#screen-trutec .btn, #screen-trutec .action-btn {
+:is(#screen-trutec, .tt-demo) .btn, :is(#screen-trutec, .tt-demo) .action-btn {
   --bg: #fff8f0; --sh: #a39a8f; --ink: #0a0a0a; --d: .28rem;
   position: relative; background: var(--bg); color: var(--ink); border: 0; margin-bottom: .45rem;
   border-radius: .8rem .6rem .85rem .65rem / .65rem .85rem .6rem .8rem;
@@ -295,37 +295,37 @@
     0 var(--d) 0 0 var(--sh), 0 var(--d) 0 .16rem var(--ink), 0 0 0 .16rem var(--ink);
   transform: translateY(0); transition: transform .08s ease-out, box-shadow .08s ease-out, filter .15s;
 }
-#screen-trutec .btn:not(:disabled):hover, #screen-trutec .action-btn:not(:disabled):hover { --d: .4rem; transform: translateY(-.12rem); filter: brightness(1.07); }
-#screen-trutec .btn:not(:disabled):active, #screen-trutec .action-btn:not(:disabled):active { --d: .04rem; transform: translateY(.24rem); filter: brightness(.97); }
-#screen-trutec .btn:focus-visible, #screen-trutec .action-btn:focus-visible { outline: .18rem dashed #ffd23f; outline-offset: .3rem; }
+:is(#screen-trutec, .tt-demo) .btn:not(:disabled):hover, :is(#screen-trutec, .tt-demo) .action-btn:not(:disabled):hover { --d: .4rem; transform: translateY(-.12rem); filter: brightness(1.07); }
+:is(#screen-trutec, .tt-demo) .btn:not(:disabled):active, :is(#screen-trutec, .tt-demo) .action-btn:not(:disabled):active { --d: .04rem; transform: translateY(.24rem); filter: brightness(.97); }
+:is(#screen-trutec, .tt-demo) .btn:focus-visible, :is(#screen-trutec, .tt-demo) .action-btn:focus-visible { outline: .18rem dashed #ffd23f; outline-offset: .3rem; }
 
 /* cores por função */
-#screen-trutec .btn.tt-buy    { --bg: #7ee08a; --sh: #3a9a4b; }
-#screen-trutec .btn.tt-sell   { --bg: #ff9a8a; --sh: #c23a2c; }
-#screen-trutec .btn.tt-reroll { --bg: #b9a7ff; --sh: #6a4fd0; }
-#screen-trutec .btn.btn-primary, #screen-trutec .btn.tt-go { --bg: #ffd23f; --sh: #c9980b; }
-#screen-trutec #tt-truco { --bg: #ffd23f; --sh: #c9980b; }
-#screen-trutec #tt-swap  { --bg: #8ec9ff; --sh: #3b7fc4; }
-#screen-trutec .action-btn.danger { --bg: #ff6b5e; --sh: #b62419; color: #0a0a0a; }
+:is(#screen-trutec, .tt-demo) .btn.tt-buy    { --bg: #7ee08a; --sh: #3a9a4b; }
+:is(#screen-trutec, .tt-demo) .btn.tt-sell   { --bg: #ff9a8a; --sh: #c23a2c; }
+:is(#screen-trutec, .tt-demo) .btn.tt-reroll { --bg: #b9a7ff; --sh: #6a4fd0; }
+:is(#screen-trutec, .tt-demo) .btn.btn-primary, :is(#screen-trutec, .tt-demo) .btn.tt-go { --bg: #ffd23f; --sh: #c9980b; }
+:is(#screen-trutec, .tt-demo) #tt-truco { --bg: #ffd23f; --sh: #c9980b; }
+:is(#screen-trutec, .tt-demo) #tt-swap  { --bg: #8ec9ff; --sh: #3b7fc4; }
+:is(#screen-trutec, .tt-demo) .action-btn.danger { --bg: #ff6b5e; --sh: #b62419; color: #0a0a0a; }
 
 /* desligado: tecla cinza "travada" */
-#screen-trutec .btn:disabled, #screen-trutec .action-btn:disabled {
+:is(#screen-trutec, .tt-demo) .btn:disabled, :is(#screen-trutec, .tt-demo) .action-btn:disabled {
   --bg: #5f5a55; --sh: #3a3633; --ink: #0a0a0a; --d: .2rem; opacity: 1; filter: none; transform: none; cursor: not-allowed; pointer-events: auto;
   color: #1d1b1a; text-shadow: none;
   box-shadow: inset 0 .16rem 0 rgba(255,255,255,.12), 0 var(--d) 0 0 var(--sh), 0 var(--d) 0 .16rem var(--ink), 0 0 0 .16rem var(--ink);
 }
-#screen-trutec .tt-actions .action-btn:disabled { opacity: 1; }
+:is(#screen-trutec, .tt-demo) .tt-actions .action-btn:disabled { opacity: 1; }
 
 /* preço dentro do botão: pílula escura com o valor em dourado */
 .tt-price { display: inline-flex; align-items: center; padding: .02rem .4rem; border-radius: 99px; background: #0a0a0a; color: #ffd23f; font-size: .9em; line-height: 1.3; text-shadow: none; }
 .btn:disabled .tt-price { color: #8b857f; }
-#screen-trutec .tt-sc .btn, #screen-trutec .tt-reroll { display: flex; align-items: center; justify-content: center; gap: .35rem; white-space: nowrap; }
-#screen-trutec .tt-sc .btn { padding: .4rem .2rem; font-size: clamp(.78rem, 1.85vh, .98rem); }
-#screen-trutec .tt-sc .btn.tt-buy, #screen-trutec .tt-sc .btn.tt-sell { margin-bottom: .45rem; }
-#screen-trutec .tt-mbtns .btn { margin-bottom: .45rem; }
-#screen-trutec .tt-mbtns { gap: .35rem; }
-#screen-trutec .tt-mbtns .btn.tt-go { font-size: clamp(1.05rem, 2.5vh, 1.3rem); letter-spacing: .04em; }
-#screen-trutec .tt-mbtns .btn.tt-go:not(:disabled) { animation: ttGoPulse 1.6s ease-in-out infinite; }
+:is(#screen-trutec, .tt-demo) .tt-sc .btn, :is(#screen-trutec, .tt-demo) .tt-reroll { display: flex; align-items: center; justify-content: center; gap: .35rem; white-space: nowrap; }
+:is(#screen-trutec, .tt-demo) .tt-sc .btn { padding: .4rem .2rem; font-size: clamp(.78rem, 1.85vh, .98rem); }
+:is(#screen-trutec, .tt-demo) .tt-sc .btn.tt-buy, :is(#screen-trutec, .tt-demo) .tt-sc .btn.tt-sell { margin-bottom: .45rem; }
+:is(#screen-trutec, .tt-demo) .tt-mbtns .btn { margin-bottom: .45rem; }
+:is(#screen-trutec, .tt-demo) .tt-mbtns { gap: .35rem; }
+:is(#screen-trutec, .tt-demo) .tt-mbtns .btn.tt-go { font-size: clamp(1.05rem, 2.5vh, 1.3rem); letter-spacing: .04em; }
+:is(#screen-trutec, .tt-demo) .tt-mbtns .btn.tt-go:not(:disabled) { animation: ttGoPulse 1.6s ease-in-out infinite; }
 @keyframes ttGoPulse { 50% { filter: brightness(1.12); } }
 
 /* ---- estrutura da loja ---- */
@@ -354,7 +354,7 @@
 .tt-panel { position: relative; padding: .55rem .6rem .35rem; border-radius: 1rem .8rem 1.1rem .85rem / .85rem 1.1rem .8rem 1rem; background: rgba(255,248,240,.05); border: 2px solid rgba(255,248,240,.22); }
 .tt-stall { background: linear-gradient(180deg, rgba(255,210,63,.1), rgba(255,248,240,.03)); border-color: rgba(255,210,63,.6); padding-top: 0; overflow: hidden; }
 .tt-awning { height: .9rem; margin: 0 -.6rem .55rem; background: repeating-linear-gradient(90deg, #e0463a 0 1.2rem, #fff8f0 1.2rem 2.4rem); border-bottom: 2.5px solid #0a0a0a; }
-#screen-trutec .tt-shop h3.tt-ribbon { display: flex; align-items: center; justify-content: center; gap: .55rem; margin: 0 0 .55rem; opacity: 1; text-align: center;
+:is(#screen-trutec, .tt-demo) .tt-shop h3.tt-ribbon { display: flex; align-items: center; justify-content: center; gap: .55rem; margin: 0 0 .55rem; opacity: 1; text-align: center;
   font-size: clamp(.95rem, 2.2vh, 1.2rem); letter-spacing: .1em; text-transform: uppercase; color: #fff8f0; }
 .tt-slotcount { padding: .02rem .55rem; border-radius: 99px; background: #0a0a0a; border: 1.5px solid rgba(255,248,240,.4); font-size: .82em; letter-spacing: .04em; }
 .tt-slotcount.full { color: #0a0a0a; background: #ffd23f; border-color: #0a0a0a; }
@@ -374,7 +374,7 @@
 @keyframes ttJust { 30% { transform: translateY(-.7rem) scale(1.25) rotate(-5deg); box-shadow: 0 0 1.4rem #7ee08a; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .tt-fresh .tt-sc, .tt-sc.just .tt-sc-face, .tt-sc-face.voucher, .tt-wallet.lose, .tt-wallet.gain, .tt-delta, #screen-trutec .tt-mbtns .btn.tt-go { animation: none !important; }
+  .tt-fresh .tt-sc, .tt-sc.just .tt-sc-face, .tt-sc-face.voucher, .tt-wallet.lose, .tt-wallet.gain, .tt-delta, :is(#screen-trutec, .tt-demo) .tt-mbtns .btn.tt-go { animation: none !important; }
 }
 
 
@@ -393,7 +393,7 @@
 .tt-wallet { font-size: clamp(1.1rem, 2.8vh, 1.6rem); }
 .tt-shop { gap: clamp(.4rem, 1.2vh, .7rem); }
 .tt-awning { height: .7rem; margin-bottom: .4rem; }
-#screen-trutec .tt-shop h3.tt-ribbon { margin-bottom: .35rem; font-size: clamp(.85rem, 1.9vh, 1.05rem); }
+:is(#screen-trutec, .tt-demo) .tt-shop h3.tt-ribbon { margin-bottom: .35rem; font-size: clamp(.85rem, 1.9vh, 1.05rem); }
 .tt-overlay.tt-shopmode .tt-mbtns { margin-top: .4rem; }
 .tt-overlay.tt-shopmode .tt-reroll { margin-top: .3rem; padding: clamp(.4rem, 1.2vh, .65rem); }
 
@@ -402,8 +402,8 @@
 .tt-own .tt-sc { position: relative; }
 .tt-own .tt-sc .tt-sc-name { display: none; }
 .tt-own .tt-sc.empty .btn { display: none; }
-#screen-trutec .tt-own .tt-sc .btn.tt-sell { position: absolute; left: 4%; right: 4%; bottom: -.6rem; margin: 0; z-index: 3; padding: .22rem .1rem; gap: .2rem; letter-spacing: 0; font-size: clamp(.68rem, 1.6vh, .88rem); }
-#screen-trutec .tt-own .tt-sc .tt-price { padding: 0 .28rem; }
+:is(#screen-trutec, .tt-demo) .tt-own .tt-sc .btn.tt-sell { position: absolute; left: 4%; right: 4%; bottom: -.6rem; margin: 0; z-index: 3; padding: .22rem .1rem; gap: .2rem; letter-spacing: 0; font-size: clamp(.68rem, 1.6vh, .88rem); }
+:is(#screen-trutec, .tt-demo) .tt-own .tt-sc .tt-price { padding: 0 .28rem; }
 @media (max-width: 760px) { .tt-shopcards { gap: .5rem; } }
 
 /* telas estreitas (coluna): a regra de desktop acima (flex: 0 1 36rem) prenderia a ALTURA da loja; aqui ela ocupa o espaço que sobra */
@@ -411,6 +411,6 @@
 
 /* celular: cartinhas estreitas, então o botão mostra só o preço (a cor já diz a função: verde compra, vermelho vende) */
 @media (max-width: 520px) {
-  #screen-trutec .tt-sc .btn.tt-buy > span:first-child, #screen-trutec .tt-sc .btn.tt-sell > span:first-child { display: none; }
-  #screen-trutec .tt-sc .btn .tt-price { font-size: 1.05em; padding: 0 .5rem; }
+  :is(#screen-trutec, .tt-demo) .tt-sc .btn.tt-buy > span:first-child, :is(#screen-trutec, .tt-demo) .tt-sc .btn.tt-sell > span:first-child { display: none; }
+  :is(#screen-trutec, .tt-demo) .tt-sc .btn .tt-price { font-size: 1.05em; padding: 0 .5rem; }
 }
