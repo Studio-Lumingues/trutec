@@ -265,7 +265,7 @@
     $('tt-overlay').classList.remove('hidden');
     var f = box.querySelector('button') || m.querySelector('.tt-mbody button'); if (f) f.focus();
   }
-  function closeModal() { hideBilly(); $('tt-overlay').classList.add('hidden'); }
+  function closeModal() { if (typeof hideTip === 'function') hideTip(); hideBilly(); $('tt-overlay').classList.add('hidden'); }
 
   // ---------- BILLY, o vendedor ----------
   // Aparece grande à direita da loja, com balão de fala. Esquisitão e SEMPRE com pressa: fala rápido,
@@ -395,7 +395,6 @@
     b.setAttribute('aria-label', line);
     full.textContent = line;                                   // texto invisível: já reserva o tamanho do balão
     billyStopTyping();
-    b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');   // balão "pula" a cada fala nova
     var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) { typed.textContent = line; return; }
     typed.textContent = '';
@@ -781,7 +780,37 @@
     renderShop('greet');
   }
 
+  // ---- cardzinhos da loja: nome e descrição aparecem numa dica ao passar o mouse (ou tocar/focar) ----
+  var tipEl = null;
+  function hideTip() { if (tipEl) tipEl.classList.remove('show'); }
+  function showTip(face, name, desc) {
+    var ov = $('tt-overlay');
+    if (!tipEl) {
+      tipEl = document.createElement('div'); tipEl.className = 'tt-tip'; tipEl.setAttribute('role', 'tooltip');
+      tipEl.innerHTML = '<b></b><small></small>'; ov.appendChild(tipEl);
+    }
+    tipEl.querySelector('b').textContent = name; tipEl.querySelector('small').textContent = desc;
+    tipEl.classList.add('show');
+    var r = face.getBoundingClientRect(), o = ov.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+    var x = Math.max(w / 2 + 8, Math.min(o.width - w / 2 - 8, r.left - o.left + r.width / 2));
+    var above = r.top - o.top - h - 10 >= 6;                  // sem espaço em cima: abre embaixo
+    tipEl.style.left = x + 'px';
+    tipEl.style.top = (above ? r.top - o.top - h - 10 : r.bottom - o.top + 10) + 'px';
+  }
+  function shopCard(d, name, tag, button) {
+    var w = document.createElement('div'); w.className = 'tt-sc';
+    var f = document.createElement('div'); f.className = 'tt-sc-face'; f.tabIndex = 0;
+    f.innerHTML = ic(d.icon) + (tag ? '<span class="tt-sc-tag">' + tag + '</span>' : '');
+    f.setAttribute('aria-label', name + ': ' + d.desc);
+    var on = function () { showTip(f, name, d.desc); };
+    f.addEventListener('mouseenter', on); f.addEventListener('focus', on);
+    f.addEventListener('mouseleave', hideTip); f.addEventListener('blur', hideTip);
+    w.appendChild(f); w.appendChild(button);
+    return w;
+  }
+
   function renderShop(kind) {
+    hideTip();
     var S = R.shop, box = document.createElement('div'); box.className = 'tt-shop';
     function btn(label, cls, fn, dis) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.textContent = label; b.disabled = !!dis;
@@ -790,34 +819,26 @@
     var h = document.createElement('p'); h.className = 'tt-shopmoney'; h.textContent = 'Você tem $' + R.money; box.appendChild(h);
 
     var t1 = document.createElement('h3'); t1.textContent = 'Seus curingas (' + R.jokers.length + '/' + JSLOTS + ')'; box.appendChild(t1);
-    var own = document.createElement('div'); own.className = 'tt-shoplist';
+    var own = document.createElement('div'); own.className = 'tt-shopcards';
     if (!R.jokers.length) { var e = document.createElement('p'); e.className = 'tt-best'; e.textContent = 'Nenhum ainda.'; own.appendChild(e); }
     R.jokers.forEach(function (id, i) {
-      var j = jk(id), row = document.createElement('div'); row.className = 'tt-shoprow';
-      row.innerHTML = '<span class="tj-i"></span><span class="tt-st"><b></b><small></small></span>';
-      row.querySelector('.tj-i').innerHTML = ic(j.icon); row.querySelector('b').textContent = j.name; row.querySelector('small').textContent = j.desc;
-      var sell = Math.floor(j.price / 2);
-      row.appendChild(btn('Vender $' + sell, 'btn-secondary', function () { R.jokers.splice(i, 1); R.money += sell; render(); renderShop('sell'); }));
-      own.appendChild(row);
+      var j = jk(id), sell = Math.floor(j.price / 2);
+      own.appendChild(shopCard(j, j.name, '', btn('Vender $' + sell, 'btn-secondary', function () { R.jokers.splice(i, 1); R.money += sell; render(); renderShop('sell'); })));
     });
     box.appendChild(own);
 
     var t2 = document.createElement('h3'); t2.textContent = 'Loja'; box.appendChild(t2);
-    var list = document.createElement('div'); list.className = 'tt-shoplist';
+    var list = document.createElement('div'); list.className = 'tt-shopcards';
     if (!S.items.length) { var e2 = document.createElement('p'); e2.className = 'tt-best'; e2.textContent = 'Esgotado. Role a loja!'; list.appendChild(e2); }
     S.items.forEach(function (it, i) {
-      var d = it.type === 'joker' ? jk(it.id) : vc(it.id), row = document.createElement('div'); row.className = 'tt-shoprow';
-      row.innerHTML = '<span class="tj-i"></span><span class="tt-st"><b></b><small></small></span>';
-      row.querySelector('.tj-i').innerHTML = ic(d.icon);
-      row.querySelector('b').textContent = d.name + (it.type === 'voucher' ? ' (permanente)' : '');
-      row.querySelector('small').textContent = d.desc;
+      var d = it.type === 'joker' ? jk(it.id) : vc(it.id);
       var full = it.type === 'joker' && R.jokers.length >= JSLOTS;
-      row.appendChild(btn(full ? 'Sem espaço' : 'Comprar $' + it.price, 'btn-primary', function () {
+      var buy = btn(full ? 'Sem espaço' : 'Comprar $' + it.price, 'btn-primary', function () {
         R.money -= it.price;
         if (it.type === 'joker') R.jokers.push(it.id); else R.vouchers.push(it.id);
         S.items.splice(i, 1); render(); renderShop('buy');
-      }, R.money < it.price || full));
-      list.appendChild(row);
+      }, R.money < it.price || full);
+      list.appendChild(shopCard(d, d.name + (it.type === 'voucher' ? ' (permanente)' : ''), it.type === 'voucher' ? 'PERM.' : '', buy));
     });
     box.appendChild(list);
     var cost = 3 + S.rerolls;

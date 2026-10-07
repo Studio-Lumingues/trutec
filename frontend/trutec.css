@@ -156,7 +156,7 @@
 .tt-billy { position: relative; z-index: 3; align-self: stretch; flex: 1 1 0; min-width: 0; max-width: 58rem; margin: -1rem -1rem -1rem 0;
   pointer-events: none; container-type: size; animation: billyIn .28s cubic-bezier(.2, 1.3, .4, 1) both; }
 /* "palco" quadrado (mesma proporção do desenho): a imagem preenche e o balão se posiciona em % dele, sempre do lado da cabeça */
-.tt-stage { --S: min(92cqh, 52rem, 95cqw); position: absolute; right: -1%; bottom: -3%; width: var(--S); height: var(--S); }
+.tt-stage { --S: min(92cqh, 52rem, 95cqw); position: absolute; right: -9%; bottom: -3%; width: var(--S); height: var(--S); }
 /* hand drawn: mesmo filtro "boil" do resto do jogo (boil.js troca a semente alguns quadros por segundo) */
 .tt-billyimg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom right;
   filter: url(#boil-lg); transform-origin: 50% 100%; user-select: none; -webkit-user-select: none;
@@ -166,7 +166,7 @@
 .tt-body { position: absolute; inset: 0; transform-origin: 50% 100%; }
 .tt-billy.talking .tt-body { animation: billyTalk .42s ease-in-out infinite; }
 /* balão igual ao do Jailson (tutorial.js): papel creme, borda grossa torta com tremido #boil-sm, perninha e etiqueta com o nome */
-.tt-bubble { position: absolute; z-index: 3; top: 43%; right: 70%; width: max-content; max-width: min(27rem, max(12rem, calc(100cqw - .67 * var(--S) - .5rem))); isolation: isolate;
+.tt-bubble { position: absolute; z-index: 3; top: 43%; right: 70%; width: max-content; max-width: min(27rem, max(12rem, calc(100cqw - .61 * var(--S) - .5rem))); isolation: isolate;
   padding: 1.2rem 1.5rem 1.05rem; font-size: clamp(1.1rem, calc(var(--S) / 30), 1.45rem); line-height: 1.35; font-weight: 500; color: #0a0a0a; }
 .tt-bubble .tt-bg { position: absolute; inset: 0; z-index: -1; background: #fff8f0; border: 3px solid #0a0a0a;
   border-radius: 1.4rem 1.1rem 1.5rem 1.2rem / 1.2rem 1.5rem 1.1rem 1.4rem; filter: url(#boil-sm); box-shadow: .25rem .3rem 0 rgba(0, 0, 0, .45); }
@@ -182,7 +182,6 @@
 .tt-text { position: relative; min-height: 3.4rem; margin-top: .25rem; }
 .tt-full { visibility: hidden; }
 .tt-typed { position: absolute; left: 0; top: 0; right: 0; }
-.tt-bubble.pop { animation: bubblePop .2s ease-out; }
 @keyframes billyIn { from { transform: translateX(45%); opacity: 0; } }
 @keyframes billyIdle {            /* respirando + balançando devagar, tudo com ease-in-out */
   0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
@@ -193,7 +192,6 @@
   0%, 100% { transform: translateY(0) rotate(0deg); }
   35%      { transform: translateY(-.55rem) rotate(.8deg); }
   70%      { transform: translateY(-.2rem) rotate(-.8deg); } }
-@keyframes bubblePop { from { transform: scale(.82) rotate(-5deg); opacity: .2; } }
 
 @media (max-width: 760px) {
   .tt-overlay.tt-shopmode { flex-direction: column; }
@@ -227,17 +225,30 @@
 }
 
 
-/* ===== LOJA: card flutuante, grande, mas sem ocupar a tela toda ===== */
-.tt-overlay.tt-shopmode .tt-modal { flex: 0 1 clamp(24rem, 33vw, 31rem); max-height: 100%; padding: clamp(.9rem, 2.4vh, 1.4rem) clamp(.9rem, 1.6vw, 1.4rem); }
+/* ===== LOJA: card maior, curingas como cardzinhos (nome/descrição na dica) ===== */
+.tt-overlay.tt-shopmode .tt-modal { flex: 0 1 clamp(30rem, 46vw, 46rem); max-height: 100%; padding: clamp(.9rem, 2.4vh, 1.4rem) clamp(.9rem, 1.8vw, 1.5rem); }
 .tt-overlay.tt-shopmode .tt-modal h2 { font-size: clamp(1.5rem, 3.6vh, 2rem); margin-bottom: .2rem; }
 .tt-overlay.tt-shopmode .tt-shopmoney { font-size: clamp(1.3rem, 3vh, 1.7rem); }
-.tt-overlay.tt-shopmode .tt-modal h3 { font-size: clamp(.95rem, 2.1vh, 1.1rem); margin: clamp(.5rem, 1.6vh, .9rem) 0 .35rem; }
-.tt-overlay.tt-shopmode .tt-shoplist { gap: clamp(.35rem, 1vh, .55rem); }
-.tt-overlay.tt-shopmode .tt-shoprow { gap: .8rem; padding: clamp(.4rem, 1.1vh, .7rem) clamp(.5rem, 1vw, .8rem); }
-.tt-overlay.tt-shopmode .tt-shoprow .tj-i { width: clamp(3.1rem, 6.8vh, 4.2rem); height: clamp(3.1rem, 6.8vh, 4.2rem); }
-.tt-overlay.tt-shopmode .tt-shoprow .tj-i .tt-ic { width: clamp(2.4rem, 5.2vh, 3.3rem); height: clamp(2.4rem, 5.2vh, 3.3rem); }
-.tt-overlay.tt-shopmode .tt-st b { font-size: clamp(1rem, 2.3vh, 1.2rem); }
-.tt-overlay.tt-shopmode .tt-st small { font-size: clamp(.8rem, 1.8vh, .95rem); line-height: 1.3; }
-.tt-overlay.tt-shopmode .tt-shoprow .btn { padding: clamp(.45rem, 1.2vh, .7rem) clamp(.6rem, 1.2vw, .95rem); font-size: clamp(.88rem, 2vh, 1rem); white-space: nowrap; }
-.tt-overlay.tt-shopmode .tt-reroll { margin-top: .6rem; padding: clamp(.55rem, 1.5vh, .8rem); font-size: clamp(.95rem, 2.1vh, 1.1rem); }
+.tt-overlay.tt-shopmode .tt-modal h3 { font-size: clamp(.95rem, 2.1vh, 1.1rem); margin: clamp(.5rem, 1.6vh, .9rem) 0 .5rem; }
+.tt-shopcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.2rem, 6.6rem)); justify-content: center; gap: .9rem .7rem; padding-top: .2rem; }
+.tt-shopcards .tt-best { grid-column: 1 / -1; margin: .2rem 0; }
+.tt-sc { display: flex; flex-direction: column; align-items: stretch; gap: .5rem; min-width: 0; }
+.tt-sc-face { position: relative; aspect-ratio: 3 / 4; display: flex; align-items: center; justify-content: center; cursor: help; outline: none;
+  background: #fff8f0; border: 2.5px solid #0a0a0a; border-radius: .7rem .5rem .8rem .55rem / .55rem .8rem .5rem .7rem;
+  box-shadow: .15rem .2rem 0 rgba(0, 0, 0, .5); transform: rotate(-2.5deg); transition: transform .15s ease-out, box-shadow .15s; }
+.tt-sc:nth-child(even) .tt-sc-face { transform: rotate(2deg); }
+.tt-sc-face:hover, .tt-sc-face:focus-visible { transform: rotate(0deg) translateY(-.35rem) scale(1.07); box-shadow: .2rem .45rem 0 rgba(0, 0, 0, .5), 0 0 0 .18rem #ffd24a; z-index: 2; }
+.tt-sc-face .tt-ic { width: 62%; height: auto; aspect-ratio: 1; }
+.tt-sc-tag { position: absolute; top: -.55rem; left: 50%; transform: translateX(-50%) rotate(-3deg); padding: .02rem .4rem; font-size: .62rem; font-weight: 800; color: #0a0a0a;
+  background: #ffd23f; border: 2px solid #0a0a0a; border-radius: .4rem; white-space: nowrap; }
+.tt-sc .btn { width: 100%; padding: .4rem .2rem; font-size: clamp(.8rem, 1.9vh, .95rem); white-space: nowrap; }
+.tt-overlay.tt-shopmode .tt-reroll { margin-top: .9rem; padding: clamp(.55rem, 1.5vh, .8rem); font-size: clamp(.95rem, 2.1vh, 1.1rem); }
 .tt-overlay.tt-shopmode .tt-mbtns .btn { padding: clamp(.65rem, 1.7vh, .95rem); font-size: clamp(1rem, 2.3vh, 1.2rem); }
+
+/* dica flutuante: mesmo papel creme do balão do Billy */
+.tt-tip { display: none; position: absolute; z-index: 10; width: max-content; max-width: min(17rem, 80%); transform: translateX(-50%); pointer-events: none;
+  padding: .6rem .85rem .65rem; text-align: left; color: #0a0a0a; background: #fff8f0; border: 3px solid #0a0a0a;
+  border-radius: 1rem .8rem 1.1rem .85rem / .85rem 1.1rem .8rem 1rem; box-shadow: .25rem .3rem 0 rgba(0, 0, 0, .45); }
+.tt-tip.show { display: block; }
+.tt-tip b { display: block; font-size: 1.1rem; margin-bottom: .15rem; }
+.tt-tip small { display: block; font-size: .92rem; line-height: 1.3; font-weight: 500; }
