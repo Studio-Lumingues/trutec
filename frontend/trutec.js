@@ -1101,6 +1101,14 @@
   function init() {
     var b = $('btn-open-trutec');
     if (b) b.addEventListener('click', open);
+    // dados e regras reais, usados pelas demos do mosaico "Jogar" (mode-demo.js)
+    window.TrutecData = {
+      ANTES: ANTES, HANDS: HANDS, TROCAS: TROCAS, JSLOTS: JSLOTS, CHIPS0: CHIPS0, START_MONEY: START_MONEY,
+      BASE: BASE, BMULT: BMULT, BREWARD: BREWARD, RANKS: RANKS, SUITS: SUITS, SYM: SYM, CHIPV: CHIPV,
+      STAKES: STAKES, CALLS: CALLS, SMALLOPP: SMALLOPP, BIGOPP: BIGOPP, BOSSES: BOSSES,
+      JOKERS: JOKERS, VOUCHERS: VOUCHERS,
+      withHand: function (h, fn) { var old = H; H = h; try { return fn(); } finally { H = old; } }
+    };
     window.Trutec = { open: open };
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

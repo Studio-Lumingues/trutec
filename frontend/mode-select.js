@@ -28,18 +28,19 @@
   function tile(mode, kicker, title, text) {
     return '<button type="button" class="mp-tile mp-' + mode + '" data-mode="' + mode + '">' +
       '<span class="mp-demo" aria-hidden="true"><span class="mp-stage" id="mp-stage-' + mode + '"></span></span>' +
-      '<span class="mp-veil" aria-hidden="true"></span>' +
-      '<span class="mp-info"><small>' + kicker + '</small><b>' + title + '</b><span>' + text + '</span><em class="mp-go btn">Jogar ›</em></span>' +
+      '<span class="mp-info"><span class="mp-txt"><small>' + kicker + '</small><b>' + title + '</b><span class="mp-desc">' + text + '</span></span><em class="mp-go btn">Jogar ›</em></span>' +
     '</button>';
   }
 
   function open() {
     root.classList.remove('hidden');
+    document.body.classList.add('mp-open');            // esconde o Jailson (botão do tutorial) nesta tela
     if (window.TruModeDemo) TruModeDemo.start(document.getElementById('mp-stage-truco'), document.getElementById('mp-stage-trutec'));
     var f = root.querySelector('.mp-tile'); if (f) f.focus({ preventScroll: true });
   }
   function close() {
     root.classList.add('hidden');
+    document.body.classList.remove('mp-open');
     if (window.TruModeDemo) TruModeDemo.stop();
     if (play.offsetParent) play.focus({ preventScroll: true });
   }
@@ -49,6 +50,7 @@
   // captura + stopImmediatePropagation (igual ao gate.js): roda antes do handler do client.js
   play.addEventListener('click', function (e) {
     if (bypass) return;
+    if (window.TruTutorial && TruTutorial.running && TruTutorial.running()) return;   // o tutorial clica em "Jogar" pra mostrar a janela da sala
     e.preventDefault(); e.stopImmediatePropagation();
     open();
   }, true);

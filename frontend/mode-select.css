@@ -1,38 +1,41 @@
 /* ============================================================================
    MOSAICO "JOGAR" (mode-select.js) + DEMOS (mode-demo.js)
+   Caixa compacta no meio da tela: cada tile tem a demo em cima e uma faixa de texto embaixo.
    ============================================================================ */
 #btn-open-trutec { display: none !important; }          /* o Trutec agora abre pelo mosaico do "Jogar" */
+body.mp-open .tut-fab { display: none !important; }      /* o Jailson (botão do tutorial) não aparece nesta tela */
 
-.mp { position: fixed; inset: 0; z-index: 250; display: flex; flex-direction: column; gap: .8rem; padding: .9rem; background: rgba(4,3,3,.92); animation: mpIn .25s ease-out; }
+.mp { position: fixed; inset: 0; z-index: 250; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .7rem; padding: .8rem; overflow: auto; background: rgba(4,3,3,.9); animation: mpIn .25s ease-out; }
 .mp.hidden { display: none; }
 @keyframes mpIn { from { opacity: 0; } }
-.mp-top { display: flex; align-items: center; gap: 1rem; color: #fff8f0; }
-.mp-top h2 { margin: 0; flex: 1; text-align: center; font-size: clamp(1.1rem, 3vh, 1.8rem); letter-spacing: .04em; padding-right: 6rem; }
-.mp-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
-@media (max-width: 760px) { .mp-grid { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } .mp-top h2 { padding-right: 0; font-size: 1rem; } }
+.mp-top { width: min(100%, 56rem); display: flex; align-items: center; gap: .8rem; color: #fff8f0; }
+.mp-top .btn { font-size: .85rem; padding: .35rem .8rem; }
+.mp-top h2 { margin: 0; flex: 1; text-align: center; font-size: clamp(1rem, 2.6vh, 1.35rem); letter-spacing: .04em; padding-right: 5.2rem; }
+.mp-grid { width: min(100%, 56rem); height: min(22rem, 62vh); display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+@media (max-width: 760px) {
+  .mp-grid { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; width: min(100%, 24rem); height: min(32rem, 76vh); }
+  .mp-top { width: min(100%, 24rem); } .mp-top h2 { padding-right: 0; font-size: .95rem; }
+  .mp-desc { display: none; }
+}
 
-.mp-tile { position: relative; overflow: hidden; padding: 0; text-align: left; cursor: pointer; color: #fff8f0; font: inherit;
-  background: #0b0718; border: 3px solid #0a0a0a; border-radius: 1.3rem 1rem 1.4rem 1.1rem / 1.1rem 1.4rem 1rem 1.3rem;
-  box-shadow: 0 0 0 2px rgba(255,248,240,.18), .3rem .4rem 0 rgba(0,0,0,.6); transition: transform .18s ease-out, box-shadow .18s; }
-.mp-tile:hover, .mp-tile:focus-visible { transform: translateY(-.3rem) scale(1.008); outline: none; box-shadow: 0 0 0 3px #ffd23f, .35rem .6rem 0 rgba(0,0,0,.6); }
-.mp-tile:active { transform: translateY(.1rem) scale(.995); }
-.mp-demo { position: absolute; inset: 0; container-type: size; display: block; pointer-events: none; }
-.mp-stage { position: absolute; inset: 0; display: block; font-size: clamp(7px, 2.6cqmin, 17px); }
-.mp-veil { position: absolute; inset: 0; pointer-events: none; transition: opacity .2s;
-  background: linear-gradient(180deg, rgba(4,3,3,.12) 0%, rgba(4,3,3,.1) 45%, rgba(4,3,3,.8) 100%),
-    repeating-conic-gradient(rgba(255,248,240,.035) 0 25%, transparent 0 50%) 0 0 / 2.4rem 2.4rem; }
-.mp-tile:hover .mp-veil { opacity: .55; }
-.mp-info { position: absolute; left: .8rem; right: .8rem; bottom: .8rem; display: flex; flex-direction: column; gap: .25rem; padding: .8rem 1rem 1rem; border-radius: 1rem;
-  background: rgba(10,8,12,.58); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); border: 2px solid rgba(255,248,240,.2); }
-.mp-info small { font-weight: 800; letter-spacing: .12em; text-transform: uppercase; font-size: clamp(.65rem, 1.5vh, .8rem); color: #ffd23f; }
-.mp-info b { font-size: clamp(1.5rem, 4.4vh, 2.5rem); line-height: 1.05; text-shadow: 0 .15rem 0 #0a0a0a; }
-.mp-info > span { font-size: clamp(.8rem, 1.8vh, 1rem); opacity: .85; line-height: 1.25; }
-.mp-go { align-self: flex-start; margin-top: .5rem; font-style: normal; padding: .5rem 1.4rem; font-size: clamp(1rem, 2.4vh, 1.25rem); pointer-events: none; }
+.mp-tile { position: relative; display: flex; flex-direction: column; overflow: hidden; padding: 0; text-align: left; cursor: pointer; color: #fff8f0; font: inherit;
+  background: #0b0718; border: 3px solid #0a0a0a; border-radius: 1.1rem .9rem 1.2rem 1rem / 1rem 1.2rem .9rem 1.1rem;
+  box-shadow: 0 0 0 2px rgba(255,248,240,.18), .25rem .35rem 0 rgba(0,0,0,.6); transition: transform .18s ease-out, box-shadow .18s; }
+.mp-tile:hover, .mp-tile:focus-visible { transform: translateY(-.2rem); outline: none; box-shadow: 0 0 0 3px #ffd23f, .3rem .5rem 0 rgba(0,0,0,.6); }
+.mp-tile:active { transform: translateY(.08rem); }
+.mp-demo { position: relative; flex: 1 1 0; min-height: 0; container-type: size; display: block; pointer-events: none; overflow: hidden; }
+.mp-stage { position: absolute; inset: 0; display: block; font-size: clamp(6px, 3.3cqmin, 14px); }
+.mp-info { flex: none; display: flex; align-items: center; gap: .6rem; padding: .5rem .8rem .7rem; background: rgba(10,8,12,.96); border-top: 2px solid rgba(255,248,240,.2); }
+.mp-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .08rem; }
+.mp-txt small { font-weight: 800; letter-spacing: .1em; text-transform: uppercase; font-size: .6rem; color: #ffd23f; }
+.mp-txt b { font-size: 1.2rem; line-height: 1.05; text-shadow: 0 .1rem 0 #0a0a0a; }
+.mp-desc { font-size: .68rem; opacity: .8; line-height: 1.2; }
+.mp-go { flex: none; font-style: normal; padding: .35rem .95rem; font-size: .95rem; pointer-events: none; }
 .mp-trutec .mp-go { --bg: #ffd23f; --sh: #c9980b; }
 .mp-truco .mp-go { --bg: #fff8f0; --sh: #a39a8f; }
 .mp-tile:hover .mp-go { --d: .4rem; transform: translateY(-.12rem); }
 :is(#mode-pick) .mp-go.btn { --ink: #0a0a0a; --d: .28rem; background: var(--bg); color: var(--ink); border: 0; font-weight: 800; border-radius: .8rem .6rem .85rem .65rem / .65rem .85rem .6rem .8rem;
-  box-shadow: inset 0 .16rem 0 rgba(255,255,255,.6), 0 var(--d) 0 0 var(--sh), 0 var(--d) 0 .16rem var(--ink), 0 0 0 .16rem var(--ink); margin-bottom: .45rem; transition: transform .1s, box-shadow .1s; }
+  box-shadow: inset 0 .16rem 0 rgba(255,255,255,.6), 0 var(--d) 0 0 var(--sh), 0 var(--d) 0 .16rem var(--ink), 0 0 0 .16rem var(--ink); margin-bottom: .3rem; transition: transform .1s, box-shadow .1s; }
 
 /* ---------- cartas das demos ---------- */
 .dc { position: relative; flex: none; width: 3.3em; height: 4.6em; border-radius: .35em; background: #fff8f0; color: #0a0a0a; border: .14em solid #0a0a0a; box-shadow: .12em .16em 0 rgba(0,0,0,.45);
@@ -57,7 +60,7 @@
 .d-score { display: inline-flex; align-items: center; gap: .5em; padding: .3em .8em; background: #0a0a0a; border: .15em solid rgba(255,248,240,.35); border-radius: 99px; color: #fff8f0; font-size: 1.1em; font-weight: 900; }
 .d-score b { font-size: .65em; letter-spacing: .1em; opacity: .75; } .d-score i { font-style: normal; font-size: 1.3em; color: #ffd23f; min-width: 1ch; text-align: center; } .d-score em { opacity: .5; font-style: normal; }
 .d-pips { display: flex; gap: .3em; padding-left: .4em; } .d-pips s { width: .9em; height: .9em; border-radius: 50%; background: rgba(255,248,240,.15); border: .12em solid #0a0a0a; }
-.d-pips s.w0 { background: #4ddb85; } .d-pips s.w1 { background: #ff6b5e; }
+.d-pips s.w0 { background: #4ddb85; } .d-pips s.w1 { background: #ff6b5e; } .d-pips s.wt { background: #b9b2a8; }
 .d-vira { color: #fff8f0; font-weight: 800; font-size: .95em; display: inline-flex; align-items: center; gap: .4em; }
 .d-val { padding: .2em .8em; background: #fff8f0; color: #0a0a0a; border: .15em solid #0a0a0a; border-radius: .6em; font-weight: 900; font-size: 1em; transition: transform .2s, background .2s; }
 .d-val.hot { background: #ffd23f; animation: dPulse .7s ease-in-out infinite alternate; }
@@ -101,6 +104,10 @@
 .t-table { display: flex; gap: 1.2em; align-items: center; justify-content: center; min-height: 5em; } .t-slot { width: 3.5em; min-height: 4.9em; display: grid; place-items: center; border-radius: .4em; border: .12em dashed rgba(255,248,240,.2); }
 .t-hand { display: flex; gap: .6em; margin-top: auto; } .t-hand .dc, .t-slot .dc { width: 3.4em; height: 4.8em; }
 .t-opp .dc.sm { width: 2.2em; height: 3.1em; }
+.t-blind .tt-ic { width: 1.3em; height: 1.3em; vertical-align: -.25em; }
+.t-be { min-height: 1.6em; }
+.tt-emo { font-size: 1.6em; line-height: 1; }
+.t-shop .tt-shop { transform-origin: 50% 50%; }
 
 /* loja (usa as mesmas classes da loja de verdade; só ajusta o tamanho ao tile) */
 .t-shop { position: absolute; inset: 0; padding: .9em; display: flex; align-items: center; justify-content: center; background: rgba(8,6,14,.94); opacity: 0; pointer-events: none; transition: opacity .4s; }
