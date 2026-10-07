@@ -67,7 +67,7 @@
 .tt-peek { font-size: .75rem; min-height: .9rem; }
 
 /* mesa no centro exato (alinhada com a mão); a vira fica à esquerda dela */
-.tt-center { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; container-type: size; }
+.tt-center { position: relative; z-index: 3; flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; container-type: size; }
 .tt-vira { grid-column: 1; justify-self: end; margin-right: clamp(1rem, 4vw, 3rem); }
 .tt-table { grid-column: 2; }
 .tt-vira { flex: none; display: flex; flex-direction: column; align-items: center; gap: .15rem; font-size: .8rem; }
@@ -81,7 +81,7 @@
 /* tamanho da carta da mesa = o que couber na altura (2 cartas empilhadas), no máximo 6,6rem */
 .tt-table { --sw: clamp(3.6rem, calc((100cqh - .6rem) / 2.8), 6.6rem); display: flex; flex-direction: column; align-items: center; gap: .4rem; }
 .tt-slot { width: var(--sw); height: calc(var(--sw) * 1.4); border-radius: .6rem; border: 2px dashed rgba(255,248,240,.2); display: flex; align-items: center; justify-content: center; transition: box-shadow .2s; }
-.tt-slot .card { --cw: var(--sw); animation: ttDrop .22s ease-out; }
+.tt-slot .card { --cw: var(--sw); }   /* a entrada é o voo da carta (flyCard no trutec.js) */
 .tt-slot.won { box-shadow: 0 0 0 .2rem #ffd24a, 0 0 1.4rem rgba(255,210,74,.5); border-color: transparent; }
 @keyframes ttDrop { from { transform: translateY(-.8rem) scale(1.08); opacity: 0; } }
 
@@ -102,7 +102,7 @@
 .tt-actions .action-btn.active { outline: 2px solid var(--cream); }
 
 /* mão em leque, igual à do truco convencional (.my-hand do style.css) */
-.tt-hand { display: flex; justify-content: center; align-items: flex-end; gap: 0; padding: .8rem 0 1.6rem; perspective: 56rem; }
+.tt-hand { position: relative; z-index: 2; display: flex; justify-content: center; align-items: flex-end; gap: 0; padding: .8rem 0 1.6rem; perspective: 56rem; }
 .tt-hand .card { --cw: clamp(5.6rem, 15vh, 8.4rem); --r: 0deg; --y: -.1rem; margin-left: calc(var(--cw) * -.3); border-radius: .6rem; transform-origin: bottom center;
   transform: rotate(var(--r)) translateY(var(--y)); transition: transform .16s ease-out, margin-left .16s ease-out, box-shadow .16s ease-out; z-index: 2; }
 .tt-hand .card:first-child { margin-left: 0; }

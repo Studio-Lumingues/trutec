@@ -659,11 +659,36 @@
     playCard('me', i);
   }
 
+  // carta voa da mão (ou de cima, no caso do rival) até o lugar dela na mesa
+  function flightSource(who, idx) {
+    if (who === 'me') {
+      var he = document.querySelectorAll('#tt-hand .card')[idx];
+      if (!he) return null;
+      var r = he.getBoundingClientRect();
+      return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: he.offsetWidth, rot: getComputedStyle(he).getPropertyValue('--r').trim() || '0deg' };
+    }
+    var so = $('tt-slot-opp').getBoundingClientRect();
+    return { cx: so.left + so.width / 2, cy: so.top - so.height * 0.9, w: so.width * 0.75, rot: '0deg' };
+  }
+  function flyCard(who, src) {
+    var el = document.querySelector('#tt-slot-' + who + ' .card');
+    if (!el || !src || !el.animate) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var d = el.getBoundingClientRect();
+    if (!d.width) return;
+    var dx = src.cx - (d.left + d.width / 2), dy = src.cy - (d.top + d.height / 2), sc = src.w / el.offsetWidth;
+    el.animate([
+      { transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(' + src.rot + ') scale(' + sc + ')' },
+      { transform: 'none' }
+    ], { duration: 300, easing: 'cubic-bezier(.2, .8, .25, 1)' });
+  }
+
   function playCard(who, idx) {
+    var src = flightSource(who, idx);
     var c = H[who].splice(idx, 1)[0];
     H.table[who] = c; H.canAct = false; H.swapMode = false;
     if (who === 'me') H.played.push(c);
-    cardSfx('cardPlay'); render();
+    cardSfx('cardPlay'); render(); flyCard(who, src);
     if (H.table.me && H.table.opp) { later(resolveTrick, 900); return; }
     H.turn = other(who);
     later(nextAction, who === 'me' ? 600 : 0);
