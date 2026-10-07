@@ -449,10 +449,27 @@
     if (ov) ov.classList.remove('tt-shopmode');
   }
 
-  function setCalc(chips, mult, xm, total) {
-    $('tt-chips').textContent = Math.round(chips);
-    $('tt-mult').textContent = (Math.round(mult * 10) / 10) + (xm > 1 ? ' ×' + (Math.round(xm * 100) / 100) : '');
-    $('tt-total').textContent = total ? '= ' + fmt(total) : '';
+  function setCalc(chips, mult, xm, total, anim) {
+    var C = window.TruCount;
+    var suf = xm > 1 ? ' ×' + (Math.round(xm * 100) / 100) : '';
+    var fm = function (v) { return (Math.round(v * 10) / 10) + suf; };
+    var ft = function (v) { return v ? '= ' + fmt(Math.round(v)) : ''; };
+    var cEl = $('tt-chips'), mEl = $('tt-mult'), tEl = $('tt-total');
+    if (!C) {
+      cEl.textContent = Math.round(chips);
+      mEl.textContent = fm(mult);
+      tEl.textContent = ft(total);
+      return;
+    }
+    if (anim) {
+      C.run(cEl, chips, { max: 380, ding: false });
+      C.run(mEl, mult, { format: fm, max: 380, ding: false });
+    } else {
+      C.set(cEl, chips);
+      C.set(mEl, mult, { format: fm });
+    }
+    if (anim && total) C.run(tEl, total, { format: ft, max: 1000 });   // o total sobe e faz "ding"
+    else C.set(tEl, total, { format: ft });
   }
 
   function renderJokers() {
@@ -477,7 +494,12 @@
     $('tt-bname').textContent = b.opp.name;
     $('tt-beffect').textContent = b.boss ? b.effect : '';
     $('tt-target').textContent = fmt(b.target);
-    $('tt-score').textContent = fmt(R.score);
+    if (window.TruCount) TruCount.run($('tt-score'), R.score, {
+      format: function (v) { return fmt(Math.round(v)); },
+      parse: function (t) { return parseInt(String(t).replace(/\./g, ''), 10); },
+      max: 900
+    });
+    else $('tt-score').textContent = fmt(R.score);
     $('tt-barfill').style.width = Math.min(100, R.score / b.target * 100) + '%';
     $('tt-hands').textContent = R.handsLeft;
     $('tt-trocas').textContent = R.trocasLeft;
@@ -743,7 +765,7 @@
     setCalc(res.steps.length ? CHIPS0 : res.chips, stakeMult(H.level), 1, 0);
     res.steps.forEach(function (s, i) {
       later(function () {
-        setCalc(s.chips, s.mult, s.xm, 0);
+        setCalc(s.chips, s.mult, s.xm, 0, true);
         say(s.label);
         if (s.t === 'joker') {
           var el = document.querySelector('#tt-jokers .tt-joker[data-i="' + s.idx + '"]');
@@ -753,7 +775,7 @@
       }, 550 * (i + 1));
     });
     var n = res.steps.length;
-    later(function () { setCalc(res.chips, res.mult, res.xm, res.total); say('+' + fmt(res.total) + ' pontos!'); }, 550 * (n + 1));
+    later(function () { setCalc(res.chips, res.mult, res.xm, res.total, true); say('+' + fmt(res.total) + ' pontos!'); }, 550 * (n + 1));
     later(function () {
       R.score += res.total; R.money += res.money; H.scoring = false;
       render(); done();
