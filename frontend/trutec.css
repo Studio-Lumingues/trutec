@@ -656,3 +656,26 @@
   :is(#screen-trutec, .tt-demo) .tt-fresh .tt-sc, :is(#screen-trutec, .tt-demo) .tt-own .tt-sc.just,
   :is(#screen-trutec, .tt-demo) .tt-sc-face, :is(#screen-trutec, .tt-demo) .tt-sc-face.voucher { animation: none !important; }
 }
+
+/* ============================================================================
+   LOJA MINIMALISTA: só os crachás grandes (caindo do topo com elástico) + botões "Rolar loja" e "Próxima blind".
+   Sem título, carteira, painéis, toldo, rótulos nem vagas vazias.
+   ============================================================================ */
+.tt-overlay.tt-shopmode .tt-modal > h2,
+.tt-overlay.tt-shopmode .tt-walletrow,
+:is(#screen-trutec, .tt-demo) .tt-shop h3.tt-ribbon,
+.tt-overlay.tt-shopmode .tt-awning,
+.tt-overlay.tt-shopmode .tt-sc.empty { display: none !important; }
+
+.tt-overlay.tt-shopmode .tt-panel,
+.tt-overlay.tt-shopmode .tt-own,
+.tt-overlay.tt-shopmode .tt-stall { background: none; border: 0; box-shadow: none; padding: 0; border-radius: 0; overflow: visible; }
+.tt-overlay.tt-shopmode .tt-own:not(:has(.tt-sc:not(.empty))) { display: none; }
+.tt-overlay.tt-shopmode .tt-shop { gap: clamp(1.2rem, 4vh, 2.4rem); }
+
+/* crachás bem grandes (o fitShop ainda encolhe se a tela for pequena) */
+.tt-stall .tt-shopcards, .tt-own .tt-shopcards { --scw: calc(clamp(5.5rem, 15vh, 12rem) * var(--shopscale, 1)); gap: 1rem 1.1rem; }
+
+/* as fitas da fileira de baixo passam por trás dos crachás da fileira de cima */
+.tt-own .tt-sc { position: relative; z-index: 2; }
+.tt-stall .tt-sc { position: relative; z-index: 1; }
