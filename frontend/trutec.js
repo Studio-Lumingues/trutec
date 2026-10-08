@@ -123,44 +123,48 @@
   function hasV(id) { return !!R && R.vouchers.indexOf(id) >= 0; }
   function rnd(n) { return Math.floor(Math.random() * n); }
   // cor do post-it da meta: muda a cada corrida (nunca repete a da corrida anterior)
-  var NOTE_RANDOM = true;        // false = o post-it é sempre amarelo; true = muda de cor a cada corrida
+  var NOTE_RANDOM = false;       // false = o post-it é sempre amarelo; true = muda de cor a cada corrida
   var shownBlind = null;         // blind cuja meta está no post-it (pra animar a troca de folha)
   var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // folha curvada: as 4 bordas entortam devagar (SMIL). [topo, direita, base, esquerda] = posição do ponto de controle de cada borda
-  function paperD(t, r, bt, l) {
-    return 'M20 44Q102 ' + t + ' 184 36Q' + r + ' 88 190 140L150 166Q92 ' + bt + ' 34 172Q' + l + ' 108 20 44Z';
+  // folha PARADA; só o cantinho dobrado se mexe, devagar (SMIL). Os 3 estados do canto: [controle x, controle y, ponta x, ponta y]
+  var CURL = [[168, 176, 184, 171], [166, 183, 190, 178], [171, 172, 180, 166]];
+  function curlD(c) { return 'M190 140L150 166Q' + c[0] + ' ' + c[1] + ' ' + c[2] + ' ' + c[3] + 'Z'; }
+  function curlShadowD(c) { return 'M188 146L152 170Q' + (c[0] + 1) + ' ' + (c[1] + 5) + ' ' + (c[2] + 2) + ' ' + (c[3] + 6) + 'Z'; }
+  function curlAnim(fn) {
+    if (REDUCED) return '';
+    var v = [fn(CURL[0]), fn(CURL[1]), fn(CURL[2]), fn(CURL[0])].join(';');
+    return '<animate attributeName="d" dur="7s" repeatCount="indefinite" values="' + v +
+      '" keyTimes="0;.35;.7;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1;.45 0 .55 1"/>';
   }
   function noteSvg() {
-    var A = paperD(40, 190, 169, 27), B = paperD(33, 196, 179, 21), C = paperD(47, 185, 160, 33);
-    var vals = A + ';' + B + ';' + C + ';' + A;
-    var anim = REDUCED ? '' : '<animate attributeName="d" dur="9s" repeatCount="indefinite" values="' + vals +
-      '" keyTimes="0;.33;.66;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1;.45 0 .55 1"/>';
-    var shine = REDUCED ? '' : '<animate attributeName="x1" dur="9s" repeatCount="indefinite" values="0;.35;0"/><animate attributeName="x2" dur="9s" repeatCount="indefinite" values="1;1.35;1"/>';
-    var flap = REDUCED ? '' : '<animate attributeName="d" dur="9s" repeatCount="indefinite" values="M190 140L150 166L183 171Z;M196 142L150 166L185 175Z;M186 140L150 166L181 168Z;M190 140L150 166L183 171Z" keyTimes="0;.33;.66;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1;.45 0 .55 1"/>';
+    var SHEET = 'M20 44Q102 40 184 36Q190 88 190 140L150 166Q92 169 34 172Q27 108 20 44Z';
     return '<svg class="tt-paper" viewBox="0 0 200 190" aria-hidden="true" focusable="false">' +
       '<defs>' +
-        '<linearGradient id="ttg1" x1="0" y1="0" x2="1" y2="1">' + shine +
+        '<linearGradient id="ttg1" x1="0" y1="0" x2="1" y2="1">' +
           '<stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>' +
-        '<linearGradient id="ttg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>' +
+        '<linearGradient id="ttg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>' +
         '<filter id="ttblur" x="-10%" y="-10%" width="120%" height="130%"><feGaussianBlur stdDeviation="2.4"/></filter>' +
       '</defs>' +
       '<path d="M30 62L194 54L200 176L46 188Z" fill="#000" opacity=".28" filter="url(#ttblur)"/>' +
       '<g style="filter:brightness(.84)"><path style="fill:var(--note)" d="M34 46L190 38L198 150L48 177Z"/></g>' +
       '<g style="filter:brightness(.92)"><path style="fill:var(--note)" d="M26 51L182 40L194 160L40 181Z"/></g>' +
-      '<path style="fill:var(--note)" d="' + A + '">' + anim + '</path>' +
-      '<path fill="url(#ttg1)" d="' + A + '">' + anim + '</path>' +
-      '<path d="M186 146L150 166L184 176Z" fill="#000" opacity=".22" filter="url(#ttblur)"/>' +
-      '<path style="fill:var(--note)" d="M190 140L150 166L183 171Z">' + flap + '</path>' +
-      '<path fill="url(#ttg2)" d="M190 140L150 166L183 171Z">' + flap + '</path>' +
+      '<path style="fill:var(--note)" d="' + SHEET + '"/>' +
+      '<path fill="url(#ttg1)" d="' + SHEET + '"/>' +
+      '<path fill="#000" opacity=".24" filter="url(#ttblur)" d="' + curlShadowD(CURL[0]) + '">' + curlAnim(curlShadowD) + '</path>' +
+      '<path style="fill:var(--note)" d="' + curlD(CURL[0]) + '">' + curlAnim(curlD) + '</path>' +
+      '<path fill="url(#ttg2)" d="' + curlD(CURL[0]) + '">' + curlAnim(curlD) + '</path>' +
     '</svg>';
   }
-  // grampo vermelho preso na borda de cima (fica por cima das folhas; as folhas passam por baixo dele)
-  function clipSvg() {
-    var d = 'M95 74V28a7.5 7.5 0 0 1 15 0V68a4.6 4.6 0 0 1-9.2 0V40';
-    return '<svg class="tt-clip" viewBox="0 0 200 190" aria-hidden="true" focusable="false">' +
-      '<path d="' + d + '" fill="none" stroke="#a81f27" stroke-width="3.6" stroke-linecap="round"/>' +
-      '<path d="' + d + '" fill="none" stroke="#ec4650" stroke-width="2.4" stroke-linecap="round"/>' +
-      '<path d="M96.6 70V29" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".8" stroke-linecap="round"/>' +
+  // grampo vermelho: a laçada de cima aparece acima da folha; o fio da direita passa ATRÁS da folha
+  // e o fio da esquerda + a laçada de dentro passam NA FRENTE (duas camadas: 'back' fica embaixo da folha, 'front' em cima).
+  function clipSvg(layer) {
+    var full = 'M99 52V89a3.5 3.5 0 0 1-7 0V27.5a7.5 7.5 0 0 1 15 0V72';   // inteiro (camada de trás)
+    var front = 'M92 36V89a3.5 3.5 0 0 0 7 0V52';                            // fio da esquerda + laçada interna (camada da frente)
+    var d = layer === 'front' ? front : full;
+    return '<svg class="tt-clip tt-clip-' + layer + '" viewBox="0 0 200 190" aria-hidden="true" focusable="false">' +
+      '<path d="' + d + '" fill="none" stroke="#a81f27" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="' + d + '" fill="none" stroke="#ec4650" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>' +
+      (layer === 'front' ? '<path d="M90.9 38V86" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width=".7" stroke-linecap="round"/>' : '') +
     '</svg>';
   }
   // troca de folha: a atual sobe e some, o grampo prende uma nova que sobe de baixo
@@ -234,10 +238,11 @@
           '<div class="tt-bname"><span id="tt-bicon"></span><b id="tt-bname"></b><small id="tt-beffect"></small></div>' +
           '<div class="tt-notewrap" id="tt-ring" aria-label="Meta e pontos">' +
             '<div class="tt-notes" id="tt-notes">' +
+              clipSvg('back') +
               '<div class="tt-postit" id="tt-postit"><div class="tt-sway">' + noteSvg() +
                 '<div class="tt-ntext"><small>Meta</small><b id="tt-target">0</b></div>' +
               '</div></div>' +
-              clipSvg() +
+              clipSvg('front') +
             '</div>' +
             '<div class="tt-have"><small>Pontos</small><b id="tt-score">0</b></div>' +
           '</div>' +
@@ -1404,25 +1409,25 @@
     st.textContent =
       '.tt-notewrap{display:flex;flex-direction:column;align-items:center;gap:.4rem;padding:.6rem 0 .2rem}' +
       '.tt-notes{--note:#f0e062;position:relative;width:9.6rem;aspect-ratio:200/190;margin:0 auto}' +
-      '.tt-postit{--note:#f0e062;position:absolute;inset:0}' +
-      '.tt-notes .tt-postit{--note:inherit}' +
-      '.tt-sway{position:absolute;inset:0;transform-origin:50% 12%;animation:ttSway 8s ease-in-out infinite alternate}' +
+      '.tt-postit{--note:#f0e062;position:absolute;inset:0;z-index:1}' +
+      '.tt-sway{position:absolute;inset:0}' +
       '.tt-paper{position:absolute;inset:0;width:100%;height:100%;overflow:visible}' +
       '.tt-ntext{position:absolute;left:15%;right:11%;top:42%;bottom:18%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;color:#33290a}' +
       '.tt-ntext small{font:700 1rem/1 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;letter-spacing:.04em;text-transform:none;opacity:.8}' +
       '.tt-ntext b{font:700 2.1rem/1.05 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;white-space:nowrap}' +
-      '.tt-clip{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:3;filter:drop-shadow(.06rem .12rem .1rem rgba(0,0,0,.5))}' +
+      '.tt-clip{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}' +
+      '.tt-clip-back{z-index:0}' +
+      '.tt-clip-front{z-index:2;filter:drop-shadow(.05rem .1rem .08rem rgba(0,0,0,.45))}' +
       '.tt-postit.leaving{animation:ttNoteOut .85s cubic-bezier(.5,0,.8,.4) forwards;pointer-events:none}' +
       '.tt-postit.entering{animation:ttNoteIn .95s .4s cubic-bezier(.2,.9,.3,1) both}' +
       '.tt-notes.clipbump .tt-clip{animation:ttClipBump .45s .85s ease-out}' +
       '.tt-have{display:flex;flex-direction:column;align-items:center;gap:.1rem;color:#fff8f0}' +
       '.tt-have small{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75}' +
       '.tt-have b{font-size:2rem;line-height:1.05;text-shadow:0 .1rem .3rem rgba(0,0,0,.5)}' +
-      '@keyframes ttSway{0%{transform:rotate(-1.4deg) skewX(-1.2deg) translateY(0)}50%{transform:rotate(.4deg) skewX(.6deg) translateY(.12rem)}100%{transform:rotate(1.6deg) skewX(1.4deg) translateY(-.05rem)}}' +
       '@keyframes ttNoteOut{to{transform:translateY(-150%) rotate(-6deg);opacity:0}}' +
       '@keyframes ttNoteIn{from{transform:translateY(75%) rotate(4deg);opacity:0}to{transform:none;opacity:1}}' +
-      '@keyframes ttClipBump{0%{transform:translateY(0)}40%{transform:translateY(.18rem) scaleY(.97)}100%{transform:none}}' +
-      '@media (prefers-reduced-motion:reduce){.tt-sway,.tt-postit.entering,.tt-postit.leaving,.tt-notes.clipbump .tt-clip{animation:none}}';
+      '@keyframes ttClipBump{0%{transform:translateY(0)}40%{transform:translateY(.15rem)}100%{transform:none}}' +
+      '@media (prefers-reduced-motion:reduce){.tt-postit.entering,.tt-postit.leaving,.tt-notes.clipbump .tt-clip{animation:none}}';
     document.head.appendChild(st);
   })();
 
