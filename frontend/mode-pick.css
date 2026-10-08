@@ -1,23 +1,45 @@
 /* ============================================================================
-   ESCOLHA DO MODO (mode-pick.js): ao clicar em "Jogar" aparece um card com dois botões.
+   ESCOLHA DO MODO (mode-pick.js): card minimalista que aparece ao clicar em "Jogar".
+   Dois estados no mesmo card: escolher (.mp-pick) e carregando o Trutec (.mp-load).
    ============================================================================ */
 body.mp-open .tut-fab { display: none !important; }      /* o Jailson (botão do tutorial) não aparece nesta tela */
 
 .mp { position: fixed; inset: 0; z-index: 250; display: flex; align-items: center; justify-content: center; padding: 1rem;
-  background: rgba(4,3,3,.88); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: mpIn .2s ease-out; }
+  background: rgba(0,0,0,.55); -webkit-backdrop-filter: blur(14px) saturate(1.1); backdrop-filter: blur(14px) saturate(1.1); animation: mpIn .25s ease-out; }
 .mp.hidden { display: none; }
 @keyframes mpIn { from { opacity: 0; } }
-@keyframes mpPop { from { opacity: 0; transform: translateY(.6rem) scale(.96); } }
+@keyframes mpPop { from { opacity: 0; transform: translateY(.8rem) scale(.95); } }
 
-/* o card */
-.mp-box { position: relative; width: min(100%, 21rem); display: flex; flex-direction: column; gap: .75rem; align-items: stretch; text-align: center; color: #fff8f0;
-  padding: 1.1rem 1.1rem 1.2rem; background: #0b0718; overflow: hidden;
-  border: 3px solid #0a0a0a; border-radius: 1.2rem .95rem 1.3rem 1rem / 1rem 1.3rem .95rem 1.2rem;
-  box-shadow: 0 0 0 2px rgba(255,248,240,.18), .3rem .45rem 0 rgba(0,0,0,.6), 0 1.5rem 3rem rgba(0,0,0,.55);
-  animation: mpPop .25s cubic-bezier(.2, 1.2, .4, 1); }
-.mp-box h2 { margin: 0 0 .15rem; padding-bottom: .7rem; font-size: 1.25rem; letter-spacing: .03em; text-shadow: 0 .1rem 0 #0a0a0a;
-  border-bottom: 2px solid rgba(255,248,240,.14); }
-.mp-box .btn { width: 100%; font-size: 1.15rem; padding: .8rem 1rem; }
-.mp-box .mp-back { align-self: center; width: auto; font-size: .9rem; padding: .4rem 1.2rem; margin-top: .1rem; }
-.mp-box small { display: block; opacity: .65; font-size: .72em; font-weight: 600; margin-top: .1rem; }
+/* o card: vidro escuro, cantos bem redondos, sem bordas pesadas */
+.mp-box { position: relative; width: min(100%, 27rem); display: grid; color: #fff;
+  padding: 1.8rem 1.5rem 1.4rem; border-radius: 1.9rem;
+  background: rgba(30,30,34,.82); -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px);
+  border: 1px solid rgba(255,255,255,.1);
+  box-shadow: 0 2rem 4rem rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+  animation: mpPop .3s cubic-bezier(.2, 1.1, .4, 1); }
+.mp-view { grid-area: 1 / 1; display: flex; flex-direction: column; gap: .7rem; transition: opacity .25s, transform .25s; }
+.mp-load { align-items: center; justify-content: center; gap: 1.1rem; opacity: 0; transform: scale(.96); pointer-events: none; visibility: hidden; }
+.mp-box.loading .mp-pick { opacity: 0; transform: scale(.96); pointer-events: none; visibility: hidden; }
+.mp-box.loading .mp-load { opacity: 1; transform: none; pointer-events: auto; visibility: visible; }
+
+.mp-title { margin: 0 0 .5rem; text-align: center; font-size: 1.45rem; font-weight: 700; letter-spacing: .01em; }
+
+/* opções: linhas translúcidas com seta, estilo lista do iOS */
+.mp-opt { display: flex; align-items: center; gap: .9rem; width: 100%; padding: 1.15rem 1.25rem; cursor: pointer; text-align: left; color: #fff; font: inherit;
+  background: rgba(255,255,255,.08); border: 0; border-radius: 1.2rem; transition: background .15s, transform .12s; }
+.mp-opt:hover, .mp-opt:focus-visible { background: rgba(255,255,255,.15); outline: none; }
+.mp-opt:active { transform: scale(.98); background: rgba(255,255,255,.2); }
+.mp-opt-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
+.mp-opt-txt b { font-size: 1.25rem; font-weight: 700; line-height: 1.1; }
+.mp-opt-txt span { font-size: .9rem; opacity: .6; }
+.mp-opt::after { content: ''; flex: none; width: .6rem; height: .6rem; border-top: .15rem solid rgba(255,255,255,.4); border-right: .15rem solid rgba(255,255,255,.4); transform: rotate(45deg); border-radius: .05rem; }
+
+.mp-back { align-self: center; margin-top: .3rem; padding: .55rem 1.4rem; cursor: pointer; color: rgba(255,255,255,.6); font: inherit; font-size: 1rem; background: none; border: 0; border-radius: 99px; transition: color .15s, background .15s; }
+.mp-back:hover, .mp-back:focus-visible { color: #fff; background: rgba(255,255,255,.08); outline: none; }
+
+/* loading clássico: 12 tracinhos girando em passos (estilo iOS) */
+.mp-spin { width: 3.2rem; height: 3.2rem; animation: mpSpin 1s steps(12) infinite; }
+.mp-spin rect { fill: #fff; }
+@keyframes mpSpin { to { transform: rotate(360deg); } }
+.mp-load-txt { font-size: 1.05rem; font-weight: 600; opacity: .85; }
 @media (prefers-reduced-motion: reduce) { .mp, .mp-box { animation: none; } }
