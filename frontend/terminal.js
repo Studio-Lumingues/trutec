@@ -241,6 +241,7 @@
     ['volume', '[music|sfx] [0-100]', 'vê ou muda o volume'],
     ['server', '', 'testa o servidor (/health)'],
     ['auth', '<chave>', 'modo admin: placar, foto, efeito do nome (veja `auth`)'],
+    ['curingas', '[qtd|limpar]', '(admin) gera curingas aleatórios na carteira do Trutec (precisa de uma corrida em andamento)'],
     ['settings', '', 'abre as configurações'],
     ['desenhar', '[jpg]', 'abre o editor de avatar (o mesmo do jogo) · jpg = editor livre que baixa JPG'],
     ['tutorial', '', 'o Jailson te ensina a jogar (tela inicial)'],
@@ -1196,6 +1197,24 @@
         out(c('g', '✔ ') + 'Dupla 1 ' + c('w b', res.score[0]) + c('d', ' x ') + c('w b', res.score[1]) + ' Dupla 2' +
           (me >= 0 ? c('d', '   (você está na dupla ' + (me + 1) + ')') : ''));
       });
+    },
+
+    curingas: function (args) {
+      if (!adminKey) return out(c('r', '✘ ') + 'só quem está com ' + c('y', 'auth') + ' pode usar este comando.');
+      var T = window.Trutec;
+      if (!T || !T.addJokers) return out(c('r', '✘ ') + 'o Trutec ainda não carregou.');
+      var a = (args[0] || '').toLowerCase();
+      if (a === 'help' || a === '-h') {
+        out(c('c b', 'curingas') + c('d', ' — gera curingas aleatórios na carteira (precisa estar numa corrida)'));
+        out('  ' + c('g b', pad('curingas', 22)) + c('d', 'enche a carteira (até 5)'));
+        out('  ' + c('g b', pad('curingas <n>', 22)) + c('d', 'adiciona n curingas'));
+        out('  ' + c('g b', pad('curingas limpar', 22)) + c('d', 'esvazia a carteira'));
+        return;
+      }
+      var res = /^(limpar|clear|reset)$/.test(a) ? T.addJokers(0, true) : T.addJokers(parseInt(a, 10) || 0);
+      if (!res.ok) return out(c('r', '✘ ') + esc(res.error));
+      if (res.cleared) return out(c('g', '✔ ') + 'carteira vazia');
+      out(c('g', '✔ ') + res.added.map(function (n) { return c('y', n); }).join(c('d', ', ')) + c('d', '   (' + res.total + '/5 na carteira)'));
     },
 
     sudo: function () { out(c('r', USER + ' is not in the sudoers file. This incident will be reported.')); },

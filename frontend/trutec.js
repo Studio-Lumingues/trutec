@@ -1447,11 +1447,30 @@
     document.head.appendChild(st);
   })();
 
+  // ---------- curingas aleatórios na carteira (usado pelo comando `curingas` do terminal) ----------
+  // addJokers(n) sorteia n curingas (ou enche a carteira, se n for 0); addJokers(0, true) esvazia a carteira.
+  function addJokers(n, clear) {
+    if (!R) return { ok: false, error: 'nenhuma corrida em andamento. Abra o Trutec e clique em "Começar corrida".' };
+    if (clear) { R.jokers = []; render(); return { ok: true, cleared: true, total: 0 }; }
+    var free = JSLOTS - R.jokers.length;
+    if (free <= 0) return { ok: false, error: 'a carteira já está cheia (' + JSLOTS + '/' + JSLOTS + '). Use "curingas limpar".' };
+    n = n > 0 ? Math.min(n, free) : free;
+    var first = R.jokers.length;
+    var picked = shuffle(JOKERS.filter(function (j) { return R.jokers.indexOf(j.id) < 0; })).slice(0, n);
+    picked.forEach(function (j) { R.jokers.push(j.id); });
+    render();
+    for (var i = first; i < R.jokers.length; i++) {
+      var el = document.querySelector('#tt-jokers .tt-joker[data-i="' + i + '"]');
+      if (el) el.classList.add('pop');
+    }
+    return { ok: true, added: picked.map(function (j) { return j.name; }), total: R.jokers.length };
+  }
+
   // ---------- ligação com o lobby ----------
   function init() {
     var b = $('btn-open-trutec');
     if (b) b.addEventListener('click', open);
-    window.Trutec = { open: open, demoStart: demoStart, demoStop: demoStop };
+    window.Trutec = { open: open, demoStart: demoStart, demoStop: demoStop, addJokers: addJokers };
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

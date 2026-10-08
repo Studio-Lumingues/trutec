@@ -552,14 +552,17 @@
 
 
 /* ============================================================================
-   CARTEIRA DOS CURINGAS: fixa no canto inferior direito da tela (assets/carteira.png).
+   CARTEIRA DOS CURINGAS: fixa no canto inferior direito da tela, metade cortada pela borda (assets/carteira.png).
    Três camadas: o fundo da carteira, os curingas e, por cima, só a frente do bolso (abaixo da linha do bolso).
    Assim os curingas ficam dentro da carteira, com a parte de cima aparecendo.
    A imagem é recortada pelo CSS na área útil (1132x745 px da imagem original); a linha do bolso fica a 16,8% do topo.
    ============================================================================ */
 .tt-carteira { --cw: clamp(15rem, 27vw, 30rem); --cj: calc(var(--cw) * .145); --cg: calc(var(--cw) * .012);
-  position: absolute; z-index: 5; right: max(.8rem, env(safe-area-inset-right, 0px)); bottom: calc(.8rem + env(safe-area-inset-bottom, 0px));
-  width: var(--cw); aspect-ratio: 1132 / 745; pointer-events: none; }
+  position: absolute; z-index: 5; right: max(.8rem, env(safe-area-inset-right, 0px)); bottom: 0;
+  width: var(--cw); aspect-ratio: 1132 / 745; pointer-events: auto;
+  transform: translateY(50%); transition: transform .35s cubic-bezier(.3, .7, .3, 1); }      /* metade da carteira fica fora da tela */
+.tt-carteira:hover { transform: translateY(35%); }                                          /* mouse em cima: ela sobe um pouco */
+@media (prefers-reduced-motion: reduce) { .tt-carteira { transition: none; } }
 .tt-cart-back, .tt-cart-front { position: absolute; inset: 0; background-image: var(--cart-img); background-repeat: no-repeat;
   background-size: 127.915% auto; background-position: 50% 58.94%; }      /* recorte da carteira na imagem */
 .tt-cart-back { filter: drop-shadow(0 .5rem .7rem rgba(0, 0, 0, .55)); }
