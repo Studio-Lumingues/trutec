@@ -549,3 +549,26 @@
 
 /* sem sombreado nos textos do META e dos pontos */
 #screen-trutec .tt-side :is(.tt-ntext, .tt-ntext *, .tt-have, .tt-have *) { text-shadow: none; }
+
+
+/* ============================================================================
+   CARTEIRA DOS CURINGAS: fixa no canto inferior direito da tela (assets/carteira.png).
+   Três camadas: o fundo da carteira, os curingas e, por cima, só a frente do bolso (abaixo da linha do bolso).
+   Assim os curingas ficam dentro da carteira, com a parte de cima aparecendo.
+   A imagem é recortada pelo CSS na área útil (1132x745 px da imagem original); a linha do bolso fica a 16,8% do topo.
+   ============================================================================ */
+.tt-carteira { --cw: clamp(15rem, 27vw, 30rem); --cj: calc(var(--cw) * .145); --cg: calc(var(--cw) * .012);
+  position: absolute; z-index: 5; right: max(.8rem, env(safe-area-inset-right, 0px)); bottom: calc(.8rem + env(safe-area-inset-bottom, 0px));
+  width: var(--cw); aspect-ratio: 1132 / 745; pointer-events: none; }
+.tt-cart-back, .tt-cart-front { position: absolute; inset: 0; background-image: var(--cart-img); background-repeat: no-repeat;
+  background-size: 127.915% auto; background-position: 50% 58.94%; }      /* recorte da carteira na imagem */
+.tt-cart-back { filter: drop-shadow(0 .5rem .7rem rgba(0, 0, 0, .55)); }
+.tt-cart-front { clip-path: inset(16.6% 0 0 0); }                          /* só a frente do bolso, por cima dos curingas */
+.tt-carteira .tt-jokers { --jw: var(--cj); position: absolute; top: calc(var(--cw) * -.0247); left: calc(var(--cw) * .1135);
+  gap: var(--cg); padding: 0; justify-content: flex-start; pointer-events: auto; }
+.tt-carteira .tt-joker { border-width: 2px; box-shadow: none; transform: none; }
+.tt-carteira .tt-joker:nth-child(even) { transform: none; }
+.tt-carteira .tt-joker:not(.empty):hover { transform: translateY(calc(var(--cw) * -.03)); }
+.tt-carteira .tt-joker.empty { visibility: hidden; }
+.tt-carteira .tt-joker small { display: none; }                            /* o nome aparece na dica (title) ao passar o mouse */
+@media (max-width: 700px) { .tt-carteira { --cw: clamp(11rem, 44vw, 16rem); } }

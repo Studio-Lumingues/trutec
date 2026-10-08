@@ -223,7 +223,6 @@
         '<div class="tt-moneybox"><span>Dinheiro</span><div class="tt-money" id="tt-money"></div></div>' +
       '</aside>' +
       '<div class="tt-main">' +
-        '<div class="tt-jokers" id="tt-jokers"></div>' +
         '<section class="tt-opp">' +
           '<div class="tt-oppinfo"><span class="tt-oppicon" id="tt-oppicon"></span><span id="tt-oppname"></span></div>' +
           '<div class="tt-opphand" id="tt-opphand"></div>' +
@@ -240,7 +239,13 @@
         '<div class="tt-hand" id="tt-hand"></div>' +
       '</div>' +
       '</div>' +
+      '<div class="tt-carteira" id="tt-carteira" aria-label="Carteira de curingas">' +
+        '<div class="tt-cart-back"></div>' +
+        '<div class="tt-jokers" id="tt-jokers"></div>' +
+        '<div class="tt-cart-front"></div>' +
+      '</div>' +
       '<div class="tt-overlay hidden" id="tt-overlay"><div class="tt-modal" id="tt-modal"></div></div>';
+    s.querySelector('#tt-carteira').style.setProperty('--cart-img', 'url("assets/carteira.png")');   // imagem da carteira (pasta assets/)
     host.appendChild(s);
 
     $('tt-exit').addEventListener('click', function () {
