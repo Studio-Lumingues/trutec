@@ -536,17 +536,32 @@
 
 
 /* ============================================================================
-   FOLHA DA META: ao avançar de fase, a folha antiga vira pra cima (dobradiça logo
-   abaixo do rolo, como calendário de arrancar) e deixa à mostra a folha da nova meta.
+   FOLHA DA META: ao avançar de fase, a folha antiga é erguida pela parte de baixo, se curva,
+   passa por cima do rolo e cai atrás do bloco (como calendário de arrancar). Por baixo já está a nova.
    ============================================================================ */
-.tt-notes { perspective: 30rem; }
-.tt-leaf { position: absolute; inset: 0; z-index: 3; pointer-events: none; transform-origin: 50% 29%;
-  clip-path: inset(28% -12% -12% -12%);              /* só a folha (o rolo de cima fica parado) */
-  animation: ttLeafUp .75s cubic-bezier(.5, .05, .8, .45) forwards; }
-@keyframes ttLeafUp {
-  0%   { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
-  65%  { opacity: 1; }
-  100% { transform: rotateX(-105deg) translateY(-3%); opacity: 0; filter: brightness(.8); }
+.tt-notes { container-type: inline-size; isolation: isolate; }   /* cqw: o número da meta acompanha a largura da folha */
+.tt-leaf { position: absolute; inset: 0; z-index: 3; pointer-events: none; perspective: 32rem; perspective-origin: 50% 45%;
+  animation: ttLeafLayer 1.2s linear forwards; }
+.tt-seg { position: absolute; left: 0; right: 0; transform-origin: 50% 0; transform-style: preserve-3d; }
+.tt-s1 { animation: ttPgFlip 1.2s cubic-bezier(.55, .05, .3, 1) forwards; }
+.tt-s2, .tt-s3, .tt-s4 { animation: ttPgBend 1.2s cubic-bezier(.55, .05, .3, 1) forwards; }
+.tt-front { position: absolute; left: 0; width: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.tt-back { position: absolute; left: 7%; right: 7%; top: 0; height: 101%; transform: rotateX(180deg); backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: linear-gradient(90deg, #d9d2ba, #ebe6d3 50%, #d9d2ba); }
+.tt-s1 .tt-back { box-shadow: inset 0 .5rem .6rem -.4rem rgba(0,0,0,.25); }
+@keyframes ttLeafLayer {                       /* na frente do rolo enquanto sobe; depois de passar do alto, vai pra trás de tudo */
+  0%, 44% { z-index: 3; opacity: 1; }
+  45%     { z-index: -1; opacity: 1; }
+  72%     { opacity: 1; }
+  100%    { z-index: -1; opacity: 0; }
+}
+@keyframes ttPgFlip { from { transform: rotateX(0deg); } to { transform: rotateX(184deg); } }
+@keyframes ttPgBend {                          /* a ponta fica pra trás (curva) e depois se estica */
+  0%   { transform: rotateX(0deg); }
+  30%  { transform: rotateX(-15deg); }
+  60%  { transform: rotateX(-20deg); }
+  85%  { transform: rotateX(-7deg); }
+  100% { transform: rotateX(-2deg); }
 }
 @media (prefers-reduced-motion: reduce) { .tt-leaf { display: none; } }
 

@@ -519,24 +519,42 @@
     }
   }
 
-  // texto da META na folhinha (e tamanho da fonte conforme o nº de dígitos)
+  // texto da META na folhinha: o tamanho acompanha a largura da folha (cqw) e, se mesmo assim passar, encolhe até caber
   function setMetaText(b) {
     var tgEl = $('tt-target'); if (!tgEl) return;
     tgEl.textContent = fmt(b.target);
     var tl = tgEl.textContent.length;
-    tgEl.style.fontSize = tl <= 3 ? '3.6rem' : tl === 4 ? '3rem' : tl === 5 ? '2.5rem' : '2rem';
+    tgEl.style.fontSize = (tl <= 3 ? 27 : tl === 4 ? 23 : tl === 5 ? 19 : tl === 6 ? 16 : 13) + 'cqw';
+    var box = tgEl.parentNode, avail = box ? box.clientWidth : 0;
+    if (avail > 0) {
+      var fs = parseFloat(getComputedStyle(tgEl).fontSize), n = 0;
+      while (tgEl.getBoundingClientRect().width > avail * 0.98 && fs > 10 && n++ < 24) { fs *= 0.93; tgEl.style.fontSize = fs + 'px'; }
+    }
   }
-  // avançou de fase: a folha antiga vira pra cima (como calendário de arrancar) e aparece a folha com a nova meta
+  // avançou de fase: a folha antiga sobe, se curva, passa por cima do rolo e cai ATRÁS do bloco; por baixo já está a folha nova.
+  // A folha é fatiada em tiras aninhadas; cada tira dobra um pouco mais que a anterior (a ponta fica pra trás), o que dá a curvada.
+  var SEGS = 4, SEG_H = 18, SEG_TOP = 28;                        // em % da altura do bloco (a folha vai de 28% a 100%)
   function flipMeta(b) {
     if (shownBlind === b) return;
-    var notes = $('tt-notes'), sheet = $('tt-postit') && $('tt-postit').querySelector('.tt-sheet'), leaf = null;
+    var notes = $('tt-notes'), sheet = $('tt-postit') && $('tt-postit').querySelector('.tt-sheet');
     if (notes && sheet && !REDUCED) {
-      leaf = document.createElement('div'); leaf.className = 'tt-leaf';
-      leaf.innerHTML = sheet.innerHTML;                         // cópia da folha atual (com a meta antiga)
-      [].forEach.call(leaf.querySelectorAll('[id]'), function (e) { e.removeAttribute('id'); });
+      var tmp = document.createElement('div'); tmp.innerHTML = sheet.innerHTML;
+      [].forEach.call(tmp.querySelectorAll('[id]'), function (e) { e.removeAttribute('id'); });
+      var art = tmp.innerHTML;
+      var leaf = document.createElement('div'); leaf.className = 'tt-leaf';
+      var parent = leaf;
+      for (var k = 0; k < SEGS; k++) {
+        var s0 = SEG_TOP + k * SEG_H, seg = document.createElement('div');
+        seg.className = 'tt-seg tt-s' + (k + 1);
+        seg.style.top = k === 0 ? SEG_TOP + '%' : '100%'; seg.style.height = SEG_H + '%';
+        seg.innerHTML =
+          '<div class="tt-back"></div>' +
+          '<div class="tt-front" style="top:' + (-s0 / SEG_H * 100) + '%;height:' + (100 / SEG_H * 100) + '%;clip-path:inset(' + s0 + '% -12% ' + Math.max(0, 100 - s0 - SEG_H - 0.7) + '% -12%)">' + art + '</div>';
+        parent.appendChild(seg); parent = seg;
+      }
       notes.appendChild(leaf);
-      var kill = function () { if (leaf && leaf.parentNode) leaf.parentNode.removeChild(leaf); };
-      leaf.addEventListener('animationend', kill); setTimeout(kill, 1400);
+      var kill = function () { if (leaf.parentNode) leaf.parentNode.removeChild(leaf); };
+      leaf.querySelector('.tt-s1').addEventListener('animationend', kill); setTimeout(kill, 1800);
     }
     shownBlind = b;
     setMetaText(b);                                             // por baixo, já está a folha nova
