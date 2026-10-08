@@ -131,16 +131,15 @@
     var stack = '';
     var cols = ['#cdbf95', '#e9e2c9', '#b3a67c', '#ddd5b6', '#a89a6e', '#e2dac0'];
     for (var i = 0; i < cols.length; i++) stack += '<rect x="' + (14 + (i % 2) * 1.5) + '" y="' + (68 + i * 2.6) + '" width="' + (172 - (i * 5 % 7)) + '" height="2.7" fill="' + cols[i] + '"/>';
-    return '<svg class="tt-paper" viewBox="0 60 200 240" aria-hidden="true" focusable="false">' +
+    return '<svg class="tt-paper" viewBox="0 84 200 216" aria-hidden="true" focusable="false">' +
       '<defs>' +
         '<linearGradient id="ttsheet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6f2e4"/><stop offset="1" stop-color="#ebe6d3"/></linearGradient>' +
         '<linearGradient id="ttroll" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ddd6c0"/><stop offset=".35" stop-color="#f7f3e6"/><stop offset="1" stop-color="#e6dfc9"/></linearGradient>' +
         '<linearGradient id="ttdrop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>' +
         '<filter id="ttblur" x="-10%" y="-10%" width="125%" height="125%"><feGaussianBlur stdDeviation="3"/></filter>' +
       '</defs>' +
-      '<rect x="18" y="86" width="176" height="210" rx="6" fill="#000" opacity=".5" filter="url(#ttblur)"/>' +
+      '<rect x="18" y="90" width="176" height="206" rx="6" fill="#000" opacity=".5" filter="url(#ttblur)"/>' +
       '<rect x="14" y="88" width="172" height="204" fill="url(#ttsheet)"/>' +
-      stack +
     '</svg>';
   }
   var NOTE_COLORS = ['#f0489f', '#f0e062', '#5ec8f2', '#7ddc6e', '#ff9a4d', '#b98cf0'], lastNote = -1;
@@ -530,7 +529,7 @@
   // avançou de fase: a folha antiga é erguida pela ponta, se curva, passa por cima do rolo e cai ATRÁS do bloco.
   // A folha vira uma pilha de tiras; a cada quadro eu calculo a curva da folha em 3D (dobradiça no topo) e projeto cada tira
   // com perspectiva. Quem já passou da vertical mostra o verso (papel liso) e vai pra trás da folha nova.
-  var FLIP_MS = 1500, NSTRIP = 18, HINGE = 11.67, SHEET_END = 96.67;   // % da altura do bloco onde a folha começa/termina
+  var FLIP_MS = 1500, NSTRIP = 18, HINGE = 1.85, SHEET_END = 96.3;   // % da altura do bloco onde a folha começa/termina
   function flipMeta(b) {
     if (shownBlind === b) return;
     var notes = $('tt-notes'), sheet = $('tt-postit') && $('tt-postit').querySelector('.tt-sheet');
@@ -559,7 +558,7 @@
         var a = 2 * Math.PI * e;                                                 // volta inteira em torno da dobradiça: sobe, passa por cima e desce POR TRÁS
         var c = 0.9 * Math.sin(2 * Math.PI * t) * (1 - 0.35 * t);                // curva: ponta na frente na subida, atrasada na descida
         var py = 0, pz = 0;
-        var sq = function (y) { return y < 0 ? y * 0.26 : y; };                  // a parte que passa por cima é achatada, pra não invadir o nome do rival
+        var sq = function (y) { return y < 0 ? y * 0.18 : y; };                  // a parte que passa por cima é achatada, pra não invadir o nome do rival
         for (var i = 0; i < NSTRIP; i++) {
           var th = a + c * ((i + 0.5) / NSTRIP), ny = py + sh * Math.cos(th), nz = pz + sh * Math.sin(th), S = strips[i];
           var Y0 = sq(py * proj(pz)), Y1 = sq(ny * proj(nz)), sx = proj((pz + nz) / 2), sy = (Y1 - Y0) / sh;
@@ -1431,11 +1430,11 @@
     var FONT = '"Montserrat","Poppins","Arial Black","Gotham Black","Helvetica Neue",Arial,sans-serif';
     st.textContent =
       '.tt-notewrap{display:flex;flex-direction:column;align-items:center;gap:.4rem;padding:.5rem 0 .2rem}' +
-      '.tt-notes{position:relative;width:7rem;aspect-ratio:200/240;margin:0 auto}' +
+      '.tt-notes{position:relative;width:7rem;aspect-ratio:200/216;margin:0 auto}' +
       '.tt-postit{position:absolute;inset:0}' +
       '.tt-sheet{position:absolute;inset:0}' +
       '.tt-paper{position:absolute;inset:0;width:100%;height:100%;overflow:visible}' +
-      '.tt-ntext{position:absolute;left:10%;right:10%;top:20%;bottom:15%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;color:#1d1d1f;font-family:' + FONT + '}' +
+      '.tt-ntext{position:absolute;left:10%;right:10%;top:11%;bottom:16.7%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;color:#1d1d1f;font-family:' + FONT + '}' +
       '.tt-ntext small{font:900 .8rem/1 ' + FONT + ';letter-spacing:.16em;text-transform:uppercase;color:#1d1d1f}' +
       '.tt-ntext b{font:900 3.6rem/.95 ' + FONT + ';letter-spacing:-.03em;white-space:nowrap;color:#1d1d1f}' +
       '.tt-notewrap,.tt-notes,.tt-postit,.tt-sheet,.tt-paper,.tt-ntext{animation:none!important;transition:none!important;transform:none!important;filter:none!important}' +
