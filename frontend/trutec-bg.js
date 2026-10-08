@@ -40,11 +40,11 @@
     '  float tex = (.86 + .14 * wv) * (.93 + .07 * rib);',
     '  tex *= .85 + .3 * vn(px / 70.) + .1 * (vn(px / 9.) - .5);',
     '  tex *= .96 + .08 * h(floor(px / 1.5));',
-    '  vec3 NAVY = vec3(.050, .080, .160);',
-    '  vec3 SLATE = vec3(.095, .120, .185);',
-    '  vec3 CREAM = vec3(.34, .31, .25);',
+    '  vec3 NAVY = vec3(.085, .135, .270);',
+    '  vec3 SLATE = vec3(.150, .200, .330);',
+    '  vec3 CREAM = vec3(.64, .58, .46);',
     '  vec3 col = mix(mix(NAVY, SLATE, mask), CREAM, cream) * tex;',
-    '  col *= 1. - .5 * smoothstep(.45, 1.1, length(uv));',
+    '  col *= 1. - .32 * smoothstep(.5, 1.15, length(uv));',
     '  gl_FragColor = vec4(col, 1.);',
     '}'
   ].join('\n');

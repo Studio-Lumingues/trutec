@@ -482,116 +482,25 @@
 
 
 /* ============================================================================
-   PAPEL: o painel lateral vira uma folha de papel, tudo "escrito" a caneta
-   (grão e fibras de papel, cantos irregulares, tinta marrom-escura, caneta vermelha
-   pro mult, marca-texto nos botões e o tremido desenhado à mão do #boil-sm).
-   Ajuste as cores em --pp (papel), --pi (tinta), --pi2 (tinta clara), --pr (caneta vermelha).
-   ============================================================================ */
-#screen-trutec .tt-side {
-  --pp: #f4ead6; --pi: #2a1f17; --pi2: #7a6a58; --pr: #b8321f; --pb: #2c5fa8; --pg: #2f6b3a;
-  color: var(--pi); padding: 1rem .9rem;
-  border: 0; border-radius: .55rem .4rem .6rem .45rem / .45rem .6rem .4rem .55rem;
-  background-color: var(--pp);
-  background-image:
-    radial-gradient(120% 70% at 50% 0%, rgba(255,255,255,.45), transparent 60%),
-    radial-gradient(150% 130% at 50% 50%, transparent 55%, rgba(120,80,40,.3) 100%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .36 0 0 0 0 .26 0 0 0 0 .16 1.1 0 0 0 -.34'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012 .55' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .32 0 0 0 0 .2 .9 0 0 0 -.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
-    linear-gradient(170deg, #f8efdc, #eadcc0);
-  box-shadow: inset 0 0 0 1px rgba(110,75,40,.28), inset 0 0 1.6rem rgba(120,80,40,.2), 0 .12rem .3rem rgba(0,0,0,.4), 0 1.1rem 2.2rem rgba(0,0,0,.5);
-  -webkit-backdrop-filter: none; backdrop-filter: none;
-  animation: ttPaperIn .6s cubic-bezier(.2, .9, .3, 1) both;
-}
-@keyframes ttPaperIn { from { opacity: 0; transform: translateY(-.9rem) rotate(-1.6deg); } }
-
-/* rótulos pequenos e divisórias riscadas */
-#screen-trutec .tt-side .tt-kicker, #screen-trutec .tt-side .tt-moneybox span, #screen-trutec .tt-side .tt-counters span, #screen-trutec .tt-side .tt-ring-in small,
-#screen-trutec .tt-side .tt-chips::after, #screen-trutec .tt-side .tt-mult::after, #screen-trutec .tt-side .tt-pips::before { color: var(--pi2); }
-#screen-trutec .tt-side .tt-calc { border-top: 2px dashed rgba(42,31,23,.28); }
-#screen-trutec .tt-side .tt-cm i { color: var(--pi2); opacity: 1; }
-
-/* topo: "Ante" vira um carimbo; o botão Sair, uma etiqueta riscada */
-#screen-trutec .tt-side .tt-ante { color: var(--pr); background: none; box-shadow: none; border: 2px solid var(--pr); border-radius: .35rem; padding: .2rem .6rem; transform: rotate(-3deg); letter-spacing: .14em; font-weight: 900; opacity: .9; filter: url(#boil-sm); }
-#screen-trutec .tt-side .tt-bname span { background: rgba(42,31,23,.06); box-shadow: inset 0 0 0 1.5px rgba(42,31,23,.45); }
-#screen-trutec .tt-side .tt-bname small { color: var(--pr); }
-#screen-trutec .tt-side .tt-bname b { filter: url(#boil-sm); }
-
-/* anel: traço de caneta */
-#screen-trutec .tt-side .tt-ring { background: conic-gradient(#7a3b1d 0, var(--pr) calc(var(--p) * 1%), rgba(42,31,23,.14) 0); filter: url(#boil-sm); }
-#screen-trutec .tt-side .tt-ring::before { background: radial-gradient(circle at 50% 30%, #fbf5e8, #efe3cb); box-shadow: inset 0 0 0 1.5px rgba(42,31,23,.18); }
-#screen-trutec .tt-side .tt-ring-in > b { color: var(--pi); }
-#screen-trutec .tt-side .tt-ring-in span { color: var(--pi2); }
-#screen-trutec .tt-side .tt-ring-in span b { color: var(--pi); }
-
-/* mãos / trocas: caixinhas desenhadas */
-#screen-trutec .tt-side .tt-counters span { background: rgba(42,31,23,.04); box-shadow: none; border: 1.5px dashed rgba(42,31,23,.38); border-radius: .7rem .5rem .75rem .55rem / .55rem .75rem .5rem .7rem; }
-#screen-trutec .tt-side .tt-counters b { color: var(--pi); filter: url(#boil-sm); }
-#screen-trutec .tt-side .tt-counters span:last-child b { color: var(--pb); }
-
-/* fichas × mult: números a caneta (preto e vermelho) */
-#screen-trutec .tt-side .tt-chips, #screen-trutec .tt-side .tt-mult, #screen-trutec .tt-side .tt-total, #screen-trutec .tt-side .tt-money { filter: url(#boil-sm); }
-#screen-trutec .tt-side .tt-chips { color: var(--pi); }
-#screen-trutec .tt-side .tt-mult  { color: var(--pr); }
-#screen-trutec .tt-side .tt-total { color: var(--pr); }
-#screen-trutec .tt-side .tt-pips i { background: rgba(42,31,23,.16); }
-#screen-trutec .tt-side .tt-pips i.on   { background: #2f8f4e; }
-#screen-trutec .tt-side .tt-pips i.lost { background: #c0392b; }
-#screen-trutec .tt-side .tt-pips i.tie  { background: #9a8f80; }
-
-/* dinheiro: recibo anotado */
-#screen-trutec .tt-side .tt-moneybox { background: rgba(47,107,58,.07); box-shadow: none; border: 1.5px dashed rgba(47,107,58,.55); border-radius: .7rem .5rem .75rem .55rem / .55rem .75rem .5rem .7rem; }
-#screen-trutec .tt-side .tt-moneybox .tt-money { color: var(--pg); }
-
-/* botões: marca-texto com contorno de caneta e sombra de tinta */
-#screen-trutec .tt-side .tt-exit, #screen-trutec .tt-side .tt-actions .action-btn {
-  --mk: #f3cf4d; background-color: var(--mk); background-image: none; color: var(--pi); text-shadow: none;
-  border: 2px solid var(--pi); border-radius: .75rem .55rem .8rem .6rem / .6rem .8rem .55rem .75rem;
-  box-shadow: .12rem .18rem 0 var(--pi); font-weight: 900; letter-spacing: .05em; filter: url(#boil-sm);
-  transform: rotate(-.6deg); transition: transform .35s cubic-bezier(.34, 1.56, .64, 1), box-shadow .2s ease;
-}
-#screen-trutec .tt-side .tt-actions .action-btn:nth-child(even) { transform: rotate(.5deg); }
-#screen-trutec .tt-side .tt-exit { --mk: #fbf5e8; padding: .3rem .75rem; font-size: .9rem; letter-spacing: .02em; }
-#screen-trutec .tt-side #tt-truco { --mk: #f3cf4d; }
-#screen-trutec .tt-side #tt-swap  { --mk: #a9d0ee; }
-#screen-trutec .tt-side #tt-run   { --mk: #ee9a8a; }
-@media (hover: hover) {
-  #screen-trutec .tt-side .tt-exit:not(:disabled):hover, #screen-trutec .tt-side .tt-actions .action-btn:not(:disabled):hover {
-    transform: translateY(-.14rem) rotate(0deg) scale(1.02); box-shadow: .16rem .28rem 0 var(--pi); background-position: 0 0; filter: url(#boil-sm);
-  }
-}
-#screen-trutec .tt-side .tt-exit:not(:disabled):active, #screen-trutec .tt-side .tt-actions .action-btn:not(:disabled):active {
-  transform: translate(.1rem, .15rem) scale(.98); box-shadow: .02rem .03rem 0 var(--pi); filter: url(#boil-sm); transition-duration: .08s;
-}
-#screen-trutec .tt-side .tt-actions .action-btn:disabled {
-  background-color: transparent; background-image: none; color: rgba(42,31,23,.38); border: 2px dashed rgba(42,31,23,.3); box-shadow: none; transform: none; cursor: not-allowed;
-}
-#screen-trutec .tt-side .tt-exit:focus-visible, #screen-trutec .tt-side .tt-actions .action-btn:focus-visible { outline: .16rem dashed var(--pr); outline-offset: .2rem; }
-
-@media (max-width: 900px) {
-  #screen-trutec .tt-side { animation: none; padding: .7rem; }
-  #screen-trutec .tt-side .tt-calc { border-top: 0; border-left: 2px dashed rgba(42,31,23,.28); }
-}
-@media (prefers-reduced-motion: reduce) { #screen-trutec .tt-side { animation: none; } }
-
-
-/* ============================================================================
    FUNDO DE PANO LISTRADO (trutec-bg.js) + CARD DE VIDRO
    O canvas fica atrás de tudo; quando ele liga, o fundo listrado antigo some.
    ============================================================================ */
-#screen-trutec .tt-bgfx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; display: block; pointer-events: none; background: #0a1226; }
+#screen-trutec .tt-bgfx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; display: block; pointer-events: none; background: #16223f; }
 #screen-trutec.tt-fx-on .social-bg, #screen-trutec.tt-fx-on .social-sheen { display: none; }
 
-/* card translúcido: vidro fosco que deixa o xadrez aparecer borrado por trás */
+/* card translúcido: vidro fosco claro; o pano aparece borrado por trás e o texto continua creme */
 #screen-trutec .tt-side {
   border-radius: 1.6rem;
   background:
-    linear-gradient(160deg, rgba(255,255,255,.13), rgba(255,255,255,.035) 38%, rgba(8,8,12,.22)),
-    rgba(14,13,19,.34);
-  border: 1px solid rgba(255,255,255,.17);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), inset 0 -1px 0 rgba(255,255,255,.04), 0 1.6rem 3.4rem rgba(0,0,0,.5);
-  -webkit-backdrop-filter: blur(22px) saturate(1.5) brightness(.85); backdrop-filter: blur(22px) saturate(1.5) brightness(.85);
-  text-shadow: 0 1px 8px rgba(0,0,0,.45);
+    linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,.07) 45%, rgba(255,255,255,.03)),
+    rgba(18,26,52,.30);
+  border: 1px solid rgba(255,255,255,.3);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(255,255,255,.06), 0 1.4rem 3rem rgba(0,0,0,.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
+  color: #fff8f0; text-shadow: 0 1px 6px rgba(0,0,0,.5);
 }
-#screen-trutec .tt-side .tt-ring::before { background: radial-gradient(circle at 50% 30%, rgba(34,32,42,.7), rgba(8,8,12,.75)); }
-#screen-trutec .tt-side .tt-counters span, #screen-trutec .tt-side .tt-ante { background: rgba(255,255,255,.07); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), inset 0 1px 0 rgba(255,255,255,.12); }
-#screen-trutec .tt-side .tt-moneybox { background: rgba(255,210,74,.09); }
+#screen-trutec .tt-side .tt-ring::before { background: radial-gradient(circle at 50% 30%, rgba(40,48,78,.62), rgba(14,18,38,.7)); }
+#screen-trutec .tt-side .tt-counters span, #screen-trutec .tt-side .tt-ante { background: rgba(255,255,255,.12); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22), inset 0 1px 0 rgba(255,255,255,.2); }
+#screen-trutec .tt-side .tt-moneybox { background: rgba(255,210,74,.14); box-shadow: inset 0 0 0 1px rgba(255,210,74,.38); }
+#screen-trutec .tt-side :is(.tt-kicker, .tt-moneybox span, .tt-counters span, .tt-ring-in small, .tt-chips::after, .tt-mult::after, .tt-pips::before) { color: rgba(255,248,240,.82); }
+#screen-trutec .tt-side .tt-calc { border-top-color: rgba(255,255,255,.22); }
