@@ -393,7 +393,7 @@
 
 /* ---- estrutura da loja ---- */
 .tt-shop { display: flex; flex-direction: column; gap: clamp(.55rem, 1.6vh, .9rem); }
-.tt-overlay.tt-shopmode .tt-modal { background: radial-gradient(120% 90% at 50% 0%, #1d1530 0%, #0c0a14 60%); border: 2.5px solid #0a0a0a; box-shadow: 0 0 0 .18rem rgba(255,210,63,.5), 0 1.2rem 3rem rgba(0,0,0,.65); }
+.tt-overlay.tt-shopmode .tt-modal { background: none; border: 0; box-shadow: none; overflow: visible; }
 .tt-overlay.tt-shopmode .tt-modal h2 { text-transform: uppercase; letter-spacing: .12em; color: #ffd23f; text-shadow: 0 .18rem 0 #0a0a0a, 0 0 1.2rem rgba(255,210,63,.35); }
 
 /* carteira */
@@ -415,7 +415,7 @@
 
 /* painéis */
 .tt-panel { position: relative; padding: .55rem .6rem .35rem; border-radius: 1rem .8rem 1.1rem .85rem / .85rem 1.1rem .8rem 1rem; background: rgba(255,248,240,.05); border: 2px solid rgba(255,248,240,.22); }
-.tt-stall { background: linear-gradient(180deg, rgba(255,210,63,.1), rgba(255,248,240,.03)); border-color: rgba(255,210,63,.6); padding-top: 0; overflow: hidden; }
+.tt-stall { background: linear-gradient(180deg, rgba(255,210,63,.1), rgba(255,248,240,.03)); border-color: rgba(255,210,63,.6); padding-top: 0; overflow: visible; }
 .tt-awning { height: .9rem; margin: 0 -.6rem .55rem; background: repeating-linear-gradient(90deg, #e0463a 0 1.2rem, #fff8f0 1.2rem 2.4rem); border-bottom: 2.5px solid #0a0a0a; }
 :is(#screen-trutec, .tt-demo) .tt-shop h3.tt-ribbon { display: flex; align-items: center; justify-content: center; gap: .55rem; margin: 0 0 .55rem; opacity: 1; text-align: center;
   font-size: clamp(.95rem, 2.2vh, 1.2rem); letter-spacing: .1em; text-transform: uppercase; color: #fff8f0; }
@@ -613,7 +613,7 @@
    ============================================================================ */
 .tt-stall .tt-shopcards { --scw: calc(clamp(3.4rem, 9.5vh, 7rem) * var(--shopscale, 1)); gap: .8rem .9rem; }
 .tt-own .tt-shopcards   { --scw: calc(clamp(3rem, 8vh, 6rem) * var(--shopscale, 1)); gap: .7rem .9rem; }
-.tt-own { overflow: hidden; }                                              /* a fita some na borda de cima do painel */
+.tt-own { overflow: visible; }                                             /* a fita vem do topo da tela */
 .tt-awning { position: relative; z-index: 5; }                             /* na barraquinha, os crachás saem de baixo do toldo */
 :is(#screen-trutec, .tt-demo) .tt-shop h3.tt-ribbon { position: relative; z-index: 6; }
 
@@ -639,18 +639,17 @@
 @keyframes ttBadgeSwing { 0% { transform: rotate(0); } 20% { transform: rotate(4deg); } 45% { transform: rotate(-3deg); } 65% { transform: rotate(1.8deg); } 82% { transform: rotate(-.8deg); } 100% { transform: rotate(0); } }
 @keyframes ttBadgeGlow { 50% { filter: drop-shadow(0 0 .5rem #ffd23f) drop-shadow(0 .25rem .35rem rgba(0, 0, 0, .45)); } }
 
-/* a descida elástica: cai, estica no fim da fita, quica e balança (poin, poin, poin) */
+/* a descida elástica: cai do topo do site, estica no fim da fita e balança como mola amortecida */
 :is(#screen-trutec, .tt-demo) .tt-fresh .tt-sc:not(.empty), :is(#screen-trutec, .tt-demo) .tt-own .tt-sc.just {
-  transform-origin: 50% 0; animation: ttBadgeDrop 1.15s ease-in-out both; animation-delay: calc(var(--i, 0) * 110ms); }
+  transform-origin: 50% 0; animation: ttBadgeDrop 1.6s both; animation-delay: calc(var(--i, 0) * 120ms); }
 :is(#screen-trutec, .tt-demo) .tt-sc.just .tt-sc-face { animation: none; }
 @keyframes ttBadgeDrop {
-  0%   { transform: translateY(-115%) scaleY(1) rotate(0deg); animation-timing-function: cubic-bezier(.55, 0, 1, .6); }
-  34%  { transform: translateY(7%) scaleY(1.07) rotate(3deg); animation-timing-function: cubic-bezier(.2, .7, .4, 1); }
-  48%  { transform: translateY(-5%) scaleY(.96) rotate(-3.5deg); }
-  60%  { transform: translateY(3%) scaleY(1.03) rotate(2.4deg); }
-  71%  { transform: translateY(-1.8%) scaleY(.99) rotate(-1.6deg); }
-  82%  { transform: translateY(1%) scaleY(1.01) rotate(.9deg); }
-  92%  { transform: translateY(-.3%) rotate(-.3deg); }
+  0%   { transform: translateY(-125vh) scaleY(1) rotate(0deg); animation-timing-function: cubic-bezier(.5, 0, .9, .5); }
+  34%  { transform: translateY(12%) scaleY(1.1) rotate(3deg); animation-timing-function: ease-in-out; }
+  50%  { transform: translateY(-7%) scaleY(.94) rotate(-3.5deg); animation-timing-function: ease-in-out; }
+  63%  { transform: translateY(3.5%) scaleY(1.04) rotate(2.2deg); animation-timing-function: ease-in-out; }
+  75%  { transform: translateY(-1.6%) scaleY(.98) rotate(-1.2deg); animation-timing-function: ease-in-out; }
+  87%  { transform: translateY(.7%) scaleY(1.01) rotate(.5deg); animation-timing-function: ease-in-out; }
   100% { transform: none; }
 }
 @media (prefers-reduced-motion: reduce) {
