@@ -126,30 +126,25 @@
   var NOTE_RANDOM = false;       // false = o post-it é sempre amarelo; true = muda de cor a cada corrida
   var shownBlind = null;         // blind cuja meta está no post-it (pra animar a troca de folha)
   var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // post-it PRETO, parado (sem animação), com grampo prateado no canto de cima à direita
+  // FOLHINHA de calendário de arrancar (parada): bloco enrolado em cima, folha do dia embaixo
   function noteSvg() {
-    return '<svg class="tt-paper" viewBox="0 0 200 215" aria-hidden="true" focusable="false">' +
+    var stack = '';
+    var cols = ['#cdbf95', '#e9e2c9', '#b3a67c', '#ddd5b6', '#a89a6e', '#e2dac0'];
+    for (var i = 0; i < cols.length; i++) stack += '<rect x="' + (14 + (i % 2) * 1.5) + '" y="' + (68 + i * 2.6) + '" width="' + (172 - (i * 5 % 7)) + '" height="2.7" fill="' + cols[i] + '"/>';
+    return '<svg class="tt-paper" viewBox="0 0 200 300" aria-hidden="true" focusable="false">' +
       '<defs>' +
-        '<linearGradient id="ttpg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a2a2d"/><stop offset=".5" stop-color="#1d1d20"/><stop offset="1" stop-color="#151517"/></linearGradient>' +
-        '<filter id="ttgrain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="n"/>' +
-          '<feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .5 -.18"/></filter>' +
-        '<filter id="ttblur" x="-10%" y="-10%" width="125%" height="130%"><feGaussianBlur stdDeviation="3"/></filter>' +
+        '<linearGradient id="ttsheet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6f2e4"/><stop offset="1" stop-color="#ebe6d3"/></linearGradient>' +
+        '<linearGradient id="ttroll" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ddd6c0"/><stop offset=".35" stop-color="#f7f3e6"/><stop offset="1" stop-color="#e6dfc9"/></linearGradient>' +
+        '<linearGradient id="ttdrop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>' +
+        '<filter id="ttblur" x="-10%" y="-10%" width="125%" height="125%"><feGaussianBlur stdDeviation="3"/></filter>' +
       '</defs>' +
-      '<rect x="24" y="44" width="160" height="160" fill="#000" opacity=".5" filter="url(#ttblur)"/>' +
-      '<rect x="20" y="34" width="160" height="160" fill="url(#ttpg)"/>' +
-      '<rect x="20" y="34" width="160" height="160" filter="url(#ttgrain)" opacity=".35"/>' +
-      '<path d="M20 34H180M20 34V194" stroke="#fff" stroke-opacity=".07" stroke-width="1"/>' +
-      '<path d="M20 188L26 194H20Z" fill="#3a3a3d" opacity=".7"/>' +
-    '</svg>';
-  }
-  // grampo prateado em duas camadas: 'back' fica ATRÁS da folha (fio da direita some atrás dela),
-  // 'front' fica NA FRENTE (fio da esquerda + laçada de dentro)
-  function clipSvg(layer) {
-    var d = layer === 'front' ? 'M135 30V52a3.5 3.5 0 0 0 7 0V26' : 'M142 26V52a3.5 3.5 0 0 1-7 0V13a8 8 0 0 1 16 0V44';
-    return '<svg class="tt-clip tt-clip-' + layer + '" viewBox="0 0 200 215" aria-hidden="true" focusable="false">' +
-      '<path d="' + d + '" fill="none" stroke="#6d737a" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<path d="' + d + '" fill="none" stroke="#dde1e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
-      (layer === 'front' ? '<path d="M136.4 32V50" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width=".7" stroke-linecap="round"/>' : '') +
+      '<rect x="18" y="24" width="176" height="272" rx="6" fill="#000" opacity=".5" filter="url(#ttblur)"/>' +
+      '<rect x="14" y="88" width="172" height="204" fill="url(#ttsheet)"/>' +
+      stack +
+      '<rect x="14" y="84" width="172" height="20" fill="url(#ttdrop)"/>' +
+      '<rect x="10" y="12" width="180" height="60" rx="10" fill="url(#ttroll)"/>' +
+      '<rect x="182" y="14" width="8" height="56" rx="4" fill="#e6b13a"/>' +
+      '<path d="M18 40H180" stroke="#000" stroke-opacity=".06" stroke-width="1"/>' +
     '</svg>';
   }
   var NOTE_COLORS = ['#f0489f', '#f0e062', '#5ec8f2', '#7ddc6e', '#ff9a4d', '#b98cf0'], lastNote = -1;
@@ -213,11 +208,9 @@
           '<div class="tt-bname"><span id="tt-bicon"></span><b id="tt-bname"></b><small id="tt-beffect"></small></div>' +
           '<div class="tt-notewrap" id="tt-ring" aria-label="Meta e pontos">' +
             '<div class="tt-notes" id="tt-notes">' +
-              clipSvg('back') +
               '<div class="tt-postit" id="tt-postit"><div class="tt-sway">' + noteSvg() +
-                '<div class="tt-ntext"><small>Meta</small><b id="tt-target">0</b></div>' +
+                '<div class="tt-ntext"><small>META</small><b id="tt-target">0</b></div>' +
               '</div></div>' +
-              clipSvg('front') +
             '</div>' +
             '<div class="tt-have"><small>Pontos</small><b id="tt-score">0</b></div>' +
           '</div>' +
@@ -541,6 +534,8 @@
       shownBlind = b;
     }
     $('tt-target').textContent = fmt(b.target);
+    var tgEl = $('tt-target'), tl = tgEl.textContent.length;
+    tgEl.style.fontSize = tl <= 3 ? '3.6rem' : tl === 4 ? '3rem' : tl === 5 ? '2.5rem' : '2rem';
     var pit = $('tt-postit'); if (pit && R.noteColor !== undefined) pit.style.setProperty('--note', NOTE_COLORS[R.noteColor]);
     if (window.TruCount) TruCount.run($('tt-score'), R.score, {
       format: function (v) { return fmt(Math.round(v)); },
@@ -1376,26 +1371,24 @@
     if (hand.children[pick]) hand.children[pick].click();
   }
 
-  // ---------- post-it da META (com grampo) + pontos atuais logo abaixo ----------
+  // ---------- FOLHINHA da META (calendário de arrancar) + pontos atuais logo abaixo ----------
   (function injectNoteCss() {
     var old = document.getElementById('tt-postit-css'); if (old) old.remove();
     var st = document.createElement('style'); st.id = 'tt-postit-css';
+    var FONT = '"Montserrat","Poppins","Arial Black","Gotham Black","Helvetica Neue",Arial,sans-serif';
     st.textContent =
-      '.tt-notewrap{display:flex;flex-direction:column;align-items:center;gap:.4rem;padding:.6rem 0 .2rem}' +
-      '.tt-notes{--note:#f0e062;position:relative;width:9.6rem;aspect-ratio:200/215;margin:0 auto}' +
-      '.tt-postit{--note:#f0e062;position:absolute;inset:0;z-index:1}' +
+      '.tt-notewrap{display:flex;flex-direction:column;align-items:center;gap:.4rem;padding:.5rem 0 .2rem}' +
+      '.tt-notes{position:relative;width:7rem;aspect-ratio:200/300;margin:0 auto}' +
+      '.tt-postit{position:absolute;inset:0}' +
       '.tt-sway{position:absolute;inset:0}' +
       '.tt-paper{position:absolute;inset:0;width:100%;height:100%;overflow:visible}' +
-      '.tt-ntext{position:absolute;left:14%;right:12%;top:33%;bottom:21%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;color:#f4f1ea}' +
-      '.tt-ntext small{font:700 1rem/1 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;letter-spacing:.04em;text-transform:none;opacity:.75}' +
-      '.tt-ntext b{font:700 2.1rem/1.05 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;white-space:nowrap}' +
-      '.tt-clip{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}' +
-      '.tt-clip-back{z-index:0}' +
-      '.tt-clip-front{z-index:2;filter:drop-shadow(.05rem .1rem .08rem rgba(0,0,0,.45))}' +
-                        '.tt-have{display:flex;flex-direction:column;align-items:center;gap:.1rem;color:#fff8f0}' +
+      '.tt-ntext{position:absolute;left:10%;right:10%;top:36%;bottom:12%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;color:#1d1d1f;font-family:' + FONT + '}' +
+      '.tt-ntext small{font:900 .8rem/1 ' + FONT + ';letter-spacing:.16em;text-transform:uppercase;color:#1d1d1f}' +
+      '.tt-ntext b{font:900 3.6rem/.95 ' + FONT + ';letter-spacing:-.03em;white-space:nowrap;color:#1d1d1f}' +
+      '.tt-have{display:flex;flex-direction:column;align-items:center;gap:.1rem;color:#fff8f0}' +
       '.tt-have small{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75}' +
       '.tt-have b{font-size:2rem;line-height:1.05;text-shadow:0 .1rem .3rem rgba(0,0,0,.5)}';
-                            document.head.appendChild(st);
+    document.head.appendChild(st);
   })();
 
   // ---------- ligação com o lobby ----------
