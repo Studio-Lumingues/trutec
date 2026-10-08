@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="assets/personagem.png" />
 <link rel="stylesheet" href="style.css?v=17" />
 <link rel="stylesheet" href="trutec.css?v=2" />
+<link rel="stylesheet" href="mode-pick.css?v=1" />
 <script>
 try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentElement.classList.add('colorblind'); } catch (e) {}
 try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documentElement.classList.add('leaving-intro'); } catch (e) {}
@@ -198,8 +199,8 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       
 
       <div class="lobby-actions">
-        <button id="btn-play" type="button" class="btn btn-primary">Truco Paulista</button>
-        <button id="btn-open-trutec" type="button" class="btn btn-primary">Trutec <small style="opacity:.6;font-size:.7em">solo</small></button>
+        <button id="btn-play" type="button" class="btn btn-primary">Jogar</button>
+        <button id="btn-open-trutec" type="button" class="btn btn-primary" style="display:none" hidden>Trutec <small style="opacity:.6;font-size:.7em">solo</small></button>
         <button id="btn-open-character-editor" type="button" class="btn btn-glass" aria-label="Avatar"><span class="glass-checker" aria-hidden="true"></span><img id="character-preview-img" class="glass-avatar" src="assets/personagem.svg" alt="" draggable="false" /><span class="glass-label">Avatar</span></button>
         <button id="btn-open-social" type="button" class="btn btn-glass" aria-label="Social"><span class="glass-checker" aria-hidden="true"></span><span class="glass-duo" aria-hidden="true"><img class="gd-back" src="assets/personagem-branco.svg" alt="" draggable="false" /><img class="gd-front" src="assets/personagem-branco.svg" alt="" draggable="false" /></span><span class="glass-label">Social</span></button>
         <button id="btn-help" type="button" class="btn btn-secondary">Ajuda</button>
@@ -1066,6 +1067,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="client.js?v=35"></script>
   <script src="count-up.js?v=2"></script>
   <script src="trutec.js?v=3"></script>
+  <script src="mode-pick.js?v=1"></script>
   <script src="profile-chart.js"></script>
   <script src="social.js"></script>
   <script src="social-duo.js"></script>

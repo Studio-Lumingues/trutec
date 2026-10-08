@@ -1,0 +1,14 @@
+/* ============================================================================
+   ESCOLHA DO MODO (mode-pick.js): ao clicar em "Jogar" aparecem dois botões.
+   ============================================================================ */
+body.mp-open .tut-fab { display: none !important; }      /* o Jailson (botão do tutorial) não aparece nesta tela */
+
+.mp { position: fixed; inset: 0; z-index: 250; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(4,3,3,.82); animation: mpIn .2s ease-out; }
+.mp.hidden { display: none; }
+@keyframes mpIn { from { opacity: 0; } }
+.mp-box { width: min(100%, 20rem); display: flex; flex-direction: column; gap: .8rem; align-items: stretch; text-align: center; color: #fff8f0; }
+.mp-box h2 { margin: 0 0 .2rem; font-size: 1.3rem; letter-spacing: .03em; }
+.mp-box .btn { width: 100%; font-size: 1.15rem; padding: .8rem 1rem; }
+.mp-box .mp-back { font-size: .95rem; padding: .5rem 1rem; }
+.mp-box small { display: block; opacity: .65; font-size: .72em; font-weight: 600; margin-top: .1rem; }
+@media (prefers-reduced-motion: reduce) { .mp { animation: none; } }
