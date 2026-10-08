@@ -28,8 +28,8 @@
     '<div class="mp-box">' +
       '<div class="mp-view mp-pick">' +
         '<h2 class="mp-title">Como você quer jogar?</h2>' +
-        '<button type="button" class="mp-opt" data-mode="truco"><span class="mp-opt-txt"><b>Truco Paulista</b><span>Online, com amigos</span></span></button>' +
-        '<button type="button" class="mp-opt" data-mode="trutec"><span class="mp-opt-txt"><b>Trutec</b><span>Solo</span></span></button>' +
+        '<button type="button" class="btn btn-primary mp-opt" data-mode="truco">Truco Paulista<small>Online, com amigos</small></button>' +
+        '<button type="button" class="btn btn-secondary mp-opt" data-mode="trutec">Trutec<small>Solo</small></button>' +
         '<button type="button" class="mp-back" data-sfx="back">Voltar</button>' +
       '</div>' +
       '<div class="mp-view mp-load" aria-live="polite">' +
