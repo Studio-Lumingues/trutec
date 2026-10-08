@@ -281,38 +281,56 @@
 
 
 /* ============================================================================
-   BOTÕES COM CARA DE JOGO + LOJA NOVA
-   Teclas grossas (contorno preto + "degrau" colorido embaixo) que afundam ao
-   clicar. Cores por função: verde = comprar, vermelho = vender, roxo = rolar,
-   dourado = avançar. Vale pra todos os botões da tela do Trutec.
+   BOTÕES COM CARA DE JOGO, MINIMALISTAS (estilo iOS)
+   Cantos macios, vidro leve (brilho no topo + anel de luz fina), sombra suave.
+   Passar o mouse: sobe um pouquinho, brilha e um reflexo atravessa o botão.
+   Tocar/clicar: afunda e volta com mola. Cores por função: verde = comprar,
+   vermelho = vender, roxo = rolar, dourado = avançar, azul = trocar.
+   Vale pra todos os botões da tela do Trutec. Ajuste: --bg (cor) e --ink (texto).
    ============================================================================ */
 :is(#screen-trutec, .tt-demo) .btn, :is(#screen-trutec, .tt-demo) .action-btn {
-  --bg: #fff8f0; --sh: #a39a8f; --ink: #0a0a0a; --d: .28rem;
-  position: relative; background: var(--bg); color: var(--ink); border: 0; margin-bottom: .45rem;
-  border-radius: .8rem .6rem .85rem .65rem / .65rem .85rem .6rem .8rem;
-  font-weight: 800; letter-spacing: .02em; text-shadow: 0 1px 0 rgba(255,255,255,.35); cursor: pointer;
-  box-shadow: inset 0 .16rem 0 rgba(255,255,255,.6), inset 0 -.1rem 0 rgba(0,0,0,.07),
-    0 var(--d) 0 0 var(--sh), 0 var(--d) 0 .16rem var(--ink), 0 0 0 .16rem var(--ink);
-  transform: translateY(0); transition: transform .08s ease-out, box-shadow .08s ease-out, filter .15s;
+  --bg: #fff8f0; --ink: #0a0a0a;
+  position: relative; color: var(--ink); border: 0; margin-bottom: .45rem;
+  border-radius: .95rem; font-weight: 800; letter-spacing: .01em; text-shadow: none; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  background-color: var(--bg);
+  background-image: linear-gradient(110deg, transparent 38%, rgba(255,255,255,.65) 50%, transparent 62%),
+                    linear-gradient(180deg, rgba(255,255,255,.36), rgba(255,255,255,0) 55%, rgba(0,0,0,.07));
+  background-repeat: no-repeat; background-size: 260% 100%, 100% 100%; background-position: 170% 0, 0 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8), inset 0 0 0 1px rgba(255,255,255,.2),
+    0 .12rem .35rem rgba(0,0,0,.35), 0 .5rem 1rem -.5rem rgba(0,0,0,.55);
+  transform: translateY(0) scale(1);
+  transition: transform .45s cubic-bezier(.34, 1.56, .64, 1), box-shadow .25s ease, background-position .8s ease, filter .2s;
 }
-:is(#screen-trutec, .tt-demo) .btn:not(:disabled):hover, :is(#screen-trutec, .tt-demo) .action-btn:not(:disabled):hover { --d: .4rem; transform: translateY(-.12rem); filter: brightness(1.07); }
-:is(#screen-trutec, .tt-demo) .btn:not(:disabled):active, :is(#screen-trutec, .tt-demo) .action-btn:not(:disabled):active { --d: .04rem; transform: translateY(.24rem); filter: brightness(.97); }
-:is(#screen-trutec, .tt-demo) .btn:focus-visible, :is(#screen-trutec, .tt-demo) .action-btn:focus-visible { outline: .18rem dashed #ffd23f; outline-offset: .3rem; }
+@media (hover: hover) {
+  :is(#screen-trutec, .tt-demo) .btn:not(:disabled):hover, :is(#screen-trutec, .tt-demo) .action-btn:not(:disabled):hover {
+    transform: translateY(-.14rem) scale(1.02); background-position: -80% 0, 0 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.85), inset 0 0 0 1px rgba(255,255,255,.28),
+      0 .2rem .5rem rgba(0,0,0,.35), 0 .6rem 1.3rem -.4rem var(--bg);
+  }
+}
+:is(#screen-trutec, .tt-demo) .btn:not(:disabled):active, :is(#screen-trutec, .tt-demo) .action-btn:not(:disabled):active {
+  transform: translateY(0) scale(.95); filter: brightness(.95);
+  transition: transform .09s ease-out, box-shadow .15s ease, filter .1s;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), inset 0 0 0 1px rgba(255,255,255,.2), 0 .05rem .2rem rgba(0,0,0,.4);
+}
+:is(#screen-trutec, .tt-demo) .btn:focus-visible, :is(#screen-trutec, .tt-demo) .action-btn:focus-visible { outline: .16rem solid rgba(255,255,255,.9); outline-offset: .18rem; }
 
 /* cores por função */
-:is(#screen-trutec, .tt-demo) .btn.tt-buy    { --bg: #7ee08a; --sh: #3a9a4b; }
-:is(#screen-trutec, .tt-demo) .btn.tt-sell   { --bg: #ff9a8a; --sh: #c23a2c; }
-:is(#screen-trutec, .tt-demo) .btn.tt-reroll { --bg: #b9a7ff; --sh: #6a4fd0; }
-:is(#screen-trutec, .tt-demo) .btn.btn-primary, :is(#screen-trutec, .tt-demo) .btn.tt-go { --bg: #ffd23f; --sh: #c9980b; }
-:is(#screen-trutec, .tt-demo) #tt-truco { --bg: #ffd23f; --sh: #c9980b; }
-:is(#screen-trutec, .tt-demo) #tt-swap  { --bg: #8ec9ff; --sh: #3b7fc4; }
-:is(#screen-trutec, .tt-demo) .action-btn.danger { --bg: #ff6b5e; --sh: #b62419; color: #0a0a0a; }
+:is(#screen-trutec, .tt-demo) .btn.tt-buy    { --bg: #6fdc8c; }
+:is(#screen-trutec, .tt-demo) .btn.tt-sell   { --bg: #ff8a7a; }
+:is(#screen-trutec, .tt-demo) .btn.tt-reroll { --bg: #b7a4ff; }
+:is(#screen-trutec, .tt-demo) .btn.btn-primary, :is(#screen-trutec, .tt-demo) .btn.tt-go { --bg: #ffd23f; }
+:is(#screen-trutec, .tt-demo) #tt-truco { --bg: #ffd23f; }
+:is(#screen-trutec, .tt-demo) #tt-swap  { --bg: #7cc0ff; }
+:is(#screen-trutec, .tt-demo) .action-btn.danger { --bg: #ff6b5e; color: #0a0a0a; }
+:is(#screen-trutec, .tt-demo) .tt-sc .btn { border-radius: .7rem; }
 
-/* desligado: tecla cinza "travada" */
+/* desligado: vidro apagado, sem brilho e sem mexer */
 :is(#screen-trutec, .tt-demo) .btn:disabled, :is(#screen-trutec, .tt-demo) .action-btn:disabled {
-  --bg: #5f5a55; --sh: #3a3633; --ink: #0a0a0a; --d: .2rem; opacity: 1; filter: none; transform: none; cursor: not-allowed; pointer-events: auto;
-  color: #1d1b1a; text-shadow: none;
-  box-shadow: inset 0 .16rem 0 rgba(255,255,255,.12), 0 var(--d) 0 0 var(--sh), 0 var(--d) 0 .16rem var(--ink), 0 0 0 .16rem var(--ink);
+  --bg: #2b2a2e; opacity: 1; filter: none; transform: none; cursor: not-allowed; pointer-events: auto;
+  background-image: none; color: rgba(255,255,255,.34); text-shadow: none; transition: none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
 }
 :is(#screen-trutec, .tt-demo) .tt-actions .action-btn:disabled { opacity: 1; }
 
@@ -325,8 +343,13 @@
 :is(#screen-trutec, .tt-demo) .tt-mbtns .btn { margin-bottom: .45rem; }
 :is(#screen-trutec, .tt-demo) .tt-mbtns { gap: .35rem; }
 :is(#screen-trutec, .tt-demo) .tt-mbtns .btn.tt-go { font-size: clamp(1.05rem, 2.5vh, 1.3rem); letter-spacing: .04em; }
-:is(#screen-trutec, .tt-demo) .tt-mbtns .btn.tt-go:not(:disabled) { animation: ttGoPulse 1.6s ease-in-out infinite; }
-@keyframes ttGoPulse { 50% { filter: brightness(1.12); } }
+:is(#screen-trutec, .tt-demo) .tt-mbtns .btn.tt-go:not(:disabled) { animation: ttGoGlow 2.2s ease-in-out infinite, ttGoSheen 3.4s ease-in-out infinite; }
+/* o botão principal "respira" (brilho dourado) e, de tempos em tempos, um reflexo passa por ele */
+@keyframes ttGoGlow {
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,.8), inset 0 0 0 1px rgba(255,255,255,.2), 0 .12rem .35rem rgba(0,0,0,.35), 0 .5rem 1.1rem -.45rem rgba(255,210,63,.35); }
+  50%      { box-shadow: inset 0 1px 0 rgba(255,255,255,.8), inset 0 0 0 1px rgba(255,255,255,.2), 0 .12rem .35rem rgba(0,0,0,.35), 0 .5rem 1.5rem -.2rem rgba(255,210,63,.75); }
+}
+@keyframes ttGoSheen { 0%, 55% { background-position: 170% 0, 0 0; } 100% { background-position: -80% 0, 0 0; } }
 
 /* ---- estrutura da loja ---- */
 .tt-shop { display: flex; flex-direction: column; gap: clamp(.55rem, 1.6vh, .9rem); }
@@ -374,6 +397,8 @@
 @keyframes ttJust { 30% { transform: translateY(-.7rem) scale(1.25) rotate(-5deg); box-shadow: 0 0 1.4rem #7ee08a; } }
 
 @media (prefers-reduced-motion: reduce) {
+  :is(#screen-trutec, .tt-demo) .btn, :is(#screen-trutec, .tt-demo) .action-btn { transition: none; }
+  :is(#screen-trutec, .tt-demo) .btn:not(:disabled):hover, :is(#screen-trutec, .tt-demo) .action-btn:not(:disabled):hover { transform: none; }
   .tt-fresh .tt-sc, .tt-sc.just .tt-sc-face, .tt-sc-face.voucher, .tt-wallet.lose, .tt-wallet.gain, .tt-delta, :is(#screen-trutec, .tt-demo) .tt-mbtns .btn.tt-go { animation: none !important; }
 }
 
