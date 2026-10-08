@@ -122,6 +122,9 @@
   function hasJ(id) { return !!R && R.jokers.indexOf(id) >= 0; }
   function hasV(id) { return !!R && R.vouchers.indexOf(id) >= 0; }
   function rnd(n) { return Math.floor(Math.random() * n); }
+  // cor do post-it da meta: muda a cada corrida (nunca repete a da corrida anterior)
+  var NOTE_COLORS = ['#f0489f', '#ffd84a', '#5ec8f2', '#7ddc6e', '#ff9a4d', '#b98cf0'], lastNote = -1;
+  function pickNote() { var n; do { n = rnd(NOTE_COLORS.length); } while (n === lastNote); lastNote = n; return n; }
   function other(w) { return w === 'me' ? 'opp' : 'me'; }
   function later(fn, ms) { var t = tok; setTimeout(function () { if (t === tok) fn(); }, ms); }
   function best() { try { return parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { return 0; } }
@@ -179,8 +182,16 @@
         '</header>' +
         '<div class="tt-blind" id="tt-blind">' +
           '<div class="tt-bname"><span id="tt-bicon"></span><b id="tt-bname"></b><small id="tt-beffect"></small></div>' +
-          '<div class="tt-ring" id="tt-ring" aria-label="Progresso da meta">' +
-            '<div class="tt-ring-in"><small>Pontos</small><b id="tt-score">0</b><span>de <b id="tt-target">0</b></span></div>' +
+          '<div class="tt-notewrap" id="tt-ring" aria-label="Meta e pontos">' +
+            '<div class="tt-postit" id="tt-postit">' +
+              '<svg class="tt-clip" viewBox="0 0 36 86" aria-hidden="true" focusable="false">' +
+                '<path d="M22 60V16a7 7 0 0 0-14 0V62a12 12 0 0 0 24 0V20" fill="none" stroke="#5d6269" stroke-width="4.4" stroke-linecap="round"/>' +
+                '<path d="M22 60V16a7 7 0 0 0-14 0V62a12 12 0 0 0 24 0V20" fill="none" stroke="#b9bec4" stroke-width="2.8" stroke-linecap="round"/>' +
+                '<path d="M20.4 58V16a5.4 5.4 0 0 0-10.8 0V60" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width=".9" stroke-linecap="round"/>' +
+              '</svg>' +
+              '<small>Meta</small><b id="tt-target">0</b>' +
+            '</div>' +
+            '<div class="tt-have"><small>Pontos</small><b id="tt-score">0</b></div>' +
           '</div>' +
           '<div class="tt-bar"><i id="tt-barfill"></i></div>' +
           '<div class="tt-counters"><span>Mãos <b id="tt-hands">0</b></span><span>Trocas <b id="tt-trocas">0</b></span></div>' +
@@ -498,6 +509,7 @@
     $('tt-bname').textContent = b.opp.name;
     $('tt-beffect').textContent = b.boss ? b.effect : '';
     $('tt-target').textContent = fmt(b.target);
+    var pit = $('tt-postit'); if (pit && R.noteColor !== undefined) pit.style.setProperty('--note', NOTE_COLORS[R.noteColor]);
     if (window.TruCount) TruCount.run($('tt-score'), R.score, {
       format: function (v) { return fmt(Math.round(v)); },
       parse: function (t) { return parseInt(String(t).replace(/\./g, ''), 10); },
@@ -609,7 +621,7 @@
 
   function startRun() {
     tok++;
-    R = { ante: 1, bi: 0, money: START_MONEY, jokers: [], vouchers: [], score: 0, cleared: 0, blind: null, handsLeft: 0, trocasLeft: 0 };
+    R = { noteColor: pickNote(), ante: 1, bi: 0, money: START_MONEY, jokers: [], vouchers: [], score: 0, cleared: 0, blind: null, handsLeft: 0, trocasLeft: 0 };
     H = null;
     blindSelect();
   }
@@ -1331,6 +1343,26 @@
     else pick = order[order.length - 1];
     if (hand.children[pick]) hand.children[pick].click();
   }
+
+  // ---------- post-it da META (com grampo) + pontos atuais logo abaixo ----------
+  (function injectNoteCss() {
+    if (document.getElementById('tt-postit-css')) return;
+    var st = document.createElement('style'); st.id = 'tt-postit-css';
+    st.textContent =
+      '.tt-notewrap{display:flex;flex-direction:column;align-items:center;gap:.55rem;padding:.9rem 0 .2rem}' +
+      '.tt-postit{--note:#f0489f;position:relative;width:7.2rem;height:6.8rem;box-sizing:border-box;padding:1.5rem .5rem .4rem;' +
+        'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;color:#2a1730;' +
+        'background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,0) 45%),var(--note);' +
+        'box-shadow:0 .5rem .9rem rgba(0,0,0,.45),inset 0 -.5rem .8rem rgba(0,0,0,.08);transform:rotate(1.5deg);transition:background .3s}' +
+      '.tt-postit small{font:700 1rem/1 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;letter-spacing:.04em;text-transform:none;opacity:.85}' +
+      '.tt-postit b{font:700 2.2rem/1.05 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;white-space:nowrap}' +
+      '.tt-clip{position:absolute;left:.7rem;top:-1.3rem;width:1.55rem;height:3.7rem;transform:rotate(-8deg);overflow:visible;' +
+        'filter:drop-shadow(.08rem .15rem .12rem rgba(0,0,0,.45));pointer-events:none}' +
+      '.tt-have{display:flex;flex-direction:column;align-items:center;gap:.1rem;color:#fff8f0}' +
+      '.tt-have small{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75}' +
+      '.tt-have b{font-size:2rem;line-height:1.05;text-shadow:0 .1rem .3rem rgba(0,0,0,.5)}';
+    document.head.appendChild(st);
+  })();
 
   // ---------- ligação com o lobby ----------
   function init() {
