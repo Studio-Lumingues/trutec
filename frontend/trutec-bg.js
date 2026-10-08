@@ -1,56 +1,66 @@
 // ============================================================================
-// FUNDO DO TRUTEC: xadrez torto, escuro e em movimento (WebGL)
-// - O xadrez se retorce sozinho, devagar (pinça no centro + ondas).
-// - Onde o mouse passa o fundo CLAREIA (os quadrados viram creme) e depois escurece
-//   de novo, deixando um rastro. Só o fundo muda; o jogo por cima não.
+// FUNDO DO TRUTEC: pano azul-marinho com listras que balançam (WebGL)
+// - Textura de tecido (trama, fio e manchinhas) e listras creme/azul que vão e voltam
+//   de um lado pro outro, com uma ondinha por cima.
+// - Escuro por padrão. Onde o mouse passa o fundo CLAREIA e depois escurece de novo,
+//   deixando um rastro. Só o fundo muda; o jogo por cima não.
 // - No celular (sem mouse) o toque também clareia, e uma luz fraca passeia sozinha.
 // - Só desenha enquanto a tela do Trutec está aberta e a aba visível.
 // - Sem WebGL: nada acontece e o fundo antigo continua.
-// Ajustes: SIGMA (tamanho da luz), FADE (segundos do rastro), CELLS (tamanho dos
-// quadrados), SPEED (velocidade do movimento), SCALE (qualidade, 1 = nítido).
+// Ajustes: SIGMA (tamanho da luz), FADE (segundos do rastro), SPEED (velocidade do
+// balanço), BAND (0 a 1: fração da tela com listras; 1 = tela toda, 0.5 = só a metade
+// esquerda e o resto de pano liso), SCALE (qualidade, 1 = nítido).
 // Carregar DEPOIS do trutec.js.
 // ============================================================================
 (function () {
   var SCREEN_ID = 'screen-trutec';
-  var SIGMA = 0.2, FADE = 2.4, CELLS = 9.0, SPEED = 1.0, SCALE = 0.8, MAXPTS = 24;
+  var SIGMA = 0.2, FADE = 2.4, SPEED = 1.0, BAND = 1.0, SCALE = 1.0, MAXPTS = 24;
 
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var canHover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   var VS = 'attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
   var FS = [
-    '#extension GL_OES_standard_derivatives : enable',
     'precision highp float;',
-    'uniform vec2 uRes; uniform float uTime, uSigma, uCells; uniform vec3 uTrail[' + MAXPTS + '];',
+    'uniform vec2 uRes; uniform float uTime, uSigma, uPx, uPeriod, uBand; uniform vec3 uTrail[' + MAXPTS + '];',
+    'float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+    'float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);',
+    '  return mix(mix(h(i), h(i + vec2(1., 0.)), f.x), mix(h(i + vec2(0., 1.)), h(i + vec2(1., 1.)), f.x), f.y); }',
     'void main(){',
-    '  float m = min(uRes.x, uRes.y);',
-    '  vec2 uv = (gl_FragCoord.xy - .5 * uRes) / m;',
+    '  vec2 px = gl_FragCoord.xy / uPx;',                         // px em unidades CSS
+    '  vec2 res = uRes / uPx;',
+    '  float m = min(res.x, res.y);',
+    '  vec2 uv = (px - .5 * res) / m;',
     '  float t = uTime;',
-    '  vec2 c = vec2(.10 * sin(t * .23), .08 * cos(t * .19));',
-    '  vec2 p = uv - c;',
-    '  float r = length(p);',
-    '  vec2 q = p / (r + .22);',                                   // quadrados pequenos no centro
-    '  q += .12 * vec2(sin(q.y * 2.3 + t * .45), cos(q.x * 2.1 - t * .38));',
-    '  q += vec2(t * .05, t * .07);',
-    '  float s = sin(q.x * uCells * 3.14159) * sin(q.y * uCells * 3.14159);',
-    '  #ifdef GL_OES_standard_derivatives',
-    '    float w = min(fwidth(s) * .8 + .001, 1.);',
-    '  #else',
-    '    float w = .08;',
-    '  #endif',
-    '  float k = smoothstep(-w, w, s);',                          // 1 = quadrado claro do xadrez
-    '  vec3 base = mix(vec3(.020, .020, .026), vec3(.075, .070, .085), k);',
-    '  vec3 lit  = mix(vec3(.070, .060, .055), vec3(.80, .75, .64), k);',
+    // balanço: vai e volta quase um período inteiro + ondinha que desce pela tela
+    '  float sway = uPeriod * .9 * sin(t * .32) + uPeriod * .18 * sin(t * .8 + px.y * .006);',
+    '  float fx = px.x + sway + 1.4 * (vn(vec2(px.y * .35, 3.)) - .5);',   // borda irregular de fio
+    '  float f = fract(fx / uPeriod);',
+    '  float aa = 1.2 / uPeriod;',
+    '  float cream = smoothstep(0., aa, f) * (1. - smoothstep(.5, .5 + aa, f));',
+    '  float mask = 1.;',
+    '  if (uBand < 1.) mask = 1. - smoothstep(uBand * res.x + sway - 2., uBand * res.x + sway + 2., px.x);',
+    '  cream *= mask;',
+    // textura de pano
+    '  float wv = (.5 + .5 * sin(px.x * 6.2832 / 3.6)) * (.5 + .5 * sin(px.y * 6.2832 / 3.6));',
+    '  float rib = .5 + .5 * sin(px.x * 6.2832 / 4.2);',
+    '  float tex = (.86 + .14 * wv) * (.93 + .07 * rib);',
+    '  tex *= .85 + .3 * vn(px / 70.) + .1 * (vn(px / 9.) - .5);',
+    '  tex *= .96 + .08 * h(floor(px / 1.5));',
+    // cores: apagado (escuro) e aceso (perto do mouse)
+    '  vec3 navyD = vec3(.040, .066, .135), navyL = vec3(.14, .19, .30);',
+    '  vec3 slD = vec3(.07, .09, .145),     slL = vec3(.20, .24, .32);',
+    '  vec3 crD = vec3(.12, .115, .105),    crL = vec3(.88, .82, .68);',
+    '  vec3 base = mix(mix(navyD, slD, mask), crD, cream);',
+    '  vec3 lit  = mix(mix(navyL, slL, mask), crL, cream);',
     '  float L = 0.;',
     '  for (int i = 0; i < ' + MAXPTS + '; i++) {',
     '    vec3 tp = uTrail[i];',
-    '    vec2 d = uv - tp.xy;',
-    '    L += tp.z * exp(-dot(d, d) / (uSigma * uSigma));',
+    '    if (tp.z > 0.) { vec2 d = uv - tp.xy; L += tp.z * exp(-dot(d, d) / (uSigma * uSigma)); }',
     '  }',
     '  L = clamp((L - .05) / .85, 0., 1.); L = L * L * (3. - 2. * L) * .9;',
-    '  vec3 col = mix(base, lit, L);',
-    '  float v = smoothstep(.45, 1.1, length(uv));',
-    '  col *= 1. - .55 * v;',
+    '  vec3 col = mix(base, lit, L) * tex;',
+    '  col *= 1. - .55 * smoothstep(.45, 1.1, length(uv));',
     '  gl_FragColor = vec4(col, 1.);',
     '}'
   ].join('\n');
@@ -72,8 +82,7 @@
     gl = cv.getContext('webgl', { antialias: false, alpha: false, powerPreference: 'low-power' }) ||
          cv.getContext('experimental-webgl');
     if (!gl) return false;
-    gl.getExtension('OES_standard_derivatives');
-    var v = sh(gl.VERTEX_SHADER, VS), f = sh(gl.FRAGMENT_SHADER, FS);
+        var v = sh(gl.VERTEX_SHADER, VS), f = sh(gl.FRAGMENT_SHADER, FS);
     if (!v || !f) return false;
     prog = gl.createProgram();
     gl.attachShader(prog, v); gl.attachShader(prog, f); gl.linkProgram(prog);
@@ -84,14 +93,14 @@
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     var a = gl.getAttribLocation(prog, 'a');
     gl.enableVertexAttribArray(a); gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 0, 0);
-    ['uRes', 'uTime', 'uSigma', 'uCells', 'uTrail'].forEach(function (n) { loc[n] = gl.getUniformLocation(prog, n); });
+    ['uRes', 'uTime', 'uSigma', 'uPx', 'uPeriod', 'uBand', 'uTrail'].forEach(function (n) { loc[n] = gl.getUniformLocation(prog, n); });
     return true;
   }
 
   function resize() {
     var r = cv.getBoundingClientRect();
     W = Math.max(1, r.width); H = Math.max(1, r.height);
-    var sc = SCALE * Math.min(window.devicePixelRatio || 1, 1.5);
+    var sc = SCALE * Math.min(window.devicePixelRatio || 1, 1.25);
     var pw = Math.max(2, Math.round(W * sc)), ph = Math.max(2, Math.round(H * sc));
     if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
     gl.viewport(0, 0, cv.width, cv.height);
@@ -136,7 +145,9 @@
     gl.uniform2f(loc.uRes, cv.width, cv.height);
     gl.uniform1f(loc.uTime, tt);
     gl.uniform1f(loc.uSigma, SIGMA);
-    gl.uniform1f(loc.uCells, CELLS);
+    gl.uniform1f(loc.uPx, cv.width / W);
+    gl.uniform1f(loc.uPeriod, Math.max(56, Math.min(110, W / 18)));
+    gl.uniform1f(loc.uBand, BAND);
     gl.uniform3fv(loc.uTrail, buf);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     raf = requestAnimationFrame(frame);

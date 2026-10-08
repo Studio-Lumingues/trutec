@@ -575,10 +575,10 @@
 
 
 /* ============================================================================
-   FUNDO XADREZ (trutec-bg.js) + CARD DE VIDRO
+   FUNDO DE PANO LISTRADO (trutec-bg.js) + CARD DE VIDRO
    O canvas fica atrás de tudo; quando ele liga, o fundo listrado antigo some.
    ============================================================================ */
-#screen-trutec .tt-bgfx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; display: block; pointer-events: none; background: #050507; }
+#screen-trutec .tt-bgfx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; display: block; pointer-events: none; background: #0a1226; }
 #screen-trutec.tt-fx-on .social-bg, #screen-trutec.tt-fx-on .social-sheen { display: none; }
 
 /* card translúcido: vidro fosco que deixa o xadrez aparecer borrado por trás */
