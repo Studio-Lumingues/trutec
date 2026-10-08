@@ -8,7 +8,7 @@
 //   editor), ela some em fade out. Ao trocar de tela, uma faixa some enquanto
 //   a outra entra. Na mesa do jogo não toca música.
 // - Continua tocando mesmo com a aba em segundo plano (só o botão de mudo pausa).
-// - Cliques em botões, switches e janelas tocam arquivos de assets/sons/ (Kenney, CC0); sons de carta vêm de assets/card-*.wav.
+// - Cliques em botões, switches e janelas tocam arquivos de assets/sons/; sons de carta vêm de assets/card-*.wav.
 //   Se algum arquivo não carregar, o clique e as cartas usam um som sintetizado de reserva.
 // - As falas tocam quando alguém pede (ou aumenta pra) truco, seis, nove, doze.
 // - O sfx01 toca quando a partida começa (início da transição pra mesa).
@@ -273,23 +273,23 @@
   }
 
   // ---- Sons de interface (botões, janelas, switches) — arquivos em assets/sons/ ----
-  // Pacote "Interface Sounds" do Kenney (CC0). Cada tipo tem um arquivo; se algum não carregar,
+  // Tons puros e suaves (sem ruído), gerados sob medida pro jogo. Cada tipo tem um arquivo; se algum não carregar,
   // o clique cai no som sintetizado de antes (os outros ficam em silêncio).
   // Ajustes: UI_GAIN (força geral), UI_PITCH (variação de tom a cada toque) e HOVER_ON (som ao passar o mouse).
   var UI_DIR = 'assets/sons/';
   var UI_FILES = {
-    click:  'botao-clique-1-macio.mp3',   // troque por botao-clique-2-madeira.mp3 ou botao-clique-3-seco.mp3 se preferir
-    back:   'botao-voltar.mp3',
-    open:   'abrir-janela.mp3',
-    close:  'fechar-janela.mp3',
-    toggle: 'ligar-desligar.mp3',
-    ok:     'confirmar.mp3',
-    err:    'erro.mp3',
-    pluck:  'divertido-pluck.mp3',
-    hover:  'botao-hover-bem-baixinho.mp3'
+    click:  'clique-suave.wav',   // alternativas: clique-cristal.wav (mais agudo, tipo vidro) ou clique-grave.wav
+    back:   'voltar.wav',
+    open:   'abrir.wav',
+    close:  'fechar.wav',
+    on:     'ligar.wav',          // switch ligado
+    off:    'desligar.wav',       // switch desligado
+    ok:     'confirmar.wav',
+    err:    'erro.wav',
+    hover:  'hover.wav'
   };
   var UI_GAIN = 1.4;      // multiplica o volume de efeitos (as gravações já estão baixinhas)
-  var UI_PITCH = 0.03;    // ±3% de variação de tom, pra não soar sempre igual
+  var UI_PITCH = 0;       // variação de tom a cada toque (0 = sempre o mesmo tom, mais limpo; 0.03 = ±3%)
   var HOVER_ON = false;   // true = toca um tick bem baixinho ao passar o mouse nos botões
   var uiBufs = {}, uiLoading = false, uiLastT = 0;
 
@@ -306,7 +306,7 @@
     });
   }
 
-  // toca um som de interface pelo nome (click, back, open, close, toggle, ok, err, pluck, hover)
+  // toca um som de interface pelo nome (click, back, open, close, on, off, ok, err, hover)
   function sfxUi(name) {
     if (!sfxReady()) return;
     var now = performance.now();
@@ -366,7 +366,7 @@
   // switches e caixinhas de marcar (ex.: modo daltonismo nas Configurações)
   document.addEventListener('change', function (e) {
     var t = e.target;
-    if (t && t.tagName === 'INPUT' && (t.type === 'checkbox' || t.type === 'radio')) sfxUi('toggle');
+    if (t && t.tagName === 'INPUT' && (t.type === 'checkbox' || t.type === 'radio')) sfxUi(t.checked ? 'on' : 'off');
   }, true);
 
   // (opcional) tick baixinho ao passar o mouse num botão — desligado por padrão
@@ -602,7 +602,7 @@
       Object.keys(calls).forEach(function (k) { calls[k].volume = callVol(k); });
     },
     click: sfxClick,
-    ui: sfxUi,   // GameAudio.ui('ok' | 'err' | 'open' | 'close' | 'toggle' | 'back' | 'pluck' | 'click')
+    ui: sfxUi,   // GameAudio.ui('ok' | 'err' | 'open' | 'close' | 'on' | 'off' | 'back' | 'click')
     cardPlay: sfxCardPlay,
     cardDeal: sfxCardDeal,
     poof: sfxPoof,
