@@ -206,9 +206,9 @@
         '</header>' +
         '<div class="tt-blind" id="tt-blind">' +
           '<div class="tt-bname"><span id="tt-bicon"></span><b id="tt-bname"></b><small id="tt-beffect"></small></div>' +
-          '<div class="tt-notewrap" id="tt-ring" aria-label="Meta e pontos">' +
+          '<div class="tt-notewrap" id="tt-metawrap" aria-label="Meta e pontos">' +
             '<div class="tt-notes" id="tt-notes">' +
-              '<div class="tt-postit" id="tt-postit"><div class="tt-sway">' + noteSvg() +
+              '<div class="tt-postit" id="tt-postit"><div class="tt-sheet">' + noteSvg() +
                 '<div class="tt-ntext"><small>META</small><b id="tt-target">0</b></div>' +
               '</div></div>' +
             '</div>' +
@@ -544,7 +544,6 @@
     });
     else $('tt-score').textContent = fmt(R.score);
     $('tt-barfill').style.width = Math.min(100, R.score / b.target * 100) + '%';
-    var rg = $('tt-ring'); if (rg) rg.style.setProperty('--p', Math.min(100, R.score / b.target * 100).toFixed(1));
     $('tt-hands').textContent = R.handsLeft;
     $('tt-trocas').textContent = R.trocasLeft;
     $('tt-oppname').textContent = b.opp.name;
@@ -622,7 +621,6 @@
     $('tt-ante').textContent = 'Trutec'; $('tt-money').textContent = ''; $('tt-bname').textContent = 'Roguelike solo';
     $('tt-bicon').innerHTML = ic('maocheia'); $('tt-beffect').textContent = ''; $('tt-oppname').textContent = ''; $('tt-oppicon').textContent = '';
     $('tt-target').textContent = '0'; $('tt-score').textContent = '0'; $('tt-barfill').style.width = '0';
-    var rg0 = $('tt-ring'); if (rg0) rg0.style.setProperty('--p', 0);
     $('tt-hands').textContent = '0'; $('tt-trocas').textContent = '0'; $('tt-mani').textContent = ''; $('tt-peek').textContent = '';
     setCalc(CHIPS0, 1, 1, 0); say('');
     $('tt-truco').disabled = true; $('tt-run').disabled = true; $('tt-swap').disabled = true;
@@ -1380,11 +1378,12 @@
       '.tt-notewrap{display:flex;flex-direction:column;align-items:center;gap:.4rem;padding:.5rem 0 .2rem}' +
       '.tt-notes{position:relative;width:7rem;aspect-ratio:200/300;margin:0 auto}' +
       '.tt-postit{position:absolute;inset:0}' +
-      '.tt-sway{position:absolute;inset:0}' +
+      '.tt-sheet{position:absolute;inset:0}' +
       '.tt-paper{position:absolute;inset:0;width:100%;height:100%;overflow:visible}' +
       '.tt-ntext{position:absolute;left:10%;right:10%;top:36%;bottom:12%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;color:#1d1d1f;font-family:' + FONT + '}' +
       '.tt-ntext small{font:900 .8rem/1 ' + FONT + ';letter-spacing:.16em;text-transform:uppercase;color:#1d1d1f}' +
       '.tt-ntext b{font:900 3.6rem/.95 ' + FONT + ';letter-spacing:-.03em;white-space:nowrap;color:#1d1d1f}' +
+      '.tt-notewrap,.tt-notes,.tt-postit,.tt-sheet,.tt-paper,.tt-ntext{animation:none!important;transition:none!important;transform:none!important;filter:none!important}' +
       '.tt-have{display:flex;flex-direction:column;align-items:center;gap:.1rem;color:#fff8f0}' +
       '.tt-have small{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75}' +
       '.tt-have b{font-size:2rem;line-height:1.05;text-shadow:0 .1rem .3rem rgba(0,0,0,.5)}';
