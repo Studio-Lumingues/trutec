@@ -531,30 +531,53 @@
       while (tgEl.getBoundingClientRect().width > avail * 0.98 && fs > 10 && n++ < 24) { fs *= 0.93; tgEl.style.fontSize = fs + 'px'; }
     }
   }
-  // avançou de fase: a folha antiga sobe, se curva, passa por cima do rolo e cai ATRÁS do bloco; por baixo já está a folha nova.
-  // A folha é fatiada em tiras aninhadas; cada tira dobra um pouco mais que a anterior (a ponta fica pra trás), o que dá a curvada.
-  var SEGS = 4, SEG_H = 18, SEG_TOP = 28;                        // em % da altura do bloco (a folha vai de 28% a 100%)
+  // avançou de fase: a folha antiga é erguida pela ponta, se curva, passa por cima do rolo e cai ATRÁS do bloco.
+  // A folha vira uma pilha de tiras; a cada quadro eu calculo a curva da folha em 3D (dobradiça no topo) e projeto cada tira
+  // com perspectiva. Quem já passou da vertical mostra o verso (papel liso) e vai pra trás da folha nova.
+  var FLIP_MS = 1350, NSTRIP = 18, HINGE = 29.3, SHEET_END = 97.4;   // % da altura do bloco onde a folha começa/termina
   function flipMeta(b) {
     if (shownBlind === b) return;
     var notes = $('tt-notes'), sheet = $('tt-postit') && $('tt-postit').querySelector('.tt-sheet');
-    if (notes && sheet && !REDUCED) {
-      var tmp = document.createElement('div'); tmp.innerHTML = sheet.innerHTML;
+    var H = notes ? notes.clientHeight : 0, W = notes ? notes.clientWidth : 0;
+    if (notes && sheet && !REDUCED && H > 0 && W > 0) {
+      [].forEach.call(notes.querySelectorAll('.tt-leaf'), function (e) { e.remove(); });
+      var tmp = document.createElement('div'); tmp.innerHTML = sheet.innerHTML;          // cópia da folha atual (meta antiga)
       [].forEach.call(tmp.querySelectorAll('[id]'), function (e) { e.removeAttribute('id'); });
-      var art = tmp.innerHTML;
-      var leaf = document.createElement('div'); leaf.className = 'tt-leaf';
-      var parent = leaf;
-      for (var k = 0; k < SEGS; k++) {
-        var s0 = SEG_TOP + k * SEG_H, seg = document.createElement('div');
-        seg.className = 'tt-seg tt-s' + (k + 1);
-        seg.style.top = k === 0 ? SEG_TOP + '%' : '100%'; seg.style.height = SEG_H + '%';
-        seg.innerHTML =
-          '<div class="tt-back"></div>' +
-          '<div class="tt-front" style="top:' + (-s0 / SEG_H * 100) + '%;height:' + (100 / SEG_H * 100) + '%;clip-path:inset(' + s0 + '% -12% ' + Math.max(0, 100 - s0 - SEG_H - 0.7) + '% -12%)">' + art + '</div>';
-        parent.appendChild(seg); parent = seg;
+      [].forEach.call(tmp.querySelectorAll('[filter]'), function (e) { e.parentNode.removeChild(e); });   // sombra borrada: recortada em tiras fica serrilhada
+      var art = tmp.innerHTML, y0 = H * HINGE / 100, L = H * (SHEET_END - HINGE) / 100, sh = L / NSTRIP;
+      var leaf = document.createElement('div'); leaf.className = 'tt-leaf'; var strips = [];
+      for (var i = 0; i < NSTRIP; i++) {
+        var el = document.createElement('div'); el.className = 'tt-strip';
+        el.style.top = (y0 + i * sh) + 'px'; el.style.height = (sh + 2.5) + 'px';
+        el.innerHTML = '<div class="tt-front" style="top:' + (-(y0 + i * sh)) + 'px;height:' + H + 'px">' + art + '</div><div class="tt-back"></div><div class="tt-shade"></div>';
+        leaf.appendChild(el); strips.push({ el: el, front: el.children[0], back: el.children[1], shade: el.children[2], isBack: false });
       }
       notes.appendChild(leaf);
-      var kill = function () { if (leaf.parentNode) leaf.parentNode.removeChild(leaf); };
-      leaf.querySelector('.tt-s1').addEventListener('animationend', kill); setTimeout(kill, 1800);
+      var D = H * 3.4, t0 = null;
+      var proj = function (z) { return D / (D - z); };
+      var frame = function (now) {
+        if (!leaf.parentNode) return;
+        if (t0 === null) t0 = now;
+        var t = Math.min(1, (now - t0) / FLIP_MS);
+        var e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;      // começa devagar, acelera, assenta no fim
+        var a = Math.PI * e;                                                     // ângulo da dobradiça (0 = parada, π = deitada pra trás)
+        var c = 0.95 * Math.sin(2 * Math.PI * t) * (1 - 0.35 * t);               // curva: ponta na frente na subida, atrasada na descida
+        var py = 0, pz = 0;
+        for (var i = 0; i < NSTRIP; i++) {
+          var th = a + c * ((i + 0.5) / NSTRIP), ny = py + sh * Math.cos(th), nz = pz + sh * Math.sin(th), S = strips[i];
+          var Y0 = py * proj(pz), Y1 = ny * proj(nz), sx = proj((pz + nz) / 2), sy = (Y1 - Y0) / sh;
+          if (Math.abs(sy) < 0.002) sy = sy < 0 ? -0.002 : 0.002;
+          S.el.style.transform = 'translateY(' + (Y0 - i * sh).toFixed(2) + 'px) scale(' + sx.toFixed(4) + ',' + sy.toFixed(4) + ')';
+          var back = Math.cos(th) < 0;
+          if (back !== S.isBack) { S.isBack = back; S.front.style.display = back ? 'none' : ''; S.back.style.display = back ? 'block' : 'none'; S.el.style.zIndex = back ? -1 : 3; }
+          S.shade.style.opacity = back ? 0.12 : Math.max(0, Math.min(0.55, 0.5 * (1 - Math.cos(th))));
+          // tira que já passou por trás do rolo some (não vaza por cima do nome do rival)
+          S.el.style.display = (back && y0 + Math.max(Y0, Y1) < H * 0.22) ? 'none' : '';
+          py = ny; pz = nz;
+        }
+        if (t < 1) requestAnimationFrame(frame); else leaf.parentNode.removeChild(leaf);
+      };
+      frame(performance.now()); requestAnimationFrame(frame);
     }
     shownBlind = b;
     setMetaText(b);                                             // por baixo, já está a folha nova

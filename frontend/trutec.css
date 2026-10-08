@@ -536,33 +536,15 @@
 
 
 /* ============================================================================
-   FOLHA DA META: ao avançar de fase, a folha antiga é erguida pela parte de baixo, se curva,
-   passa por cima do rolo e cai atrás do bloco (como calendário de arrancar). Por baixo já está a nova.
+   FOLHA DA META: ao avançar de fase, a folha antiga é erguida, se curva, passa por cima do rolo e cai
+   atrás do bloco. A animação é feita em trutec.js (flipMeta): aqui só ficam as peças.
    ============================================================================ */
 .tt-notes { container-type: inline-size; isolation: isolate; }   /* cqw: o número da meta acompanha a largura da folha */
-.tt-leaf { position: absolute; inset: 0; z-index: 3; pointer-events: none; perspective: 32rem; perspective-origin: 50% 45%;
-  animation: ttLeafLayer 1.2s linear forwards; }
-.tt-seg { position: absolute; left: 0; right: 0; transform-origin: 50% 0; transform-style: preserve-3d; }
-.tt-s1 { animation: ttPgFlip 1.2s cubic-bezier(.55, .05, .3, 1) forwards; }
-.tt-s2, .tt-s3, .tt-s4 { animation: ttPgBend 1.2s cubic-bezier(.55, .05, .3, 1) forwards; }
-.tt-front { position: absolute; left: 0; width: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-.tt-back { position: absolute; left: 7%; right: 7%; top: 0; height: 101%; transform: rotateX(180deg); backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  background: linear-gradient(90deg, #d9d2ba, #ebe6d3 50%, #d9d2ba); }
-.tt-s1 .tt-back { box-shadow: inset 0 .5rem .6rem -.4rem rgba(0,0,0,.25); }
-@keyframes ttLeafLayer {                       /* na frente do rolo enquanto sobe; depois de passar do alto, vai pra trás de tudo */
-  0%, 44% { z-index: 3; opacity: 1; }
-  45%     { z-index: -1; opacity: 1; }
-  72%     { opacity: 1; }
-  100%    { z-index: -1; opacity: 0; }
-}
-@keyframes ttPgFlip { from { transform: rotateX(0deg); } to { transform: rotateX(184deg); } }
-@keyframes ttPgBend {                          /* a ponta fica pra trás (curva) e depois se estica */
-  0%   { transform: rotateX(0deg); }
-  30%  { transform: rotateX(-15deg); }
-  60%  { transform: rotateX(-20deg); }
-  85%  { transform: rotateX(-7deg); }
-  100% { transform: rotateX(-2deg); }
-}
+.tt-leaf { position: absolute; inset: 0; pointer-events: none; }
+.tt-strip { position: absolute; left: 0; width: 100%; overflow: hidden; transform-origin: 50% 0; will-change: transform, opacity; z-index: 3; }
+.tt-strip .tt-front { position: absolute; left: 0; width: 100%; }
+.tt-strip .tt-back { display: none; position: absolute; top: 0; bottom: 0; left: 7%; right: 7%; background: linear-gradient(90deg, #d6cfb6, #ebe6d3 50%, #d6cfb6); }
+.tt-strip .tt-shade { position: absolute; top: 0; bottom: 0; left: 7%; right: 7%; background: #1a1209; opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .tt-leaf { display: none; } }
 
 /* sem sombreado nos textos do META e dos pontos */
