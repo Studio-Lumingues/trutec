@@ -549,28 +549,3 @@
 
 /* sem sombreado nos textos do META e dos pontos */
 #screen-trutec .tt-side :is(.tt-ntext, .tt-ntext *, .tt-have, .tt-have *) { text-shadow: none; }
-
-/* ============================================================================
-   DOBRA NO CANTO: ao passar o mouse na folha da META, o canto inferior direito dobra um pouquinho.
-   --tt-p vai de 0 (parado) a 1 (dobrado) com transição; o recorte do papel e o triângulo da dobra
-   usam a mesma medida, então o canto "some" exatamente por baixo da aba.
-   ============================================================================ */
-@property --tt-p { syntax: '<number>'; inherits: true; initial-value: 0; }
-.tt-notes {
-  --tt-p: 0;
-  --tt-f: calc(var(--tt-p) * 1.3rem);                  /* tamanho da aba dobrada */
-  --tt-k: calc(var(--tt-p) * 2.9rem - 1.6rem);         /* posição do corte (começa fora do papel, só entra na hora da dobra) */
-  pointer-events: auto;
-  transition: --tt-p .8s cubic-bezier(.3, .6, .3, 1);
-}
-.tt-notes:hover { --tt-p: 1; }
-.tt-notes .tt-paper {                                   /* papel (e sombra) sem a ponta do canto */
-  clip-path: polygon(-30% -30%, 130% -30%,
-    calc(93% + 2.5rem) calc(96.3% - var(--tt-k) - 2.5rem),
-    calc(93% - var(--tt-k) - 2.5rem) calc(96.3% + 2.5rem),
-    -30% 130%);
-}
-.tt-fold { position: absolute; left: calc(93% - var(--tt-f)); top: calc(96.3% - var(--tt-f)); width: var(--tt-f); height: var(--tt-f);
-  pointer-events: none; filter: drop-shadow(-.1rem -.08rem .16rem rgba(0, 0, 0, .38)); }
-.tt-fold i { position: absolute; inset: 0; clip-path: polygon(0 100%, 100% 0, 0 0);   /* o verso do canto dobrado */
-  background: linear-gradient(135deg, #fffdf5 0%, #f1ecd9 30%, #cdc4a5 50%); }

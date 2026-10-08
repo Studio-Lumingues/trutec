@@ -200,7 +200,7 @@
           '<div class="tt-bname"><span id="tt-bicon"></span><b id="tt-bname"></b><small id="tt-beffect"></small></div>' +
           '<div class="tt-notewrap" id="tt-metawrap" aria-label="Meta e pontos">' +
             '<div class="tt-notes" id="tt-notes">' +
-              '<div class="tt-postit" id="tt-postit"><div class="tt-sheet">' + noteSvg() + '<div class="tt-fold"><i></i></div>' +
+              '<div class="tt-postit" id="tt-postit"><div class="tt-sheet">' + noteSvg() + '' +
                 '<div class="tt-ntext"><small>META</small><b id="tt-target">0</b></div>' +
               '</div></div>' +
             '</div>' +
