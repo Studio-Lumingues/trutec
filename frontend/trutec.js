@@ -868,6 +868,44 @@
     w.appendChild(f);
     return w;
   }
+  // ---- ETIQUETA DE PREÇO (estilo etiqueta de gôndola: papel branco, 2 listras vermelhas, "R$" na vertical) ----
+  // Ajustes: TAG_TILT (inclinação em graus) e TAG_CURRENCY ('R$' ou '$').
+  var TAG_TILT = -14, TAG_CURRENCY = 'R$';
+  (function injectTagCss() {
+    if (document.getElementById('tt-pricetag-css')) return;
+    var st = document.createElement('style'); st.id = 'tt-pricetag-css';
+    st.textContent =
+      '.tt-sc-face{position:relative}' +
+      '.tt-ptag{position:absolute;right:-.55rem;bottom:-.7rem;z-index:3;pointer-events:none;' +
+        'display:flex;align-items:center;gap:.15rem;box-sizing:border-box;' +
+        'width:calc(4.6rem*var(--shopscale,1));height:calc(2.45rem*var(--shopscale,1));padding:0 calc(.4rem*var(--shopscale,1)) 0 calc(.3rem*var(--shopscale,1));' +
+        'background:linear-gradient(135deg,#fff 0%,#f6f4f1 60%,#ebe7e2 100%);' +
+        'border-top:calc(.2rem*var(--shopscale,1)) solid transparent;border-bottom:calc(.2rem*var(--shopscale,1)) solid transparent;' +
+        'background-clip:padding-box;border-radius:.12rem;' +
+        'box-shadow:0 .12rem .3rem rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.08);' +
+        'transform:rotate(var(--tilt,-14deg));transform-origin:center;transition:transform .15s}' +
+      /* listras vermelhas em cima e embaixo */
+      '.tt-ptag::before,.tt-ptag::after{content:"";position:absolute;left:0;right:0;height:calc(.17rem*var(--shopscale,1));' +
+        'background:#d9313a;box-shadow:0 0 .5px rgba(217,49,58,.8)}' +
+      '.tt-ptag::before{top:calc(.22rem*var(--shopscale,1))}' +
+      '.tt-ptag::after{bottom:calc(.22rem*var(--shopscale,1))}' +
+      '.tt-ptag .cur{writing-mode:vertical-rl;transform:rotate(180deg);font:700 calc(.62rem*var(--shopscale,1))/1 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;' +
+        'color:#2b3135;letter-spacing:.05em;flex:none}' +
+      '.tt-ptag .num{flex:1;text-align:right;font:500 calc(1.35rem*var(--shopscale,1))/1 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;' +
+        'color:#2b3135;white-space:nowrap;text-shadow:0 0 .5px #2b3135}' +
+      '.tt-sc.poor .tt-ptag .num{color:#a3262d;text-shadow:0 0 .5px #a3262d}' +
+      '.tt-sc:hover .tt-ptag{transform:rotate(calc(var(--tilt,-14deg) + 4deg)) scale(1.06)}' +
+      '@media (prefers-reduced-motion:reduce){.tt-ptag{transition:none}.tt-sc:hover .tt-ptag{transform:rotate(var(--tilt,-14deg))}}';
+    document.head.appendChild(st);
+  })();
+  function priceTag(price) {
+    var t = document.createElement('div'); t.className = 'tt-ptag'; t.setAttribute('aria-hidden', 'true');
+    t.style.setProperty('--tilt', TAG_TILT + 'deg');
+    var c = document.createElement('span'); c.className = 'cur'; c.textContent = TAG_CURRENCY;
+    var n = document.createElement('span'); n.className = 'num'; n.textContent = Number(price).toFixed(2).replace('.', ',');
+    t.appendChild(c); t.appendChild(n);
+    return t;
+  }
   // o: { label, voucher, poor, just, i }
   function shopCard(d, name, tag, button, o) {
     o = o || {};
@@ -875,7 +913,8 @@
     if (o.i !== undefined) w.style.setProperty('--i', o.i);
     var f = document.createElement('div'); f.className = 'tt-sc-face' + (o.voucher ? ' voucher' : ''); f.tabIndex = 0;
     f.innerHTML = ic(d.icon) + (tag ? '<span class="tt-sc-tag">' + tag + '</span>' : '');
-    f.setAttribute('aria-label', name + ': ' + d.desc);
+    f.setAttribute('aria-label', name + ': ' + d.desc + (o.price !== undefined ? '. Preço: ' + o.price : ''));
+    if (o.price !== undefined) f.appendChild(priceTag(o.price));   // etiqueta em cima da carta
     var on = function () { showTip(f, name, d.desc); };
     f.addEventListener('mouseenter', on); f.addEventListener('focus', on);
     f.addEventListener('mouseleave', hideTip); f.addEventListener('blur', hideTip);
@@ -969,7 +1008,7 @@
             S.items.splice(i, 1); render(); renderShop('buy');
           }, poor, poor ? 'Faltam $' + (it.price - R.money) : '');
       list.appendChild(shopCard(d, d.name + (it.type === 'voucher' ? ' (permanente)' : ''), it.type === 'voucher' ? 'PERM.' : '', buy,
-        { label: d.name, voucher: it.type === 'voucher', poor: poor || full, i: i }));
+        { label: d.name, voucher: it.type === 'voucher', poor: poor || full, i: i, price: it.price }));
     });
     pShop.appendChild(list);
     var cost = 3 + S.rerolls;
