@@ -575,108 +575,23 @@
 
 
 /* ============================================================================
-   PAINEL DO TRUTEC EM PAPEL, TRAÇO À MÃO
-   Trabalha junto com paper-ink.js (rough.min.js). O JS desenha contornos e
-   marca-textos e guarda em --ink-m (desenho) e --ink-s (sombra de tinta);
-   aqui o CSS só pinta esses desenhos como fundo. O texto continua nítido.
-   Fontes: assets/permanent-marker.woff2 e assets/patrick-hand.woff2
+   FUNDO XADREZ (trutec-bg.js) + CARD DE VIDRO
+   O canvas fica atrás de tudo; quando ele liga, o fundo listrado antigo some.
    ============================================================================ */
-@font-face { font-family: 'Permanent Marker'; src: url('assets/permanent-marker.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: 'Patrick Hand'; src: url('assets/patrick-hand.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+#screen-trutec .tt-bgfx { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -2; display: block; pointer-events: none; background: #050507; }
+#screen-trutec.tt-fx-on .social-bg, #screen-trutec.tt-fx-on .social-sheen { display: none; }
 
+/* card translúcido: vidro fosco que deixa o xadrez aparecer borrado por trás */
 #screen-trutec .tt-side {
-  --paper-ink: #2a1f17; --paper-red: #b8321f; --paper-green: #2f6b3a; --paper-blue: #2d6bb0;
-  color: var(--paper-ink);
-  font-family: 'Patrick Hand', 'Segoe Print', 'Comic Sans MS', cursive; font-size: 1.12rem;
-  border: 0; border-radius: .35rem .6rem .4rem .55rem;
+  border-radius: 1.6rem;
   background:
-    radial-gradient(ellipse at 18% 8%, rgba(255,255,255,.6), transparent 55%),
-    repeating-linear-gradient(0deg, rgba(120,90,40,.04) 0 1px, transparent 1px 3px),
-    linear-gradient(165deg, #f7edd8, #e9dbbb);
-  box-shadow: inset 0 0 2.6rem rgba(150,110,50,.2), inset 0 0 0 1px rgba(42,31,23,.18), 0 1.2rem 2.4rem rgba(0,0,0,.5);
-  -webkit-backdrop-filter: none; backdrop-filter: none;
+    linear-gradient(160deg, rgba(255,255,255,.13), rgba(255,255,255,.035) 38%, rgba(8,8,12,.22)),
+    rgba(14,13,19,.34);
+  border: 1px solid rgba(255,255,255,.17);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), inset 0 -1px 0 rgba(255,255,255,.04), 0 1.6rem 3.4rem rgba(0,0,0,.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5) brightness(.85); backdrop-filter: blur(22px) saturate(1.5) brightness(.85);
+  text-shadow: 0 1px 8px rgba(0,0,0,.45);
 }
-
-/* títulos e números: marcador grosso */
-#screen-trutec .tt-side :is(.tt-ante, .tt-bname b, .tt-ring-in > b, .tt-counters b, .tt-chips, .tt-mult, .tt-total, .tt-money, .action-btn, .tt-exit) {
-  font-family: 'Permanent Marker', 'Patrick Hand', cursive; font-weight: 400; letter-spacing: .02em;
-}
-
-/* legendas pequenas */
-#screen-trutec .tt-side :is(.tt-kicker, .tt-moneybox span, .tt-counters span, .tt-ring-in small, .tt-pips::before, .tt-chips::after, .tt-mult::after) { color: rgba(42,31,23,.62); font-weight: 400; letter-spacing: .12em; font-size: .78rem; }
-#screen-trutec .tt-side .tt-ring-in span { color: rgba(42,31,23,.7); font-size: .95rem; }
-#screen-trutec .tt-side .tt-ring-in span b { color: var(--paper-ink); font-size: 1rem; }
-#screen-trutec .tt-side .tt-bname small { color: var(--paper-red); font-size: .95rem; }
-
-/* elementos com contorno desenhado: tira o visual de vidro e pinta o desenho (--ink-m) com a sombra (--ink-s) por baixo */
-#screen-trutec .tt-side .ink {
-  background: var(--ink-m, none) 0 0 / 100% 100% no-repeat, var(--ink-s, none) 0 0 / 100% 100% no-repeat;
-  background-color: transparent; border-radius: 0; box-shadow: none;
-}
-
-/* ante */
-#screen-trutec .tt-side .tt-ante.ink { color: var(--paper-red); padding: .3rem .85rem; font-size: .95rem; text-transform: uppercase; }
-
-/* mãos e trocas (tracejado) */
-#screen-trutec .tt-side .tt-counters span.ink { padding: .5rem .2rem .55rem; }
-#screen-trutec .tt-side .tt-counters b { color: var(--paper-ink); font-size: 1.5rem; }
-#screen-trutec .tt-side .tt-counters span:first-child b { color: var(--paper-red); }
-#screen-trutec .tt-side .tt-counters span:last-child b { color: var(--paper-blue); }
-
-/* bolinha do ícone do adversário */
-#screen-trutec .tt-side .tt-bname span.ink { width: 2.4rem; height: 2.4rem; }
-#screen-trutec .tt-side .tt-bname b { color: var(--paper-ink); font-size: 1.15rem; }
-
-/* anel de progresso: preenchimento de marca-texto; o desenho (paper-ink) vai por cima, no ::after */
-#screen-trutec .tt-side .tt-ring {
-  background: conic-gradient(#f0b429 0, #f6d56b calc(var(--p) * 1%), rgba(42,31,23,.1) 0);
-  filter: none;
-}
-#screen-trutec .tt-side .tt-ring::before { background: #f4e9d2; box-shadow: none; }
-#screen-trutec .tt-side .tt-ring::after {
-  content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
-  background: var(--ink-m, none) center / 100% 100% no-repeat;
-}
-#screen-trutec .tt-side .tt-ring-in > b { color: var(--paper-ink); }
-
-/* valor da mão */
-#screen-trutec .tt-side .tt-calc { border-top: 2px solid transparent; background-origin: border-box; background-clip: border-box; }
-#screen-trutec .tt-side .tt-calc.ink { background: var(--ink-m, none) 0 0 / 100% 100% no-repeat; background-origin: border-box; background-clip: border-box; }
-#screen-trutec .tt-side .tt-chips { color: var(--paper-ink); }
-#screen-trutec .tt-side .tt-mult { color: var(--paper-red); }
-#screen-trutec .tt-side .tt-total { color: var(--paper-ink); }
-#screen-trutec .tt-side .tt-cm i { opacity: .55; font-style: normal; }
-#screen-trutec .tt-side .tt-pips i { background: rgba(42,31,23,.2); }
-#screen-trutec .tt-side .tt-pips i.on { background: var(--paper-green); }
-#screen-trutec .tt-side .tt-pips i.lost { background: var(--paper-red); }
-#screen-trutec .tt-side .tt-pips i.tie { background: #8a7f6f; }
-
-/* dinheiro (caixa verde com rabisco) */
-#screen-trutec .tt-side .tt-moneybox.ink { padding: .7rem .95rem; }
-#screen-trutec .tt-side .tt-moneybox .tt-money { color: var(--paper-green); font-size: 1.6rem; }
-
-/* botões de papel: cor de marca-texto vem do desenho; ids pra vencer o estilo "vidro" */
-#screen-trutec :is(#tt-exit, #tt-truco, #tt-swap, #tt-run).ink {
-  background: var(--ink-m, none) 0 0 / 100% 100% no-repeat, var(--ink-s, none) 0 0 / 100% 100% no-repeat;
-  background-color: transparent; background-position: 0 0, 0 0;
-  border-radius: 0; box-shadow: none; filter: none; color: var(--paper-ink); text-shadow: none;
-  padding-right: calc(.5rem + 3px); padding-bottom: calc(.5rem + 4px);
-  transition: transform .18s cubic-bezier(.34, 1.56, .64, 1);
-}
-#screen-trutec #tt-exit.ink { padding: .4rem calc(.75rem + 3px) calc(.4rem + 4px) .75rem; font-size: 1rem; }
-#screen-trutec :is(#tt-truco, #tt-swap, #tt-run).ink { font-size: 1.15rem; letter-spacing: .06em; }
-@media (hover: hover) {
-  #screen-trutec :is(#tt-exit, #tt-truco, #tt-swap, #tt-run).ink:not(:disabled):hover { transform: translate(-1px, -2px) rotate(-1.2deg) scale(1.02); background-position: 0 0, 0 0; box-shadow: none; }
-}
-#screen-trutec :is(#tt-exit, #tt-truco, #tt-swap, #tt-run).ink:not(:disabled):active { transform: translate(2px, 3px) scale(.98); filter: none; box-shadow: none; transition: transform .06s ease-out; }
-#screen-trutec :is(#tt-exit, #tt-truco, #tt-swap, #tt-run).ink:focus-visible { outline: 2px dashed var(--paper-ink); outline-offset: 3px; }
-#screen-trutec :is(#tt-exit, #tt-truco, #tt-swap, #tt-run).ink:disabled {
-  opacity: .45; filter: grayscale(.85); color: rgba(42,31,23,.7); background-image: var(--ink-m, none), var(--ink-s, none);
-  background-size: 100% 100%, 100% 100%; background-repeat: no-repeat; box-shadow: none; transform: none; transition: none; cursor: not-allowed;
-}
-
-/* telas estreitas: a divisória do valor da mão vira vertical */
-@media (max-width: 900px) {
-  #screen-trutec .tt-side .tt-calc { border-top: 0; border-left: 2px solid transparent; }
-  #screen-trutec .tt-side { font-size: 1.05rem; }
-}
+#screen-trutec .tt-side .tt-ring::before { background: radial-gradient(circle at 50% 30%, rgba(34,32,42,.7), rgba(8,8,12,.75)); }
+#screen-trutec .tt-side .tt-counters span, #screen-trutec .tt-side .tt-ante { background: rgba(255,255,255,.07); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), inset 0 1px 0 rgba(255,255,255,.12); }
+#screen-trutec .tt-side .tt-moneybox { background: rgba(255,210,74,.09); }
