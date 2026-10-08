@@ -5,29 +5,66 @@
   background-color: #0a0a0a; isolation: isolate; color: var(--cream); overflow: hidden; }
 .tt-wrap { position: relative; --tsw: clamp(13rem, 24vw, 17rem); width: min(42rem, 100%); height: 100%; margin: 0 auto;
   padding: .6rem .8rem calc(.6rem + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; min-height: 0; }
-/* esquerda: tudo sobre a blind, a conta fichas × mult e o dinheiro */
-.tt-side { position: absolute; right: calc(100% + .9rem); top: .6rem; bottom: calc(.6rem + env(safe-area-inset-bottom, 0px)); width: var(--tsw); display: flex; flex-direction: column; gap: .6rem; min-height: 0; overflow-y: auto; padding: .6rem; border-radius: 1rem;
-  background: rgba(4,3,3,.45); border: 1px solid rgba(255,248,240,.15); }
-.tt-side .tt-blind { background: rgba(4,3,3,.45); }
-.tt-side .tt-bname b { font-size: 1.15rem; }
-.tt-side .tt-goal { flex-direction: column; gap: .1rem; font-size: .95rem; }
-.tt-side .tt-goal span { display: flex; justify-content: space-between; align-items: baseline; }
-.tt-side .tt-goal b { font-size: 1.6rem; }
-.tt-side .tt-counters { justify-content: space-between; margin-top: .3rem; }
-.tt-side .tt-counters span { flex: 1; text-align: center; padding: .35rem .2rem; border-radius: .6rem; background: rgba(255,248,240,.08); }
-.tt-side .tt-counters b { display: block; font-size: 1.6rem; }
-.tt-side .tt-calc { flex: none; padding: .7rem .5rem; border-radius: .8rem; background: rgba(4,3,3,.5); border: 1px solid rgba(255,248,240,.15); gap: .45rem; }
-.tt-side .tt-cm { width: 100%; justify-content: center; gap: .4rem; }
-.tt-side .tt-chips, .tt-side .tt-mult { flex: 1; font-size: 1.8rem; padding: .35rem .3rem; }
-.tt-side .tt-total { font-size: 1.5rem; }
-.tt-side .tt-pips i { width: .9rem; height: .9rem; }
-.tt-moneybox { margin-top: 0; text-align: center; padding: .6rem; border-radius: .8rem; background: rgba(4,3,3,.5); border: 1px solid rgba(255,248,240,.15); }
-.tt-moneybox span { display: block; font-size: .8rem; opacity: .75; }
-.tt-moneybox .tt-money { min-width: 0; text-align: center; font-size: 2.1rem; line-height: 1.1; }
+/* esquerda: painel da corrida (adversário, progresso, valor da mão, ações e dinheiro).
+   Um cartão de vidro só, com seções separadas por linhas finas. O progresso é um anel (--p = % da meta). */
+@property --p { syntax: '<number>'; inherits: false; initial-value: 0; }
+.tt-side { position: absolute; right: calc(100% + .9rem); top: .6rem; bottom: calc(.6rem + env(safe-area-inset-bottom, 0px)); width: var(--tsw); display: flex; flex-direction: column; gap: .8rem; min-height: 0; overflow-y: auto; padding: .9rem .85rem; border-radius: 1.5rem;
+  background: linear-gradient(165deg, rgba(36,33,40,.8), rgba(10,9,12,.84)); border: 1px solid rgba(255,248,240,.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.09), 0 1.2rem 2.6rem rgba(0,0,0,.45);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
+  scrollbar-width: none; animation: ttSideIn .55s cubic-bezier(.2, .9, .3, 1) both; }
+.tt-side::-webkit-scrollbar { display: none; }
+@keyframes ttSideIn { from { opacity: 0; transform: translateX(-.8rem); } }
+
+.tt-kicker, .tt-moneybox span, .tt-counters span, .tt-ring-in small { font-size: .62rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: rgba(255,248,240,.55); }
+
+/* adversário */
+.tt-side .tt-blind { display: flex; flex-direction: column; align-items: center; gap: .6rem; padding: 0; background: none; border: 0; }
+.tt-side .tt-bname { width: 100%; justify-content: center; gap: .5rem; text-align: center; }
+.tt-side .tt-bname span { display: grid; place-items: center; width: 2.1rem; height: 2.1rem; border-radius: 50%; background: rgba(255,248,240,.09); box-shadow: inset 0 0 0 1px rgba(255,248,240,.12); }
+.tt-side .tt-bname b { font-size: 1.1rem; letter-spacing: .01em; }
+.tt-side .tt-bname small { text-align: center; }
+
+/* anel de progresso */
+.tt-ring { --p: 0; --sz: min(100%, clamp(5.8rem, 15vh, 7.8rem)); position: relative; width: var(--sz); aspect-ratio: 1; border-radius: 50%; flex: none;
+  background: conic-gradient(#ff9a5a 0, #ffd24a calc(var(--p) * 1%), rgba(255,248,240,.1) 0);
+  filter: drop-shadow(0 0 .7rem rgba(255,210,74,.18)); transition: --p .8s cubic-bezier(.2, .8, .2, 1); }
+.tt-ring::before { content: ''; position: absolute; inset: .5rem; border-radius: 50%; background: radial-gradient(circle at 50% 30%, #1c1a21, #0d0c10); box-shadow: inset 0 0 0 1px rgba(255,248,240,.06); }
+.tt-ring-in { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .05rem; }
+.tt-ring-in b { font-variant-numeric: tabular-nums; }
+.tt-ring-in > b { font-size: clamp(1.5rem, 3.6vh, 2.1rem); line-height: 1.05; }
+.tt-ring-in span { font-size: .75rem; color: rgba(255,248,240,.6); }
+.tt-ring-in span b { font-size: .85rem; color: rgba(255,248,240,.85); }
+.tt-side .tt-bar { display: none; }
+
+/* mãos e trocas */
+.tt-side .tt-counters { width: 100%; gap: .5rem; opacity: 1; }
+.tt-side .tt-counters span { flex: 1; text-align: center; padding: .4rem .2rem .45rem; border-radius: .9rem; background: rgba(255,248,240,.06); box-shadow: inset 0 0 0 1px rgba(255,248,240,.08); }
+.tt-side .tt-counters b { display: block; margin-top: .1rem; font-size: 1.45rem; line-height: 1.1; color: #fff8f0; font-variant-numeric: tabular-nums; }
+.tt-side .tt-counters span:last-child b { color: #7cc0ff; }
+
+/* valor da mão: fichas × mult */
+.tt-side .tt-calc { flex: none; display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .85rem 0 0; background: none; border: 0; border-top: 1px solid rgba(255,248,240,.1); border-radius: 0; }
+.tt-side .tt-cm { width: 100%; display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: .3rem; }
+.tt-side .tt-chips, .tt-side .tt-mult { position: relative; min-width: 0; padding: 0 0 1.1rem; background: none; border-radius: 0; font-size: clamp(1.6rem, 3.8vh, 2.1rem); line-height: 1.1; font-variant-numeric: tabular-nums; text-align: center; }
+.tt-side .tt-chips { color: #fff8f0; } .tt-side .tt-mult { color: #ffd24a; }
+.tt-side .tt-chips::after, .tt-side .tt-mult::after { position: absolute; left: 0; right: 0; bottom: 0; font-size: .58rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: rgba(255,248,240,.5); }
+.tt-side .tt-chips::after { content: 'fichas'; } .tt-side .tt-mult::after { content: 'mult'; }
+.tt-side .tt-cm i { align-self: start; padding-top: .35rem; font-size: 1rem; opacity: .45; }
+.tt-side .tt-total { min-height: 1.5rem; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.tt-side .tt-pips { align-items: center; gap: .3rem; }
+.tt-side .tt-pips::before { content: 'Rodadas'; margin-right: .35rem; font-size: .6rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,248,240,.5); }
+.tt-side .tt-pips i { width: 1.1rem; height: .4rem; border: 0; border-radius: 99px; background: rgba(255,248,240,.16); transition: background .3s, transform .3s cubic-bezier(.34, 1.56, .64, 1); }
+.tt-pips i.on { background: #6be08a; transform: scaleY(1.25); } .tt-pips i.lost { background: #ff7a6b; transform: scaleY(1.25); } .tt-pips i.tie { background: #a9a4b5; transform: scaleY(1.25); }
+
+/* dinheiro */
+.tt-moneybox { margin-top: 0; display: flex; align-items: center; justify-content: space-between; padding: .65rem .85rem; border-radius: 1rem; background: rgba(255,210,74,.07); box-shadow: inset 0 0 0 1px rgba(255,210,74,.2); }
+.tt-moneybox span { display: block; }
+.tt-moneybox .tt-money { min-width: 0; text-align: right; font-size: 1.7rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .tt-main { flex: 1; position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: .35rem; }
 
 .tt-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-.tt-side .tt-ante { text-align: right; }
+.tt-side .tt-ante { padding: .28rem .75rem; border-radius: 99px; background: rgba(255,248,240,.08); box-shadow: inset 0 0 0 1px rgba(255,248,240,.1); font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; }
 .tt-top .tt-exit { padding: .4rem .75rem; font-size: .95rem; }
 .tt-ante { font-weight: 800; font-size: 1.05rem; }
 .tt-money { min-width: 4rem; text-align: right; font-weight: 800; font-size: 1.4rem; color: #ffd24a; }
@@ -96,7 +133,8 @@
 .tt-pips i.on { background: #6be08a; border-color: #6be08a; } .tt-pips i.lost { background: #e0504a; border-color: #e0504a; } .tt-pips i.tie { background: #aaa; border-color: #aaa; }
 
 .tt-msg { min-height: 1.3rem; text-align: center; font-size: .98rem; font-weight: 600; }
-.tt-actions { display: flex; flex-direction: column; gap: .5rem; width: 100%; margin: auto 0; }
+.tt-actions { display: flex; flex-direction: column; gap: .55rem; width: 100%; margin: auto 0; }
+#screen-trutec .tt-side .tt-actions .action-btn { margin-bottom: 0; }
 .tt-actions .action-btn { flex: none; width: 100%; max-width: none; min-height: 3rem; padding: .5rem .3rem; font-size: 1.05rem; white-space: nowrap; }
 .tt-actions .action-btn:disabled { opacity: .4; cursor: not-allowed; }
 .tt-actions .action-btn.active { outline: 2px solid var(--cream); }
@@ -158,7 +196,7 @@
   .tt-opphand { min-height: 2.4rem; } .tt-opphand .card { --cw: 1.7rem; }
   .tt-oppinfo span:last-child { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .tt-slot .card, .tt-hand .card.swapping, .tt-hand .card.dealing, .tt-joker.pop { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tt-side { animation: none; } .tt-ring, .tt-side .tt-pips i { transition: none; } .tt-slot .card, .tt-hand .card.swapping, .tt-hand .card.dealing, .tt-joker.pop { animation: none; } }
 
 
 /* ===== BILLY, o vendedor da loja ===== */
@@ -266,15 +304,17 @@
 /* telas estreitas: a barra não cabe ao lado do jogo, então empilha em cima */
 @media (max-width: 900px) {
   .tt-wrap { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: .4rem; }
-  .tt-side { position: static; width: auto; flex-direction: row; flex-wrap: wrap; align-items: stretch; overflow: visible; padding: .4rem; gap: .4rem; }
+  .tt-side { position: static; width: auto; flex-direction: row; flex-wrap: wrap; align-items: stretch; overflow: visible; padding: .6rem; gap: .5rem; border-radius: 1.2rem; animation: none; }
   .tt-side .tt-top { flex: 1 1 100%; }
-  .tt-side .tt-blind { flex: 1 1 55%; }
-  .tt-side .tt-goal b, .tt-side .tt-counters b { font-size: 1.15rem; }
-  .tt-side .tt-calc { flex: 1 1 35%; }
-  .tt-side .tt-chips, .tt-side .tt-mult { font-size: 1.2rem; }
+  .tt-side .tt-blind { flex: 1 1 52%; }
+  .tt-ring { --sz: 5.4rem; }
+  .tt-ring-in > b { font-size: 1.35rem; }
+  .tt-side .tt-counters b { font-size: 1.15rem; }
+  .tt-side .tt-calc { flex: 1 1 40%; padding: 0 0 0 .6rem; border-top: 0; border-left: 1px solid rgba(255,248,240,.1); justify-content: center; }
+  .tt-side .tt-chips, .tt-side .tt-mult { font-size: 1.35rem; }
   .tt-side .tt-actions { flex: 1 1 100%; flex-direction: row; margin: 0; }
   .tt-side .tt-actions .action-btn { min-height: 2.6rem; font-size: .9rem; }
-  .tt-moneybox { flex: 1 1 100%; display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .25rem; }
+  .tt-moneybox { flex: 1 1 100%; gap: .5rem; padding: .35rem .85rem; }
   .tt-moneybox .tt-money { font-size: 1.4rem; }
   .tt-jokers { --jw: clamp(3.6rem, 16vw, 5rem); gap: .4rem; }
 }

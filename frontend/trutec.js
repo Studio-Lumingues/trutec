@@ -179,15 +179,18 @@
         '</header>' +
         '<div class="tt-blind" id="tt-blind">' +
           '<div class="tt-bname"><span id="tt-bicon"></span><b id="tt-bname"></b><small id="tt-beffect"></small></div>' +
-          '<div class="tt-goal"><span>Meta <b id="tt-target">0</b></span><span>Pontos <b id="tt-score">0</b></span></div>' +
+          '<div class="tt-ring" id="tt-ring" aria-label="Progresso da meta">' +
+            '<div class="tt-ring-in"><small>Pontos</small><b id="tt-score">0</b><span>de <b id="tt-target">0</b></span></div>' +
+          '</div>' +
           '<div class="tt-bar"><i id="tt-barfill"></i></div>' +
           '<div class="tt-counters"><span>Mãos <b id="tt-hands">0</b></span><span>Trocas <b id="tt-trocas">0</b></span></div>' +
         '</div>' +
         '<div class="tt-calc" id="tt-calc">' +
-            '<div class="tt-cm"><span class="tt-chips" id="tt-chips">30</span><i>×</i><span class="tt-mult" id="tt-mult">1</span></div>' +
-            '<div class="tt-total" id="tt-total"></div>' +
-            '<div class="tt-pips" id="tt-pips"><i></i><i></i><i></i></div>' +
-          '</div>' +
+          '<small class="tt-kicker">Valor da mão</small>' +
+          '<div class="tt-cm"><span class="tt-chips" id="tt-chips">30</span><i>×</i><span class="tt-mult" id="tt-mult">1</span></div>' +
+          '<div class="tt-total" id="tt-total"></div>' +
+          '<div class="tt-pips" id="tt-pips"><i></i><i></i><i></i></div>' +
+        '</div>' +
         '<div class="tt-actions">' +
           '<button type="button" class="action-btn" id="tt-truco">TRUCO</button>' +
           '<button type="button" class="action-btn" id="tt-swap">TROCAR</button>' +
@@ -502,6 +505,7 @@
     });
     else $('tt-score').textContent = fmt(R.score);
     $('tt-barfill').style.width = Math.min(100, R.score / b.target * 100) + '%';
+    var rg = $('tt-ring'); if (rg) rg.style.setProperty('--p', Math.min(100, R.score / b.target * 100).toFixed(1));
     $('tt-hands').textContent = R.handsLeft;
     $('tt-trocas').textContent = R.trocasLeft;
     $('tt-oppname').textContent = b.opp.name;
@@ -579,6 +583,7 @@
     $('tt-ante').textContent = 'Trutec'; $('tt-money').textContent = ''; $('tt-bname').textContent = 'Roguelike solo';
     $('tt-bicon').innerHTML = ic('maocheia'); $('tt-beffect').textContent = ''; $('tt-oppname').textContent = ''; $('tt-oppicon').textContent = '';
     $('tt-target').textContent = '0'; $('tt-score').textContent = '0'; $('tt-barfill').style.width = '0';
+    var rg0 = $('tt-ring'); if (rg0) rg0.style.setProperty('--p', 0);
     $('tt-hands').textContent = '0'; $('tt-trocas').textContent = '0'; $('tt-mani').textContent = ''; $('tt-peek').textContent = '';
     setCalc(CHIPS0, 1, 1, 0); say('');
     $('tt-truco').disabled = true; $('tt-run').disabled = true; $('tt-swap').disabled = true;
