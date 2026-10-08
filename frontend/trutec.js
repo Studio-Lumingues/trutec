@@ -123,8 +123,58 @@
   function hasV(id) { return !!R && R.vouchers.indexOf(id) >= 0; }
   function rnd(n) { return Math.floor(Math.random() * n); }
   // cor do post-it da meta: muda a cada corrida (nunca repete a da corrida anterior)
-  var NOTE_COLORS = ['#f0489f', '#ffd84a', '#5ec8f2', '#7ddc6e', '#ff9a4d', '#b98cf0'], lastNote = -1;
-  function pickNote() { var n; do { n = rnd(NOTE_COLORS.length); } while (n === lastNote); lastNote = n; return n; }
+  var NOTE_RANDOM = true;        // false = o post-it é sempre amarelo; true = muda de cor a cada corrida
+  var shownBlind = null;         // blind cuja meta está no post-it (pra animar a troca de folha)
+  var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // folha curvada: as 4 bordas entortam devagar (SMIL). [topo, direita, base, esquerda] = posição do ponto de controle de cada borda
+  function paperD(t, r, bt, l) {
+    return 'M20 44Q102 ' + t + ' 184 36Q' + r + ' 88 190 140L150 166Q92 ' + bt + ' 34 172Q' + l + ' 108 20 44Z';
+  }
+  function noteSvg() {
+    var A = paperD(40, 190, 169, 27), B = paperD(33, 196, 179, 21), C = paperD(47, 185, 160, 33);
+    var vals = A + ';' + B + ';' + C + ';' + A;
+    var anim = REDUCED ? '' : '<animate attributeName="d" dur="9s" repeatCount="indefinite" values="' + vals +
+      '" keyTimes="0;.33;.66;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1;.45 0 .55 1"/>';
+    var shine = REDUCED ? '' : '<animate attributeName="x1" dur="9s" repeatCount="indefinite" values="0;.35;0"/><animate attributeName="x2" dur="9s" repeatCount="indefinite" values="1;1.35;1"/>';
+    var flap = REDUCED ? '' : '<animate attributeName="d" dur="9s" repeatCount="indefinite" values="M190 140L150 166L183 171Z;M196 142L150 166L185 175Z;M186 140L150 166L181 168Z;M190 140L150 166L183 171Z" keyTimes="0;.33;.66;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1;.45 0 .55 1"/>';
+    return '<svg class="tt-paper" viewBox="0 0 200 190" aria-hidden="true" focusable="false">' +
+      '<defs>' +
+        '<linearGradient id="ttg1" x1="0" y1="0" x2="1" y2="1">' + shine +
+          '<stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>' +
+        '<linearGradient id="ttg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>' +
+        '<filter id="ttblur" x="-10%" y="-10%" width="120%" height="130%"><feGaussianBlur stdDeviation="2.4"/></filter>' +
+      '</defs>' +
+      '<path d="M30 62L194 54L200 176L46 188Z" fill="#000" opacity=".28" filter="url(#ttblur)"/>' +
+      '<g style="filter:brightness(.84)"><path style="fill:var(--note)" d="M34 46L190 38L198 150L48 177Z"/></g>' +
+      '<g style="filter:brightness(.92)"><path style="fill:var(--note)" d="M26 51L182 40L194 160L40 181Z"/></g>' +
+      '<path style="fill:var(--note)" d="' + A + '">' + anim + '</path>' +
+      '<path fill="url(#ttg1)" d="' + A + '">' + anim + '</path>' +
+      '<path d="M186 146L150 166L184 176Z" fill="#000" opacity=".22" filter="url(#ttblur)"/>' +
+      '<path style="fill:var(--note)" d="M190 140L150 166L183 171Z">' + flap + '</path>' +
+      '<path fill="url(#ttg2)" d="M190 140L150 166L183 171Z">' + flap + '</path>' +
+    '</svg>';
+  }
+  // grampo vermelho preso na borda de cima (fica por cima das folhas; as folhas passam por baixo dele)
+  function clipSvg() {
+    var d = 'M95 74V28a7.5 7.5 0 0 1 15 0V68a4.6 4.6 0 0 1-9.2 0V40';
+    return '<svg class="tt-clip" viewBox="0 0 200 190" aria-hidden="true" focusable="false">' +
+      '<path d="' + d + '" fill="none" stroke="#a81f27" stroke-width="3.6" stroke-linecap="round"/>' +
+      '<path d="' + d + '" fill="none" stroke="#ec4650" stroke-width="2.4" stroke-linecap="round"/>' +
+      '<path d="M96.6 70V29" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".8" stroke-linecap="round"/>' +
+    '</svg>';
+  }
+  // troca de folha: a atual sobe e some, o grampo prende uma nova que sobe de baixo
+  function flipNote(cur) {
+    var host = cur.parentNode, ghost = cur.cloneNode(true);
+    ghost.removeAttribute('id'); var t = ghost.querySelector('#tt-target'); if (t) t.removeAttribute('id');
+    ghost.setAttribute('aria-hidden', 'true'); ghost.classList.add('leaving');
+    host.insertBefore(ghost, cur);
+    setTimeout(function () { if (ghost.parentNode) ghost.parentNode.removeChild(ghost); }, 1200);
+    cur.classList.remove('entering'); void cur.offsetWidth; cur.classList.add('entering');
+    host.classList.remove('clipbump'); void host.offsetWidth; host.classList.add('clipbump');
+  }
+  var NOTE_COLORS = ['#f0489f', '#f0e062', '#5ec8f2', '#7ddc6e', '#ff9a4d', '#b98cf0'], lastNote = -1;
+  function pickNote() { if (!NOTE_RANDOM) return 1; var n; do { n = rnd(NOTE_COLORS.length); } while (n === lastNote); lastNote = n; return n; }
   function other(w) { return w === 'me' ? 'opp' : 'me'; }
   function later(fn, ms) { var t = tok; setTimeout(function () { if (t === tok) fn(); }, ms); }
   function best() { try { return parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { return 0; } }
@@ -183,13 +233,11 @@
         '<div class="tt-blind" id="tt-blind">' +
           '<div class="tt-bname"><span id="tt-bicon"></span><b id="tt-bname"></b><small id="tt-beffect"></small></div>' +
           '<div class="tt-notewrap" id="tt-ring" aria-label="Meta e pontos">' +
-            '<div class="tt-postit" id="tt-postit">' +
-              '<svg class="tt-clip" viewBox="0 0 36 86" aria-hidden="true" focusable="false">' +
-                '<path d="M22 60V16a7 7 0 0 0-14 0V62a12 12 0 0 0 24 0V20" fill="none" stroke="#5d6269" stroke-width="4.4" stroke-linecap="round"/>' +
-                '<path d="M22 60V16a7 7 0 0 0-14 0V62a12 12 0 0 0 24 0V20" fill="none" stroke="#b9bec4" stroke-width="2.8" stroke-linecap="round"/>' +
-                '<path d="M20.4 58V16a5.4 5.4 0 0 0-10.8 0V60" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width=".9" stroke-linecap="round"/>' +
-              '</svg>' +
-              '<small>Meta</small><b id="tt-target">0</b>' +
+            '<div class="tt-notes" id="tt-notes">' +
+              '<div class="tt-postit" id="tt-postit"><div class="tt-sway">' + noteSvg() +
+                '<div class="tt-ntext"><small>Meta</small><b id="tt-target">0</b></div>' +
+              '</div></div>' +
+              clipSvg() +
             '</div>' +
             '<div class="tt-have"><small>Pontos</small><b id="tt-score">0</b></div>' +
           '</div>' +
@@ -508,6 +556,11 @@
     $('tt-bicon').innerHTML = ic(b.opp.icon);
     $('tt-bname').textContent = b.opp.name;
     $('tt-beffect').textContent = b.boss ? b.effect : '';
+    if (shownBlind !== b) {                                    // blind nova: a folha antiga sobe e o grampo prende outra
+      var curNote = $('tt-postit');
+      if (shownBlind && curNote && !REDUCED) flipNote(curNote);
+      shownBlind = b;
+    }
     $('tt-target').textContent = fmt(b.target);
     var pit = $('tt-postit'); if (pit && R.noteColor !== undefined) pit.style.setProperty('--note', NOTE_COLORS[R.noteColor]);
     if (window.TruCount) TruCount.run($('tt-score'), R.score, {
@@ -590,7 +643,7 @@
     build();
     if (window.showScreen) window.showScreen('screen-trutec');
     else { document.querySelectorAll('.screen').forEach(function (e) { e.classList.remove('active'); }); $('screen-trutec').classList.add('active'); }
-    tok++; R = null; H = null;
+    tok++; R = null; H = null; shownBlind = null;
     ['tt-hand', 'tt-opphand', 'tt-vira', 'tt-slot-me', 'tt-slot-opp', 'tt-jokers'].forEach(function (id) { $(id).innerHTML = ''; });
     $('tt-ante').textContent = 'Trutec'; $('tt-money').textContent = ''; $('tt-bname').textContent = 'Roguelike solo';
     $('tt-bicon').innerHTML = ic('maocheia'); $('tt-beffect').textContent = ''; $('tt-oppname').textContent = ''; $('tt-oppicon').textContent = '';
@@ -1346,21 +1399,30 @@
 
   // ---------- post-it da META (com grampo) + pontos atuais logo abaixo ----------
   (function injectNoteCss() {
-    if (document.getElementById('tt-postit-css')) return;
+    var old = document.getElementById('tt-postit-css'); if (old) old.remove();
     var st = document.createElement('style'); st.id = 'tt-postit-css';
     st.textContent =
-      '.tt-notewrap{display:flex;flex-direction:column;align-items:center;gap:.55rem;padding:.9rem 0 .2rem}' +
-      '.tt-postit{--note:#f0489f;position:relative;width:7.2rem;height:6.8rem;box-sizing:border-box;padding:1.5rem .5rem .4rem;' +
-        'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;color:#2a1730;' +
-        'background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(255,255,255,0) 45%),var(--note);' +
-        'box-shadow:0 .5rem .9rem rgba(0,0,0,.45),inset 0 -.5rem .8rem rgba(0,0,0,.08);transform:rotate(1.5deg);transition:background .3s}' +
-      '.tt-postit small{font:700 1rem/1 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;letter-spacing:.04em;text-transform:none;opacity:.85}' +
-      '.tt-postit b{font:700 2.2rem/1.05 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;white-space:nowrap}' +
-      '.tt-clip{position:absolute;left:.7rem;top:-1.3rem;width:1.55rem;height:3.7rem;transform:rotate(-8deg);overflow:visible;' +
-        'filter:drop-shadow(.08rem .15rem .12rem rgba(0,0,0,.45));pointer-events:none}' +
+      '.tt-notewrap{display:flex;flex-direction:column;align-items:center;gap:.4rem;padding:.6rem 0 .2rem}' +
+      '.tt-notes{--note:#f0e062;position:relative;width:9.6rem;aspect-ratio:200/190;margin:0 auto}' +
+      '.tt-postit{--note:#f0e062;position:absolute;inset:0}' +
+      '.tt-notes .tt-postit{--note:inherit}' +
+      '.tt-sway{position:absolute;inset:0;transform-origin:50% 12%;animation:ttSway 8s ease-in-out infinite alternate}' +
+      '.tt-paper{position:absolute;inset:0;width:100%;height:100%;overflow:visible}' +
+      '.tt-ntext{position:absolute;left:15%;right:11%;top:42%;bottom:18%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;color:#33290a}' +
+      '.tt-ntext small{font:700 1rem/1 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;letter-spacing:.04em;text-transform:none;opacity:.8}' +
+      '.tt-ntext b{font:700 2.1rem/1.05 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;white-space:nowrap}' +
+      '.tt-clip{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:3;filter:drop-shadow(.06rem .12rem .1rem rgba(0,0,0,.5))}' +
+      '.tt-postit.leaving{animation:ttNoteOut .85s cubic-bezier(.5,0,.8,.4) forwards;pointer-events:none}' +
+      '.tt-postit.entering{animation:ttNoteIn .95s .4s cubic-bezier(.2,.9,.3,1) both}' +
+      '.tt-notes.clipbump .tt-clip{animation:ttClipBump .45s .85s ease-out}' +
       '.tt-have{display:flex;flex-direction:column;align-items:center;gap:.1rem;color:#fff8f0}' +
       '.tt-have small{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75}' +
-      '.tt-have b{font-size:2rem;line-height:1.05;text-shadow:0 .1rem .3rem rgba(0,0,0,.5)}';
+      '.tt-have b{font-size:2rem;line-height:1.05;text-shadow:0 .1rem .3rem rgba(0,0,0,.5)}' +
+      '@keyframes ttSway{0%{transform:rotate(-1.4deg) skewX(-1.2deg) translateY(0)}50%{transform:rotate(.4deg) skewX(.6deg) translateY(.12rem)}100%{transform:rotate(1.6deg) skewX(1.4deg) translateY(-.05rem)}}' +
+      '@keyframes ttNoteOut{to{transform:translateY(-150%) rotate(-6deg);opacity:0}}' +
+      '@keyframes ttNoteIn{from{transform:translateY(75%) rotate(4deg);opacity:0}to{transform:none;opacity:1}}' +
+      '@keyframes ttClipBump{0%{transform:translateY(0)}40%{transform:translateY(.18rem) scaleY(.97)}100%{transform:none}}' +
+      '@media (prefers-reduced-motion:reduce){.tt-sway,.tt-postit.entering,.tt-postit.leaving,.tt-notes.clipbump .tt-clip{animation:none}}';
     document.head.appendChild(st);
   })();
 
