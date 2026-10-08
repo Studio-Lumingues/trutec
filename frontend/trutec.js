@@ -875,8 +875,8 @@
     if (document.getElementById('tt-pricetag-css')) return;
     var st = document.createElement('style'); st.id = 'tt-pricetag-css';
     st.textContent =
-      '.tt-sc-face{position:relative}' +
-      '.tt-ptag{position:absolute;right:-.55rem;bottom:-.7rem;z-index:3;pointer-events:none;' +
+      '.tt-sc-face{position:relative!important;overflow:visible!important}.tt-sc{overflow:visible!important}' +
+      '.tt-ptag{position:absolute!important;right:-.55rem;bottom:-.7rem;z-index:5;pointer-events:none;' +
         'display:flex;align-items:center;gap:.15rem;box-sizing:border-box;' +
         'width:calc(4.6rem*var(--shopscale,1));height:calc(2.45rem*var(--shopscale,1));padding:0 calc(.4rem*var(--shopscale,1)) 0 calc(.3rem*var(--shopscale,1));' +
         'background:linear-gradient(135deg,#fff 0%,#f6f4f1 60%,#ebe7e2 100%);' +
