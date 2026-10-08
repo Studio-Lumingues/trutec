@@ -2,7 +2,8 @@
    ESCOLHA DO MODO (mode-pick.js): card no estilo do card do lobby, com um xadrez
    (assets/xadrez.jpg) deslizando devagar pro lado ao fundo.
    Dois estados no mesmo card: escolher (.mp-pick) e carregando o Trutec (.mp-load).
-   Ajustes: --mp-pan (quanto o fundo anda pro lado), --mp-speed (tempo de ida e volta),
+   O xadrez também troca de cor sem parar (hue-rotate, uma volta completa a cada --mp-hue).
+   Ajustes: --mp-hue (tempo de uma volta de cores), --mp-pan (quanto o fundo anda pro lado), --mp-speed (tempo de ida e volta),
             --mp-shade (escurecimento por cima do xadrez: 0 = xadrez vivo, 1 = preto).
    ============================================================================ */
 body.mp-open .tut-fab { display: none !important; }      /* o Jailson (botão do tutorial) não aparece nesta tela */
@@ -14,7 +15,7 @@ body.mp-open .tut-fab { display: none !important; }      /* o Jailson (botão do
 @keyframes mpPop { from { opacity: 0; transform: translateY(.8rem) scale(.95); } }
 
 /* o card (mesma pegada do card do lobby: escuro, cantos redondos, borda fina) */
-.mp-box { --mp-pan: 2.8rem; --mp-speed: 10s; --mp-shade: .6;
+.mp-box { --mp-pan: 2.8rem; --mp-speed: 10s; --mp-hue: 16s; --mp-shade: .55;
   position: relative; isolation: isolate; overflow: hidden; width: min(100%, 27rem); display: grid; color: #fff8f0;
   padding: 1.7rem 1.4rem 1.3rem; border-radius: 1.5rem; background: #0a0a0a;
   border: 1px solid rgba(255,248,240,.18);
@@ -22,8 +23,9 @@ body.mp-open .tut-fab { display: none !important; }      /* o Jailson (botão do
   animation: mpPop .3s cubic-bezier(.2, 1.1, .4, 1); }
 /* fundo: xadrez andando de um lado pro outro, com uma camada escura por cima pra os botões ficarem legíveis */
 .mp-box::before { content: ''; position: absolute; z-index: -2; inset: -1rem -4rem; background: url('assets/xadrez.jpg') center / cover no-repeat;
-  animation: mpPan var(--mp-speed) ease-in-out infinite alternate; will-change: transform; }
+  animation: mpPan var(--mp-speed) ease-in-out infinite alternate, mpHue var(--mp-hue) linear infinite; will-change: transform, filter; }
 .mp-box::after { content: ''; position: absolute; z-index: -1; inset: 0; background: linear-gradient(180deg, rgba(10,10,10,calc(var(--mp-shade) + .12)), rgba(10,10,10,var(--mp-shade))); }
+@keyframes mpHue { from { filter: hue-rotate(0deg) saturate(1.9); } to { filter: hue-rotate(360deg) saturate(1.9); } }
 @keyframes mpPan { from { transform: translateX(calc(var(--mp-pan) * -1)); } to { transform: translateX(var(--mp-pan)); } }
 
 .mp-view { grid-area: 1 / 1; display: flex; flex-direction: column; gap: .75rem; transition: opacity .25s, transform .25s; }
@@ -35,6 +37,9 @@ body.mp-open .tut-fab { display: none !important; }      /* o Jailson (botão do
 
 /* botões: os mesmos do lobby (.btn); só ajusto tamanho e o subtítulo */
 .mp-box .mp-opt { width: 100%; font-size: 1.25rem; padding: 1rem 1.2rem; }
+/* o "Trutec" é escuro e SÓLIDO (o .btn-secondary do jogo é translúcido e deixava o xadrez aparecer por trás) */
+.mp-box .btn-secondary.mp-opt { background: #141416; color: #fff8f0; border: 1px solid rgba(255,248,240,.22); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.mp-box .btn-secondary.mp-opt:hover, .mp-box .btn-secondary.mp-opt:focus-visible { background: #1d1d20; }
 .mp-box .mp-opt small { display: block; margin-top: .12rem; font-size: .72em; font-weight: 600; opacity: .6; }
 
 .mp-back { align-self: center; margin-top: .2rem; padding: .5rem 1.3rem; cursor: pointer; color: rgba(255,248,240,.75); font: inherit; font-size: 1rem; background: none; border: 0; border-radius: 99px; text-shadow: 0 .08rem 0 rgba(0,0,0,.6); transition: color .15s, background .15s; }
@@ -45,4 +50,4 @@ body.mp-open .tut-fab { display: none !important; }      /* o Jailson (botão do
 .mp-spin rect { fill: #fff8f0; }
 @keyframes mpSpin { to { transform: rotate(360deg); } }
 .mp-load-txt { font-size: 1.05rem; font-weight: 700; text-shadow: 0 .1rem 0 rgba(0,0,0,.7); }
-@media (prefers-reduced-motion: reduce) { .mp, .mp-box { animation: none; } .mp-box::before { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .mp, .mp-box { animation: none; } .mp-box::before { animation: none; filter: saturate(1.9); } }
