@@ -919,9 +919,73 @@
     f.addEventListener('mouseenter', on); f.addEventListener('focus', on);
     f.addEventListener('mouseleave', hideTip); f.addEventListener('blur', hideTip);
     var nm = document.createElement('span'); nm.className = 'tt-sc-name'; nm.textContent = o.label || d.name;
-    w.appendChild(f); w.appendChild(nm); w.appendChild(button);
+    w.appendChild(f); w.appendChild(nm); if (button) w.appendChild(button);
+    if (o.onPick) {                                           // clicar (ou Enter/Espaço) na carta abre a confirmação
+      w.classList.add('pickable');
+      f.setAttribute('role', 'button');
+      f.addEventListener('click', function () { o.onPick(f); });
+      f.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); o.onPick(f); } });
+    }
     return w;
   }
+  // ---- confirmação de compra: aparece colada na carta clicada ----
+  var confEl = null, confOff = null;
+  function closeConfirm() {
+    if (confEl) confEl.classList.remove('show');
+    if (confOff) { document.removeEventListener('mousedown', confOff, true); document.removeEventListener('keydown', confOff, true); confOff = null; }
+  }
+  // st: { name, desc, price, money, full, voucher, onYes }
+  function askBuy(face, st) {
+    var ov = $('tt-overlay'); if (!ov) return;
+    hideTip(); closeConfirm();
+    if (!confEl) { confEl = document.createElement('div'); confEl.className = 'tt-confirm'; confEl.setAttribute('role', 'dialog'); ov.appendChild(confEl); }
+    confEl.innerHTML = '<b></b><small></small><p class="tt-cmsg"></p><div class="tt-crow"></div>';
+    confEl.querySelector('b').textContent = st.name;
+    confEl.querySelector('small').textContent = st.desc;
+    var msg = confEl.querySelector('.tt-cmsg'), row = confEl.querySelector('.tt-crow');
+    var poor = st.money < st.price, blocked = st.full || poor;
+    msg.textContent = st.full ? 'Sem espaço. Venda um curinga pra abrir espaço.'
+      : poor ? 'Faltam $' + (st.price - st.money) + ' pra comprar.'
+      : 'Deseja comprar por $' + st.price + '?';
+    if (blocked) shopSnd('deny');
+    row.appendChild(shopBtn(blocked ? 'Fechar' : 'Não', undefined, 'tt-no', closeConfirm));
+    if (!blocked) {
+      var yes = shopBtn('Comprar', st.price, 'tt-buy', function () { closeConfirm(); st.onYes(); });
+      row.appendChild(yes);
+    }
+    confEl.classList.add('show');
+    var r = face.getBoundingClientRect(), o = ov.getBoundingClientRect(), w = confEl.offsetWidth, h = confEl.offsetHeight;
+    var x = Math.max(w / 2 + 8, Math.min(o.width - w / 2 - 8, r.left - o.left + r.width / 2));
+    var above = r.top - o.top - h - 10 >= 6;
+    confEl.style.left = x + 'px';
+    confEl.style.top = (above ? r.top - o.top - h - 10 : r.bottom - o.top + 10) + 'px';
+    var first = row.querySelector('.tt-buy') || row.firstChild; if (first) first.focus();
+    confOff = function (e) {
+      if (e.type === 'keydown') { if (e.key === 'Escape') { e.stopPropagation(); closeConfirm(); } return; }
+      if (confEl.contains(e.target)) return;
+      closeConfirm();
+    };
+    setTimeout(function () {
+      if (!confOff) return;
+      document.addEventListener('mousedown', confOff, true); document.addEventListener('keydown', confOff, true);
+    }, 0);
+  }
+  (function injectConfirmCss() {
+    if (document.getElementById('tt-confirm-css')) return;
+    var st = document.createElement('style'); st.id = 'tt-confirm-css';
+    st.textContent =
+      '.tt-sc.pickable .tt-sc-face{cursor:pointer}' +
+      '.tt-sc.pickable:hover .tt-sc-face{transform:translateY(-3px)}' +
+      '.tt-confirm{position:absolute;z-index:60;width:min(15rem,86%);transform:translateX(-50%) scale(.94);opacity:0;pointer-events:none;' +
+        'display:flex;flex-direction:column;gap:.35rem;padding:.7rem .8rem;border-radius:.7rem;text-align:center;' +
+        'background:#fff8f0;color:#1a1209;border:2px solid #1a1209;box-shadow:0 .5rem 1.4rem rgba(0,0,0,.55);transition:opacity .12s,transform .12s}' +
+      '.tt-confirm.show{opacity:1;transform:translateX(-50%) scale(1);pointer-events:auto}' +
+      '.tt-confirm b{font-size:1rem}.tt-confirm small{font-size:.78rem;line-height:1.25;opacity:.8}' +
+      '.tt-confirm .tt-cmsg{margin:.2rem 0 0;font-weight:700;font-size:.92rem}' +
+      '.tt-confirm .tt-crow{display:flex;gap:.5rem;justify-content:center;margin-top:.2rem}' +
+      '.tt-confirm .tt-crow .btn{flex:1;min-width:0}';
+    document.head.appendChild(st);
+  })();
   function shopSnd(k) { if (DEMO) return; try { if (window.TruCount && TruCount.sfx) TruCount.sfx(k); } catch (e) {} }
   function shopBtn(label, price, cls, fn, dis, title) {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.disabled = !!dis;
@@ -950,7 +1014,7 @@
 
   var shopShownMoney = null;      // dinheiro mostrado na última vez que a loja foi desenhada (pra animar a mudança)
   function renderShop(kind) {
-    hideTip();
+    hideTip(); closeConfirm();
     var S = R.shop, box = document.createElement('div'); box.className = 'tt-shop';
 
     // ---- carteira: moeda + dinheiro (sobe contando quando ganha; treme e mostra "-$" quando gasta) ----
@@ -1000,15 +1064,19 @@
       var d = it.type === 'joker' ? jk(it.id) : vc(it.id);
       var full = it.type === 'joker' && R.jokers.length >= JSLOTS;
       var poor = R.money < it.price;
-      var buy = full ? shopBtn('Sem espaço', undefined, 'tt-buy', function () {}, true, 'Venda um curinga pra abrir espaço')
-        : shopBtn('Comprar', it.price, 'tt-buy', function () {
-            shopSnd('buy');
-            R.money -= it.price;
-            if (it.type === 'joker') R.jokers.push(it.id); else R.vouchers.push(it.id);
-            S.items.splice(i, 1); render(); renderShop('buy');
-          }, poor, poor ? 'Faltam $' + (it.price - R.money) : '');
-      list.appendChild(shopCard(d, d.name + (it.type === 'voucher' ? ' (permanente)' : ''), it.type === 'voucher' ? 'PERM.' : '', buy,
-        { label: d.name, voucher: it.type === 'voucher', poor: poor || full, i: i, price: it.price }));
+      var doBuy = function () {
+        shopSnd('buy');
+        R.money -= it.price;
+        if (it.type === 'joker') R.jokers.push(it.id); else R.vouchers.push(it.id);
+        S.items.splice(i, 1); render(); renderShop('buy');
+      };
+      var card = shopCard(d, d.name + (it.type === 'voucher' ? ' (permanente)' : ''), it.type === 'voucher' ? 'PERM.' : '', null,
+        { label: d.name, voucher: it.type === 'voucher', poor: poor || full, i: i, price: it.price,
+          onPick: function (face) {
+            askBuy(face, { name: d.name, desc: d.desc, price: it.price, money: R.money, full: full, voucher: it.type === 'voucher', onYes: doBuy });
+          } });
+      card._demoBuy = (poor || full) ? null : doBuy;          // usado pelo modo demo da tela inicial
+      list.appendChild(card);
     });
     pShop.appendChild(list);
     var cost = 3 + S.rerolls;
@@ -1206,12 +1274,11 @@
       if (isShop) {                                                // loja: compra o melhor que dá, rola às vezes, segue
         var cards = [].slice.call(m.querySelectorAll('.tt-stall .tt-sc')), items = R.shop ? R.shop.items : [], bi = -1, bw = -1e9;
         items.forEach(function (it, i) {
-          var bt = cards[i] && cards[i].querySelector('.tt-buy');
-          if (!bt || bt.disabled) return;
+          if (!(cards[i] && cards[i]._demoBuy)) return;
           var wv = (DLIKE[it.id] || 3) * 10 - it.price;
           if (wv > bw) { bw = wv; bi = i; }
         });
-        if (bi >= 0) return cards[bi].querySelector('.tt-buy').click();
+        if (bi >= 0) return cards[bi]._demoBuy();
         var rr = m.querySelector('.tt-reroll');
         if (rr && !rr.disabled && R.shop && R.shop.rerolls < 2 && Math.random() < 0.6) return rr.click();
         b = byText(/Próxima blind/); if (b) b.click();
