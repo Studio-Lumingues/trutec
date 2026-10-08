@@ -239,14 +239,42 @@
         '<div class="tt-hand" id="tt-hand"></div>' +
       '</div>' +
       '</div>' +
-      '<div class="tt-carteira" id="tt-carteira" aria-label="Carteira de curingas">' +
+      '<div class="tt-carteira" id="tt-carteira" role="button" tabindex="0" aria-label="Abrir a carteira de curingas">' +
         '<div class="tt-cart-back"></div>' +
         '<div class="tt-jokers" id="tt-jokers"></div>' +
         '<div class="tt-cart-front"></div>' +
       '</div>' +
+      '<div class="tt-cv hidden" id="tt-cv" role="dialog" aria-label="Carteira de curingas">' +
+        '<button type="button" class="tt-cv-close" id="tt-cv-close" aria-label="Fechar">×</button>' +
+        '<div class="tt-cv-box">' +
+          '<div class="tt-cv-wallet">' +
+            '<div class="tt-cart-back"></div>' +
+            '<div class="tt-cv-jokers" id="tt-cv-jokers"></div>' +
+            '<div class="tt-cart-front"></div>' +
+          '</div>' +
+          '<p class="tt-cv-cap" id="tt-cv-cap"></p>' +
+          '<p class="tt-cv-hint">Arraste os curingas para mudar a ordem</p>' +
+        '</div>' +
+      '</div>' +
       '<div class="tt-overlay hidden" id="tt-overlay"><div class="tt-modal" id="tt-modal"></div></div>';
-    s.querySelector('#tt-carteira').style.setProperty('--cart-img', 'url("assets/carteira.png")');   // imagem da carteira (pasta assets/)
+    s.style.setProperty('--cart-img', 'url("assets/carteira.png")');   // imagem da carteira (pasta assets/)
     host.appendChild(s);
+
+    // carteira: clique abre a versão ampliada, onde dá pra arrastar os curingas e mudar a ordem
+    var cart = $('tt-carteira'), cv = $('tt-cv'), cvj = $('tt-cv-jokers');
+    cart.addEventListener('click', cvShow);
+    cart.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cvShow(); } });
+    $('tt-cv-close').addEventListener('click', cvHide);
+    cv.addEventListener('click', function (e) { if (e.target === cv || e.target.classList.contains('tt-cv-box')) cvHide(); });
+    cvj.addEventListener('pointerdown', cvDown);
+    cvj.addEventListener('pointermove', cvMove);
+    cvj.addEventListener('pointerup', cvUp);
+    cvj.addEventListener('pointercancel', cvCancel);
+    cvj.addEventListener('mouseover', function (e) {
+      if (cvDrag) return;
+      var el = e.target.closest ? e.target.closest('.tt-joker') : null;
+      if (el && el.dataset.id) cvCaption(jk(el.dataset.id));
+    });
 
     $('tt-exit').addEventListener('click', function () {
       if (!R) return leave();
@@ -514,6 +542,87 @@
       if (j) { el.title = j.name + ': ' + j.desc; el.innerHTML = '<span class="tj-i">' + ic(j.icon) + '</span><small></small>'; el.lastChild.textContent = j.name; }
       box.appendChild(el);
     }
+    if (cvOpen && !cvDrag) cvRender();
+  }
+
+  // ---------- carteira ampliada: ver os curingas e arrastar pra mudar a ordem ----------
+  var cvOpen = false, cvDrag = null;
+  function cvCaption(j) {
+    var cap = $('tt-cv-cap'); if (!cap) return;
+    cap.innerHTML = '';
+    if (j) {
+      var b = document.createElement('b'); b.textContent = j.name;
+      cap.appendChild(b); cap.appendChild(document.createTextNode(j.desc));
+    } else {
+      cap.textContent = R && R.jokers.length ? 'Passe o mouse num curinga para ver o efeito.' : 'A carteira está vazia. Compre curingas na loja.';
+    }
+  }
+  function cvRender(j) {
+    var box = $('tt-cv-jokers'); if (!box) return;
+    box.innerHTML = '';
+    for (var i = 0; i < JSLOTS; i++) {
+      var id = R && R.jokers[i], jj = id && jk(id);
+      var el = document.createElement('div');
+      el.className = 'tt-joker' + (jj ? '' : ' empty'); el.dataset.i = i;
+      if (jj) { el.dataset.id = id; el.innerHTML = '<span class="tj-i">' + ic(jj.icon) + '</span>'; }
+      box.appendChild(el);
+    }
+    cvCaption(j || null);
+  }
+  function cvKey(e) { if (e.key === 'Escape') { e.stopPropagation(); cvHide(); } }
+  function cvShow() {
+    if (!R) return;
+    cvOpen = true; cvDrag = null; cvRender();
+    $('tt-cv').classList.remove('hidden');
+    document.addEventListener('keydown', cvKey, true);
+  }
+  function cvHide() {
+    cvOpen = false; cvDrag = null;
+    var cv = $('tt-cv'); if (cv) cv.classList.add('hidden');
+    document.removeEventListener('keydown', cvKey, true);
+  }
+  function cvDown(e) {
+    var el = e.target.closest ? e.target.closest('.tt-joker') : null;
+    if (!el || !el.dataset.id || !R) return;
+    var items = [].slice.call($('tt-cv-jokers').children), i = items.indexOf(el);
+    cvCaption(jk(el.dataset.id));
+    if (H && H.scoring) return;                                   // durante a pontuação só dá pra olhar
+    var step = items.length > 1 ? items[1].offsetLeft - items[0].offsetLeft : el.offsetWidth;
+    cvDrag = { el: el, items: items, from: i, to: i, x0: e.clientX, step: step, n: R.jokers.length, pid: e.pointerId };
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    el.classList.add('dragging');
+    e.preventDefault();
+  }
+  function cvMove(e) {
+    var d = cvDrag; if (!d || e.pointerId !== d.pid) return;
+    var dx = e.clientX - d.x0;
+    d.el.style.transform = 'translateX(' + dx + 'px) translateY(-.6rem) scale(1.08)';
+    var to = Math.max(0, Math.min(d.n - 1, d.from + Math.round(dx / d.step)));
+    d.to = to;
+    d.items.forEach(function (it, k) {                            // os outros abrem espaço pro curinga que está sendo arrastado
+      if (it === d.el) return;
+      var sh = 0;
+      if (d.from < to && k > d.from && k <= to) sh = -d.step;
+      else if (d.from > to && k >= to && k < d.from) sh = d.step;
+      it.style.transform = sh ? 'translateX(' + sh + 'px)' : '';
+    });
+  }
+  function cvUp(e) {
+    var d = cvDrag; if (!d || e.pointerId !== d.pid) return;
+    cvDrag = null;
+    if (d.to === d.from) {                                        // só um clique: volta tudo pro lugar
+      d.el.classList.remove('dragging');
+      d.items.forEach(function (it) { it.style.transform = ''; });
+      return;
+    }
+    var id = R.jokers.splice(d.from, 1)[0];
+    R.jokers.splice(d.to, 0, id);
+    render();                                                     // atualiza a carteira pequena
+    cvRender(jk(id));
+  }
+  function cvCancel(e) {
+    var d = cvDrag; if (!d || e.pointerId !== d.pid) return;
+    cvDrag = null; cvRender();
   }
 
   // texto da META na folhinha: o tamanho acompanha a largura da folha (cqw) e, se mesmo assim passar, encolhe até caber
@@ -668,6 +777,7 @@
   // ============================================================================
   function open() {
     build();
+    if (cvOpen) cvHide();
     if (window.showScreen) window.showScreen('screen-trutec');
     else { document.querySelectorAll('.screen').forEach(function (e) { e.classList.remove('active'); }); $('screen-trutec').classList.add('active'); }
     tok++; R = null; H = null; shownBlind = null;
@@ -682,6 +792,7 @@
     intro();
   }
   function leave() {
+    if (cvOpen) cvHide();
     tok++; R = H = null; closeModal();
     if (window.showScreen) window.showScreen('screen-lobby');
   }
