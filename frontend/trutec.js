@@ -1046,8 +1046,8 @@
   }
   function aiCall() {
     H.pending = H.level + 1;
-    say('O rival pediu ' + CALLS[H.pending] + '!'); sfx(CALLS[H.pending].toLowerCase());
-    later(showResponse, 600);
+    say('O rival pediu ' + CALLS[H.pending] + '!');
+    later(function () { sfx(CALLS[H.pending].toLowerCase()); showResponse(); }, 600);   // som e card juntos
   }
   function aiPlay() {
     var o = R.blind.opp, hand = H.opp;
@@ -1071,8 +1071,8 @@
     }
     if (e > 0.86 && H.pending < 4 && Math.random() < 0.45) {
       H.level = H.pending; H.lastRaiser = 'opp'; H.pending = H.level + 1;
-      say('O rival aceitou e pediu ' + CALLS[H.pending] + '!'); sfx(CALLS[H.pending].toLowerCase());
-      return later(showResponse, 800);
+      say('O rival aceitou e pediu ' + CALLS[H.pending] + '!');
+      return later(function () { sfx(CALLS[H.pending].toLowerCase()); showResponse(); }, 800);   // som e card juntos
     }
     H.level = H.pending; H.lastRaiser = 'me';
     render(); say('O rival aceitou! Agora vale ×' + stakeMult(H.level) + '.');
