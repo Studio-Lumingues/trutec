@@ -561,7 +561,7 @@
   --tt-f: calc(var(--tt-p) * 1.3rem);                  /* tamanho da aba dobrada */
   --tt-k: calc(var(--tt-p) * 2.9rem - 1.6rem);         /* posição do corte (começa fora do papel, só entra na hora da dobra) */
   pointer-events: auto;
-  transition: --tt-p .32s cubic-bezier(.25, .8, .3, 1);
+  transition: --tt-p .8s cubic-bezier(.3, .6, .3, 1);
 }
 .tt-notes:hover { --tt-p: 1; }
 .tt-notes .tt-paper {                                   /* papel (e sombra) sem a ponta do canto */
