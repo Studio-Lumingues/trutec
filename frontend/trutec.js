@@ -928,47 +928,54 @@
     }
     return w;
   }
-  // ---- confirmação de compra: aparece colada na carta clicada ----
-  var confEl = null, confOff = null;
+  // ---- confirmação de compra: card no meio da tela, com fundo escurecido (Sim / Cancelar) ----
+  var confEl = null, confOff = null, confFocus = null;
   function closeConfirm() {
     if (confEl) confEl.classList.remove('show');
-    if (confOff) { document.removeEventListener('mousedown', confOff, true); document.removeEventListener('keydown', confOff, true); confOff = null; }
+    if (confOff) { document.removeEventListener('keydown', confOff, true); confOff = null; }
+    if (confFocus && confFocus.isConnected) { try { confFocus.focus(); } catch (e) {} }
+    confFocus = null;
   }
-  // st: { name, desc, price, money, full, voucher, onYes }
+  // st: { name, desc, icon, price, money, full, voucher, onYes }
   function askBuy(face, st) {
     var ov = $('tt-overlay'); if (!ov) return;
     hideTip(); closeConfirm();
-    if (!confEl) { confEl = document.createElement('div'); confEl.className = 'tt-confirm'; confEl.setAttribute('role', 'dialog'); ov.appendChild(confEl); }
-    confEl.innerHTML = '<b></b><small></small><p class="tt-cmsg"></p><div class="tt-crow"></div>';
-    confEl.querySelector('b').textContent = st.name;
-    confEl.querySelector('small').textContent = st.desc;
-    var msg = confEl.querySelector('.tt-cmsg'), row = confEl.querySelector('.tt-crow');
+    confFocus = face;
+    if (!confEl) {
+      confEl = document.createElement('div'); confEl.className = 'tt-cbd';
+      confEl.addEventListener('mousedown', function (e) { if (e.target === confEl) closeConfirm(); });
+      ov.appendChild(confEl);
+    }
     var poor = st.money < st.price, blocked = st.full || poor;
-    msg.textContent = st.full ? 'Sem espaço. Venda um curinga pra abrir espaço.'
+    var msg = st.full ? 'Sem espaço. Venda um curinga pra abrir espaço.'
       : poor ? 'Faltam $' + (st.price - st.money) + ' pra comprar.'
-      : 'Deseja comprar por $' + st.price + '?';
+      : 'Deseja comprar esta carta?';
+    confEl.innerHTML =
+      '<div class="tt-confirm" role="dialog" aria-modal="true" aria-label="Confirmar compra">' +
+        '<div class="tt-cface' + (st.voucher ? ' voucher' : '') + '"></div>' +
+        '<b class="tt-cname"></b><small class="tt-cdesc"></small>' +
+        '<div class="tt-cprice"></div>' +
+        '<p class="tt-cmsg"></p><div class="tt-crow"></div>' +
+      '</div>';
+    var box = confEl.firstChild;
+    box.querySelector('.tt-cface').innerHTML = ic(st.icon);
+    box.querySelector('.tt-cname').textContent = st.name + (st.voucher ? ' (permanente)' : '');
+    box.querySelector('.tt-cdesc').textContent = st.desc;
+    box.querySelector('.tt-cprice').appendChild(priceTag(st.price));
+    box.querySelector('.tt-cmsg').textContent = msg;
+    var row = box.querySelector('.tt-crow');
     if (blocked) shopSnd('deny');
-    row.appendChild(shopBtn(blocked ? 'Fechar' : 'Não', undefined, 'tt-no', closeConfirm));
+    var cancel = shopBtn(blocked ? 'Fechar' : 'Cancelar', undefined, 'tt-no', closeConfirm);
+    row.appendChild(cancel);
+    var focusEl = cancel;
     if (!blocked) {
-      var yes = shopBtn('Comprar', st.price, 'tt-buy', function () { closeConfirm(); st.onYes(); });
-      row.appendChild(yes);
+      var yes = shopBtn('Sim, comprar', undefined, 'tt-buy', function () { confFocus = null; closeConfirm(); st.onYes(); });
+      row.appendChild(yes); focusEl = yes;
     }
     confEl.classList.add('show');
-    var r = face.getBoundingClientRect(), o = ov.getBoundingClientRect(), w = confEl.offsetWidth, h = confEl.offsetHeight;
-    var x = Math.max(w / 2 + 8, Math.min(o.width - w / 2 - 8, r.left - o.left + r.width / 2));
-    var above = r.top - o.top - h - 10 >= 6;
-    confEl.style.left = x + 'px';
-    confEl.style.top = (above ? r.top - o.top - h - 10 : r.bottom - o.top + 10) + 'px';
-    var first = row.querySelector('.tt-buy') || row.firstChild; if (first) first.focus();
-    confOff = function (e) {
-      if (e.type === 'keydown') { if (e.key === 'Escape') { e.stopPropagation(); closeConfirm(); } return; }
-      if (confEl.contains(e.target)) return;
-      closeConfirm();
-    };
-    setTimeout(function () {
-      if (!confOff) return;
-      document.addEventListener('mousedown', confOff, true); document.addEventListener('keydown', confOff, true);
-    }, 0);
+    confOff = function (e) { if (e.key === 'Escape') { e.stopPropagation(); closeConfirm(); } };
+    document.addEventListener('keydown', confOff, true);
+    focusEl.focus();
   }
   (function injectConfirmCss() {
     if (document.getElementById('tt-confirm-css')) return;
@@ -976,14 +983,23 @@
     st.textContent =
       '.tt-sc.pickable .tt-sc-face{cursor:pointer}' +
       '.tt-sc.pickable:hover .tt-sc-face{transform:translateY(-3px)}' +
-      '.tt-confirm{position:absolute;z-index:60;width:min(15rem,86%);transform:translateX(-50%) scale(.94);opacity:0;pointer-events:none;' +
-        'display:flex;flex-direction:column;gap:.35rem;padding:.7rem .8rem;border-radius:.7rem;text-align:center;' +
-        'background:#fff8f0;color:#1a1209;border:2px solid #1a1209;box-shadow:0 .5rem 1.4rem rgba(0,0,0,.55);transition:opacity .12s,transform .12s}' +
-      '.tt-confirm.show{opacity:1;transform:translateX(-50%) scale(1);pointer-events:auto}' +
-      '.tt-confirm b{font-size:1rem}.tt-confirm small{font-size:.78rem;line-height:1.25;opacity:.8}' +
-      '.tt-confirm .tt-cmsg{margin:.2rem 0 0;font-weight:700;font-size:.92rem}' +
-      '.tt-confirm .tt-crow{display:flex;gap:.5rem;justify-content:center;margin-top:.2rem}' +
-      '.tt-confirm .tt-crow .btn{flex:1;min-width:0}';
+      '.tt-cbd{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:1rem;' +
+        'background:rgba(8,6,16,.72);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .15s}' +
+      '.tt-cbd.show{opacity:1;pointer-events:auto}' +
+      '.tt-confirm{width:min(20rem,100%);box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:.5rem;text-align:center;' +
+        'padding:1.2rem 1.2rem 1.1rem;border-radius:1rem;background:#fff8f0;color:#1a1209;border:3px solid #1a1209;' +
+        'box-shadow:0 .8rem 2.2rem rgba(0,0,0,.6),0 0 0 .25rem #ffd23f;transform:scale(.92);transition:transform .15s}' +
+      '.tt-cbd.show .tt-confirm{transform:scale(1)}' +
+      '.tt-cface{position:relative;width:5.2rem;height:6.8rem;display:flex;align-items:center;justify-content:center;border-radius:.6rem;' +
+        'background:#fff;border:2px solid #1a1209;box-shadow:0 .2rem .5rem rgba(0,0,0,.3);transform:rotate(-3deg)}' +
+      '.tt-cface.voucher{box-shadow:0 0 0 .2rem #ffd23f,0 .2rem .5rem rgba(0,0,0,.3)}' +
+      '.tt-cface .tt-ic{width:3.2rem;height:3.2rem}' +
+      '.tt-cname{font-size:1.2rem;margin-top:.2rem}.tt-cdesc{font-size:.85rem;line-height:1.3;opacity:.8}' +
+      '.tt-cprice{position:relative;height:3.2rem;width:100%;display:flex;align-items:center;justify-content:center}' +
+      '.tt-cprice .tt-ptag{position:relative!important;right:auto;bottom:auto;transform:rotate(var(--tilt,-14deg)) scale(1.15)}' +
+      '.tt-cmsg{margin:0;font-weight:700;font-size:1rem}' +
+      '.tt-crow{display:flex;gap:.6rem;width:100%;margin-top:.3rem}.tt-crow .btn{flex:1;min-width:0}' +
+      '@media (prefers-reduced-motion:reduce){.tt-cbd,.tt-confirm{transition:none}}';
     document.head.appendChild(st);
   })();
   function shopSnd(k) { if (DEMO) return; try { if (window.TruCount && TruCount.sfx) TruCount.sfx(k); } catch (e) {} }
@@ -1073,7 +1089,7 @@
       var card = shopCard(d, d.name + (it.type === 'voucher' ? ' (permanente)' : ''), it.type === 'voucher' ? 'PERM.' : '', null,
         { label: d.name, voucher: it.type === 'voucher', poor: poor || full, i: i, price: it.price,
           onPick: function (face) {
-            askBuy(face, { name: d.name, desc: d.desc, price: it.price, money: R.money, full: full, voucher: it.type === 'voucher', onYes: doBuy });
+            askBuy(face, { name: d.name, desc: d.desc, icon: d.icon, price: it.price, money: R.money, full: full, voucher: it.type === 'voucher', onYes: doBuy });
           } });
       card._demoBuy = (poor || full) ? null : doBuy;          // usado pelo modo demo da tela inicial
       list.appendChild(card);
