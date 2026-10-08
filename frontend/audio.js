@@ -8,7 +8,8 @@
 //   editor), ela some em fade out. Ao trocar de tela, uma faixa some enquanto
 //   a outra entra. Na mesa do jogo não toca música.
 // - Continua tocando mesmo com a aba em segundo plano (só o botão de mudo pausa).
-// - Cliques em botões e sons de carta (bater na mesa / distribuir) são sintetizados aqui, sem arquivos.
+// - Cliques em botões, switches e janelas tocam arquivos de assets/sons/ (Kenney, CC0); sons de carta vêm de assets/card-*.wav.
+//   Se algum arquivo não carregar, o clique e as cartas usam um som sintetizado de reserva.
 // - As falas tocam quando alguém pede (ou aumenta pra) truco, seis, nove, doze.
 // - O sfx01 toca quando a partida começa (início da transição pra mesa).
 // - Navegadores bloqueiam áudio antes do primeiro clique/toque; se a música
@@ -70,6 +71,7 @@
     analyser.smoothingTimeConstant = 0.2;
     tracks.jungle.fade.connect(analyser);
     loadCardSamples();
+    loadUiSamples();
     return true;
   }
 
@@ -147,8 +149,8 @@
     return noiseBuf;
   }
 
-  // clique: "tick" curtinho
-  function sfxClick() {
+  // [RESERVA] clique sintetizado: só toca se os arquivos de assets/sons/ não carregarem
+  function sfxClickSynth() {
     if (!sfxReady()) return;
     var t = ctx.currentTime;
     var osc = ctx.createOscillator();
@@ -270,6 +272,69 @@
     if (!playCardSample('deal', delaySec, 1 + (variation || 0) * 0.015)) sfxCardDealSynth(delaySec, variation);
   }
 
+  // ---- Sons de interface (botões, janelas, switches) — arquivos em assets/sons/ ----
+  // Pacote "Interface Sounds" do Kenney (CC0). Cada tipo tem um arquivo; se algum não carregar,
+  // o clique cai no som sintetizado de antes (os outros ficam em silêncio).
+  // Ajustes: UI_GAIN (força geral), UI_PITCH (variação de tom a cada toque) e HOVER_ON (som ao passar o mouse).
+  var UI_DIR = 'assets/sons/';
+  var UI_FILES = {
+    click:  'botao-clique-1-macio.mp3',   // troque por botao-clique-2-madeira.mp3 ou botao-clique-3-seco.mp3 se preferir
+    back:   'botao-voltar.mp3',
+    open:   'abrir-janela.mp3',
+    close:  'fechar-janela.mp3',
+    toggle: 'ligar-desligar.mp3',
+    ok:     'confirmar.mp3',
+    err:    'erro.mp3',
+    pluck:  'divertido-pluck.mp3',
+    hover:  'botao-hover-bem-baixinho.mp3'
+  };
+  var UI_GAIN = 1.4;      // multiplica o volume de efeitos (as gravações já estão baixinhas)
+  var UI_PITCH = 0.03;    // ±3% de variação de tom, pra não soar sempre igual
+  var HOVER_ON = false;   // true = toca um tick bem baixinho ao passar o mouse nos botões
+  var uiBufs = {}, uiLoading = false, uiLastT = 0;
+
+  function loadUiSamples() {
+    if (uiLoading || !ctx) return;
+    uiLoading = true;
+    Object.keys(UI_FILES).forEach(function (name) {
+      var url = UI_DIR + UI_FILES[name];
+      fetch(url)
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+        .then(function (data) { return new Promise(function (ok, fail) { ctx.decodeAudioData(data, ok, fail); }); })
+        .then(function (buf) { uiBufs[name] = buf; })
+        .catch(function (err) { console.warn('[áudio] não consegui carregar ' + url + ' — confira se está na pasta assets/sons/.', err); });
+    });
+  }
+
+  // toca um som de interface pelo nome (click, back, open, close, toggle, ok, err, pluck, hover)
+  function sfxUi(name) {
+    if (!sfxReady()) return;
+    var now = performance.now();
+    if (now - uiLastT < 35) return;           // evita som dobrado (clique + change no mesmo gesto)
+    uiLastT = now;
+    var buf = uiBufs[name];
+    if (!buf) { if (name === 'click' || name === 'back') sfxClickSynth(); return; }
+    var src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = 1 + (Math.random() * 2 - 1) * UI_PITCH;
+    var g = ctx.createGain();
+    g.gain.value = Math.min(1, UI_GAIN * SFX_VOLUME);
+    src.connect(g); g.connect(ctx.destination);
+    src.start();
+  }
+  function sfxClick() { sfxUi('click'); }
+
+  // qual som combina com este botão? (data-sfx="back" no HTML força um tipo; data-sfx="none" deixa mudo)
+  function clickKind(b) {
+    var d = b.getAttribute && b.getAttribute('data-sfx');
+    if (d) return d;
+    var s = ((b.id || '') + ' ' + (typeof b.className === 'string' ? b.className : '')).toLowerCase();
+    if (/back|voltar|close|fechar|cancel/.test(s)) return 'back';
+    var t = (b.textContent || '').trim().toLowerCase().replace(/^[‹<←\s]+/, '');
+    if (/^(voltar|fechar|cancelar)/.test(t)) return 'back';
+    return 'click';
+  }
+
   // explosãozinha (jogador entrou na sala): "pof" grave abafado + sopro de ruído
   // que vai escurecendo. Propositalmente BEM baixinho.
   function sfxPoof() {
@@ -293,8 +358,27 @@
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest ? e.target.closest('button') : null;
     if (!b || b.disabled) return;
-    sfxClick();
+    var kind = clickKind(b);
+    if (kind === 'none') return;
+    sfxUi(kind);
   }, true);
+
+  // switches e caixinhas de marcar (ex.: modo daltonismo nas Configurações)
+  document.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t && t.tagName === 'INPUT' && (t.type === 'checkbox' || t.type === 'radio')) sfxUi('toggle');
+  }, true);
+
+  // (opcional) tick baixinho ao passar o mouse num botão — desligado por padrão
+  if (HOVER_ON) {
+    var lastHover = null;
+    document.addEventListener('mouseover', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('button') : null;
+      if (b === lastHover) return;
+      lastHover = b;
+      if (b && !b.disabled && clickKind(b) !== 'none') sfxUi('hover');
+    });
+  }
 
 
   // ---- Efeito de luz no ritmo da jungle ----
@@ -518,6 +602,7 @@
       Object.keys(calls).forEach(function (k) { calls[k].volume = callVol(k); });
     },
     click: sfxClick,
+    ui: sfxUi,   // GameAudio.ui('ok' | 'err' | 'open' | 'close' | 'toggle' | 'back' | 'pluck' | 'click')
     cardPlay: sfxCardPlay,
     cardDeal: sfxCardDeal,
     poof: sfxPoof,
