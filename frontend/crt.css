@@ -1,0 +1,57 @@
+/* ============================================================================
+   EFEITO CRT / TV DE TUBO NO JOGO TODO (crt.js cria o #crt-overlay)
+   Camadas, todas por cima de tudo e sem interferir no clique:
+   1) linhas de varredura + máscara RGB fininha   2) vinheta com cantos escuros
+   3) faixa de brilho que desce devagar (roll)    4) tremida leve de brilho (flicker)
+   Ajustes: --crt-scan (força das linhas), --crt-vig (força da vinheta),
+   --crt-roll (brilho da faixa), --crt-flick (0 desliga a tremida).
+   ============================================================================ */
+#crt-overlay {
+  --crt-scan: .20; --crt-vig: .50; --crt-roll: .05; --crt-flick: 1;
+  position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; overflow: hidden;
+  contain: strict;
+}
+html:not(.crt-on) #crt-overlay { display: none; }
+
+/* 1) linhas + máscara de fósforo (vermelho/verde/azul) */
+#crt-overlay .crt-scan {
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,var(--crt-scan)) 0, rgba(0,0,0,var(--crt-scan)) 1px, transparent 1px, transparent 3px),
+    repeating-linear-gradient(90deg, rgba(255,40,40,.045) 0, rgba(255,40,40,.045) 1px, rgba(40,255,40,.04) 1px, rgba(40,255,40,.04) 2px, rgba(60,60,255,.05) 2px, rgba(60,60,255,.05) 3px);
+}
+
+/* 2) vinheta: escurece as bordas e dá cantos arredondados de tela */
+#crt-overlay .crt-vig {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 85% 80% at 50% 50%, transparent 55%, rgba(0,0,0,calc(var(--crt-vig) * .55)) 82%, rgba(0,0,0,var(--crt-vig)) 100%);
+  box-shadow: inset 0 0 6vmin rgba(0,0,0,.55), inset 0 0 1.2vmin rgba(0,0,0,.6);
+}
+
+/* 3) faixa de brilho descendo (só transform: leve pra GPU) */
+#crt-overlay .crt-roll {
+  position: absolute; left: 0; right: 0; top: 0; height: 22vh;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,var(--crt-roll)) 50%, transparent);
+  transform: translate3d(0, -30vh, 0);
+  animation: crtRoll 7.5s linear infinite;
+  will-change: transform;
+}
+@keyframes crtRoll { to { transform: translate3d(0, 115vh, 0); } }
+
+/* 4) tremida de brilho, bem sutil */
+#crt-overlay .crt-flick {
+  position: absolute; inset: 0; background: #fff; opacity: 0;
+  animation: crtFlick .16s steps(2, end) infinite;
+}
+@keyframes crtFlick {
+  0%   { opacity: 0; }
+  50%  { opacity: calc(.018 * var(--crt-flick)); }
+  100% { opacity: 0; }
+}
+
+/* leve franja de cor nas letras (vermelho de um lado, ciano do outro) */
+html.crt-on body { text-shadow: .6px 0 rgba(255,60,60,.28), -.6px 0 rgba(60,220,255,.28); }
+
+@media (prefers-reduced-motion: reduce) {
+  #crt-overlay .crt-roll, #crt-overlay .crt-flick { animation: none; display: none; }
+}
