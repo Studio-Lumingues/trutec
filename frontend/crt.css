@@ -1,57 +1,123 @@
 /* ============================================================================
-   EFEITO CRT / TV DE TUBO NO JOGO TODO (crt.js cria o #crt-overlay)
-   Camadas, todas por cima de tudo e sem interferir no clique:
-   1) linhas de varredura + máscara RGB fininha   2) vinheta com cantos escuros
-   3) faixa de brilho que desce devagar (roll)    4) tremida leve de brilho (flicker)
-   Ajustes: --crt-scan (força das linhas), --crt-vig (força da vinheta),
-   --crt-roll (brilho da faixa), --crt-flick (0 desliga a tremida).
+   CRT + VHS: câmera de fita, TV de tubo, nostalgia (crt.js cria o #crt-overlay)
+   Tudo fica por cima do jogo inteiro e não atrapalha o clique. Camadas, de baixo pra cima:
+   grade (borrão + contraste + cor estourada, aplicado no jogo todo) · bloom (brilho que
+   vaza) · tom azulado · linhas de varredura + máscara RGB · granulado colorido que muda ·
+   reflexo de vidro · faixa de "tracking" que cai de vez em quando · ruído do cabeçote no
+   rodapé · faixa de brilho descendo · vinheta · tremida de brilho · "● REC" e relógio.
+   Dois níveis: FORTE (html.crt-on) e LEVE (html.crt-on.crt-lite).
+   Ajustes: as variáveis --crt-* logo abaixo.
+   Obs.: as camadas com backdrop-filter são irmãs de propósito (dentro uma da outra o
+   navegador não enxerga o jogo por trás).
    ============================================================================ */
 #crt-overlay {
-  --crt-scan: .20; --crt-vig: .50; --crt-roll: .05; --crt-flick: 1;
-  position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; overflow: hidden;
-  contain: strict;
+  --crt-blur: .8px; --crt-contrast: 1.22; --crt-sat: 1.3; --crt-bright: 1.05; --crt-hue: -8deg;
+  --crt-bloom: .22; --crt-tint: .09; --crt-scan: .27; --crt-mask: .085; --crt-grain: .11;
+  --crt-vig: .62; --crt-roll: .07; --crt-flick: .035; --crt-glare: .06; --crt-track: 1; --crt-head: .6;
+  --crt-fringe: 1.1px; --crt-noise: none;
+  position: fixed; inset: 0; z-index: 2147483000; pointer-events: none;
+}
+html.crt-lite #crt-overlay {
+  --crt-blur: .45px; --crt-contrast: 1.1; --crt-sat: 1.12; --crt-bright: 1.02; --crt-hue: 0deg;
+  --crt-bloom: .1; --crt-tint: .04; --crt-scan: .16; --crt-mask: .04; --crt-grain: .05;
+  --crt-vig: .4; --crt-roll: .035; --crt-flick: .015; --crt-glare: .03; --crt-track: 0; --crt-head: .3;
+  --crt-fringe: .6px;
 }
 html:not(.crt-on) #crt-overlay { display: none; }
+#crt-overlay > div { position: absolute; inset: 0; }
 
-/* 1) linhas + máscara de fósforo (vermelho/verde/azul) */
+/* 1) o jogo todo fica meio mole, contrastado e saturado, com um toque de verde-azulado */
+#crt-overlay .crt-grade {
+  -webkit-backdrop-filter: blur(var(--crt-blur)) contrast(var(--crt-contrast)) saturate(var(--crt-sat)) brightness(var(--crt-bright)) hue-rotate(var(--crt-hue));
+          backdrop-filter: blur(var(--crt-blur)) contrast(var(--crt-contrast)) saturate(var(--crt-sat)) brightness(var(--crt-bright)) hue-rotate(var(--crt-hue));
+}
+/* 2) bloom: cópia borrada e clareada misturada por cima (o brilho "vaza" dos claros) */
+#crt-overlay .crt-bloom {
+  -webkit-backdrop-filter: blur(5px) brightness(1.5) saturate(1.35); backdrop-filter: blur(5px) brightness(1.5) saturate(1.35);
+  opacity: var(--crt-bloom);
+}
+/* 3) tom azulado nas bordas, quente no meio (cara de fita velha) */
+#crt-overlay .crt-tint {
+  background: radial-gradient(ellipse 90% 85% at 50% 45%, rgba(255,170,90,calc(var(--crt-tint) * .5)), rgba(40,100,190,var(--crt-tint)) 100%);
+}
+/* 4) linhas de varredura (1px escuro a cada 3px) + máscara de fósforo vermelho/verde/azul */
 #crt-overlay .crt-scan {
-  position: absolute; inset: 0;
   background:
     repeating-linear-gradient(0deg, rgba(0,0,0,var(--crt-scan)) 0, rgba(0,0,0,var(--crt-scan)) 1px, transparent 1px, transparent 3px),
-    repeating-linear-gradient(90deg, rgba(255,40,40,.045) 0, rgba(255,40,40,.045) 1px, rgba(40,255,40,.04) 1px, rgba(40,255,40,.04) 2px, rgba(60,60,255,.05) 2px, rgba(60,60,255,.05) 3px);
+    repeating-linear-gradient(90deg, rgba(255,30,30,var(--crt-mask)) 0, rgba(255,30,30,var(--crt-mask)) 1px, rgba(30,255,30,var(--crt-mask)) 1px, rgba(30,255,30,var(--crt-mask)) 2px, rgba(40,60,255,var(--crt-mask)) 2px, rgba(40,60,255,var(--crt-mask)) 3px);
 }
-
-/* 2) vinheta: escurece as bordas e dá cantos arredondados de tela */
-#crt-overlay .crt-vig {
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse 85% 80% at 50% 50%, transparent 55%, rgba(0,0,0,calc(var(--crt-vig) * .55)) 82%, rgba(0,0,0,var(--crt-vig)) 100%);
-  box-shadow: inset 0 0 6vmin rgba(0,0,0,.55), inset 0 0 1.2vmin rgba(0,0,0,.6);
+/* 5) granulado colorido de fita: camada maior que a tela, pulando de lugar */
+#crt-overlay .crt-grainbox { overflow: hidden; }
+#crt-overlay .crt-grain {
+  position: absolute; inset: -25%; background-image: var(--crt-noise); background-size: 160px 160px; opacity: var(--crt-grain);
+  animation: crtGrain .45s steps(1) infinite; will-change: transform;
 }
-
-/* 3) faixa de brilho descendo (só transform: leve pra GPU) */
+@keyframes crtGrain {
+  0% { transform: translate3d(0,0,0); } 12% { transform: translate3d(-7%,4%,0); } 25% { transform: translate3d(5%,-9%,0); }
+  37% { transform: translate3d(-3%,8%,0); } 50% { transform: translate3d(9%,3%,0); } 62% { transform: translate3d(-8%,-5%,0); }
+  75% { transform: translate3d(4%,9%,0); } 87% { transform: translate3d(-5%,-8%,0); }
+}
+/* 6) reflexo do vidro no canto de cima */
+#crt-overlay .crt-glare {
+  background: radial-gradient(ellipse 60% 45% at 18% 8%, rgba(255,255,255,var(--crt-glare)), transparent 70%),
+              linear-gradient(115deg, rgba(255,255,255,calc(var(--crt-glare) * .5)) 0%, transparent 22%);
+}
+/* 7) faixa de tracking: de vez em quando uma tira de chiado cai pela tela */
+#crt-overlay .crt-track {
+  inset: 0 0 auto 0; height: 3.4vh; opacity: 0;
+  background: var(--crt-noise), linear-gradient(180deg, transparent, rgba(255,255,255,.2) 25%, rgba(190,225,255,.34) 55%, rgba(255,255,255,.14) 80%, transparent);
+  background-size: 160px 160px, 100% 100%;
+  animation: crtTrack 9s linear infinite; will-change: transform, opacity;
+}
+html.crt-lite #crt-overlay .crt-track { display: none; }
+@keyframes crtTrack {
+  0%, 70%  { opacity: 0; transform: translate3d(0, 28vh, 0); }
+  71%      { opacity: .95; transform: translate3d(8px, 28vh, 0); }
+  76%      { opacity: .9; transform: translate3d(-10px, 52vh, 0); }
+  81%      { opacity: .95; transform: translate3d(6px, 83vh, 0); }
+  85%, 100% { opacity: 0; transform: translate3d(0, 110vh, 0); }
+}
+/* 8) ruído do cabeçote no rodapé (aquela barra suja de fita VHS) */
+#crt-overlay .crt-head {
+  inset: auto 0 0 0; height: 4.2vh; opacity: var(--crt-head);
+  background: var(--crt-noise), linear-gradient(0deg, rgba(255,255,255,.22), rgba(20,30,60,.35) 45%, transparent);
+  background-size: 160px 160px, 100% 100%;
+  animation: crtHead .32s steps(1) infinite;
+}
+@keyframes crtHead { 0% { transform: translate3d(0,0,0); } 33% { transform: translate3d(-9px,0,0); } 66% { transform: translate3d(7px,0,0); } }
+/* 9) faixa de brilho descendo devagar */
 #crt-overlay .crt-roll {
-  position: absolute; left: 0; right: 0; top: 0; height: 22vh;
+  inset: 0 0 auto 0; height: 24vh;
   background: linear-gradient(180deg, transparent, rgba(255,255,255,var(--crt-roll)) 50%, transparent);
-  transform: translate3d(0, -30vh, 0);
-  animation: crtRoll 7.5s linear infinite;
-  will-change: transform;
+  transform: translate3d(0, -30vh, 0); animation: crtRoll 6.5s linear infinite; will-change: transform;
 }
 @keyframes crtRoll { to { transform: translate3d(0, 115vh, 0); } }
-
-/* 4) tremida de brilho, bem sutil */
-#crt-overlay .crt-flick {
-  position: absolute; inset: 0; background: #fff; opacity: 0;
-  animation: crtFlick .16s steps(2, end) infinite;
+/* 10) vinheta com cantos de tubo */
+#crt-overlay .crt-vig {
+  background: radial-gradient(ellipse 80% 78% at 50% 50%, transparent 48%, rgba(0,0,0,calc(var(--crt-vig) * .5)) 78%, rgba(0,0,0,var(--crt-vig)) 100%);
+  box-shadow: inset 0 0 7vmin rgba(0,0,0,.65), inset 0 0 1.4vmin rgba(0,0,0,.7);
 }
-@keyframes crtFlick {
-  0%   { opacity: 0; }
-  50%  { opacity: calc(.018 * var(--crt-flick)); }
-  100% { opacity: 0; }
-}
+/* 11) tremida de brilho */
+#crt-overlay .crt-flick { background: #cfe4ff; opacity: 0; animation: crtFlick .13s steps(2, end) infinite; }
+@keyframes crtFlick { 0% { opacity: 0; } 50% { opacity: var(--crt-flick); } 100% { opacity: 0; } }
 
-/* leve franja de cor nas letras (vermelho de um lado, ciano do outro) */
-html.crt-on body { text-shadow: .6px 0 rgba(255,60,60,.28), -.6px 0 rgba(60,220,255,.28); }
+/* 12) indicador de câmera: ● REC piscando + data e hora correndo */
+#crt-overlay .crt-osd {
+  inset: auto 1.6vmin 5.6vh auto; display: flex; flex-direction: column; align-items: flex-end; gap: .15rem;
+  font: 400 clamp(.8rem, 1.7vmin, 1.15rem)/1.15 'Courier New', ui-monospace, monospace; letter-spacing: .09em; text-transform: uppercase;
+  color: #eef5ff; text-shadow: 1.5px 0 rgba(255,40,70,.7), -1.5px 0 rgba(0,210,255,.7), 0 0 8px rgba(190,220,255,.6);
+  opacity: .85; width: auto; height: auto;
+}
+#crt-overlay .crt-osd b { font-weight: 400; color: #ff4a4a; }
+#crt-overlay .crt-osd b::before { content: '\25CF'; margin-right: .35em; animation: crtRec 1.2s steps(1) infinite; }
+@keyframes crtRec { 0%, 55% { opacity: 1; } 56%, 100% { opacity: 0; } }
+html:not(.crt-osd-on) #crt-overlay .crt-osd { display: none; }
+
+/* franja de cor e brilho nas letras: vermelho de um lado, ciano do outro */
+html.crt-on body { text-shadow: var(--crt-fringe, 1px) 0 rgba(255,40,70,.5), calc(var(--crt-fringe, 1px) * -1) 0 rgba(0,210,255,.5), 0 0 5px rgba(160,200,255,.25); }
+html.crt-on.crt-lite body { text-shadow: .6px 0 rgba(255,40,70,.35), -.6px 0 rgba(0,210,255,.35); }
 
 @media (prefers-reduced-motion: reduce) {
-  #crt-overlay .crt-roll, #crt-overlay .crt-flick { animation: none; display: none; }
+  #crt-overlay .crt-roll, #crt-overlay .crt-flick, #crt-overlay .crt-track { display: none; }
+  #crt-overlay .crt-grain, #crt-overlay .crt-head, #crt-overlay .crt-osd b::before { animation: none; }
 }
