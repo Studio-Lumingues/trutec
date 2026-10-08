@@ -587,18 +587,19 @@
 .tt-cv.hidden { display: none; }
 @keyframes ttCvIn { from { opacity: 0; } }
 .tt-cv-box { display: flex; flex-direction: column; align-items: center; gap: 1rem; width: 100%; }
-.tt-cv-wallet { --cw: min(92vw, 46rem, 84vh); --cj: calc(var(--cw) * .155); --cg: calc(var(--cw) * .012);
-  position: relative; width: var(--cw); aspect-ratio: 1132 / 745; margin-top: calc(var(--cw) * .06); }
+.tt-cv-wallet { --cw: min(74vw, 28rem, 56vh); --cj: calc(var(--cw) * .155); --cg: calc(var(--cw) * .012);
+  position: relative; width: var(--cw); aspect-ratio: 1132 / 745; margin-top: calc(var(--cw) * .0548); }
 .tt-cv-jokers { --jw: var(--cj); position: absolute; top: calc(var(--cw) * -.0548); left: calc(var(--cw) * .0885); display: flex; gap: var(--cg); }
 .tt-cv .tt-joker { border-width: 2px; box-shadow: .1rem .15rem 0 rgba(0, 0, 0, .4); transform: none; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
 .tt-cv .tt-joker:nth-child(even) { transform: none; }
 .tt-cv .tt-joker:not(.empty):hover { transform: translateY(-.4rem); }
 .tt-cv .tt-joker.empty { visibility: hidden; }
 .tt-cv .tt-joker.dragging { transition: none; z-index: 3; cursor: grabbing; box-shadow: .2rem .6rem 1.1rem rgba(0, 0, 0, .55); }
-.tt-cv-cap { margin: 0; min-height: 3.6em; max-width: min(92vw, 34rem); text-align: center; line-height: 1.35; font-size: clamp(.9rem, 2.2vh, 1.1rem); color: var(--cream, #fff8f0); }
-.tt-cv-cap b { display: block; margin-bottom: .15rem; font-size: 1.15em; color: #ffd23f; }
-.tt-cv-hint { margin: 0; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; opacity: .6; color: var(--cream, #fff8f0); }
 .tt-cv-close { position: absolute; top: .8rem; right: .8rem; width: 2.6rem; height: 2.6rem; display: grid; place-items: center; border-radius: 50%; cursor: pointer;
   font-size: 1.6rem; line-height: 1; color: var(--cream, #fff8f0); background: rgba(255, 248, 240, .1); border: 1px solid rgba(255, 248, 240, .25); }
 .tt-cv-close:hover { background: rgba(255, 248, 240, .2); }
 @media (prefers-reduced-motion: reduce) { .tt-cv { animation: none; } }
+
+/* card com o efeito do curinga (usa o visual do .stats-card do style.css; acompanha o mouse, ver jcShow/jcPlace em trutec.js) */
+.stats-card.tt-jcard { max-width: 17rem; }
+.stats-card.tt-jcard .tt-jc-desc { display: block; line-height: 1.35; }

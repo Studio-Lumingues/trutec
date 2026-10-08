@@ -252,8 +252,6 @@
             '<div class="tt-cv-jokers" id="tt-cv-jokers"></div>' +
             '<div class="tt-cart-front"></div>' +
           '</div>' +
-          '<p class="tt-cv-cap" id="tt-cv-cap"></p>' +
-          '<p class="tt-cv-hint">Arraste os curingas para mudar a ordem</p>' +
         '</div>' +
       '</div>' +
       '<div class="tt-overlay hidden" id="tt-overlay"><div class="tt-modal" id="tt-modal"></div></div>';
@@ -270,11 +268,20 @@
     cvj.addEventListener('pointermove', cvMove);
     cvj.addEventListener('pointerup', cvUp);
     cvj.addEventListener('pointercancel', cvCancel);
-    cvj.addEventListener('mouseover', function (e) {
-      if (cvDrag) return;
-      var el = e.target.closest ? e.target.closest('.tt-joker') : null;
-      if (el && el.dataset.id) cvCaption(jk(el.dataset.id));
-    });
+
+    // card com o efeito do curinga: mesmo visual do card de Vitórias/Derrotas, acompanha o mouse
+    if (jcHover) {
+      var jx = 0, jy = 0, jraf = 0, jwant = null;
+      document.addEventListener('mousemove', function (e) {
+        var el = e.target && e.target.closest ? e.target.closest('#tt-jokers .tt-joker, #tt-cv-jokers .tt-joker') : null;
+        if (!el || !el.dataset.id || cvDrag) { jwant = null; if (jcId !== null) jcHide(); return; }
+        jx = e.clientX; jy = e.clientY; jwant = el.dataset.id;
+        if (jraf) return;                                         // no máximo 1 atualização por quadro
+        jraf = requestAnimationFrame(function () { jraf = 0; if (jwant) { jcShow(jwant); jcPlace(jx, jy); } });
+      }, { passive: true });
+      document.addEventListener('mouseleave', jcHide);
+      window.addEventListener('blur', jcHide);
+    }
 
     $('tt-exit').addEventListener('click', function () {
       if (!R) return leave();
@@ -539,7 +546,7 @@
       var id = R && R.jokers[i], j = id && jk(id);
       var el = document.createElement('div');
       el.className = 'tt-joker' + (j ? '' : ' empty'); el.dataset.i = i;
-      if (j) { el.title = j.name + ': ' + j.desc; el.innerHTML = '<span class="tj-i">' + ic(j.icon) + '</span><small></small>'; el.lastChild.textContent = j.name; }
+      if (j) { el.dataset.id = id; el.innerHTML = '<span class="tj-i">' + ic(j.icon) + '</span><small></small>'; el.lastChild.textContent = j.name; }
       box.appendChild(el);
     }
     if (cvOpen && !cvDrag) cvRender();
@@ -547,17 +554,32 @@
 
   // ---------- carteira ampliada: ver os curingas e arrastar pra mudar a ordem ----------
   var cvOpen = false, cvDrag = null;
-  function cvCaption(j) {
-    var cap = $('tt-cv-cap'); if (!cap) return;
-    cap.innerHTML = '';
-    if (j) {
-      var b = document.createElement('b'); b.textContent = j.name;
-      cap.appendChild(b); cap.appendChild(document.createTextNode(j.desc));
-    } else {
-      cap.textContent = R && R.jokers.length ? 'Passe o mouse num curinga para ver o efeito.' : 'A carteira está vazia. Compre curingas na loja.';
+
+  // card do efeito do curinga (reaproveita o visual .stats-card do card de vitórias/derrotas)
+  var jcard = null, jcId = null, JC_OFF = 18;
+  var jcHover = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
+  function jcShow(id) {
+    var j = jk(id); if (!j) return jcHide();
+    if (!jcard) {
+      jcard = document.createElement('div');
+      jcard.className = 'stats-card tt-jcard';
+      jcard.setAttribute('aria-hidden', 'true');
+      jcard.innerHTML = '<div class="stats-row"><b class="tt-jc-name"></b></div><div class="stats-row tt-jc-desc"></div>';
+      document.body.appendChild(jcard);
     }
+    if (jcId !== id) { jcId = id; jcard.querySelector('.tt-jc-name').textContent = j.name; jcard.querySelector('.tt-jc-desc').textContent = j.desc; }
+    jcard.classList.add('show');
   }
-  function cvRender(j) {
+  function jcHide() { jcId = null; if (jcard) jcard.classList.remove('show'); }
+  function jcPlace(x, y) {
+    if (!jcard) return;
+    var r = jcard.getBoundingClientRect(), nx = x + JC_OFF, ny = y + JC_OFF;
+    if (nx + r.width > window.innerWidth - 8) nx = x - JC_OFF - r.width;     // não sai pela direita
+    if (ny + r.height > window.innerHeight - 8) ny = y - JC_OFF - r.height;  // nem por baixo
+    jcard.style.transform = 'translate(' + Math.max(8, nx) + 'px,' + Math.max(8, ny) + 'px)';
+  }
+
+  function cvRender() {
     var box = $('tt-cv-jokers'); if (!box) return;
     box.innerHTML = '';
     for (var i = 0; i < JSLOTS; i++) {
@@ -567,7 +589,6 @@
       if (jj) { el.dataset.id = id; el.innerHTML = '<span class="tj-i">' + ic(jj.icon) + '</span>'; }
       box.appendChild(el);
     }
-    cvCaption(j || null);
   }
   function cvKey(e) { if (e.key === 'Escape') { e.stopPropagation(); cvHide(); } }
   function cvShow() {
@@ -577,7 +598,7 @@
     document.addEventListener('keydown', cvKey, true);
   }
   function cvHide() {
-    cvOpen = false; cvDrag = null;
+    cvOpen = false; cvDrag = null; jcHide();
     var cv = $('tt-cv'); if (cv) cv.classList.add('hidden');
     document.removeEventListener('keydown', cvKey, true);
   }
@@ -585,7 +606,7 @@
     var el = e.target.closest ? e.target.closest('.tt-joker') : null;
     if (!el || !el.dataset.id || !R) return;
     var items = [].slice.call($('tt-cv-jokers').children), i = items.indexOf(el);
-    cvCaption(jk(el.dataset.id));
+    if (!jcHover) { jcShow(el.dataset.id); var rc = el.getBoundingClientRect(); jcPlace(rc.left + rc.width / 2, rc.top); }   // celular: o card aparece enquanto segura
     if (H && H.scoring) return;                                   // durante a pontuação só dá pra olhar
     var step = items.length > 1 ? items[1].offsetLeft - items[0].offsetLeft : el.offsetWidth;
     cvDrag = { el: el, items: items, from: i, to: i, x0: e.clientX, step: step, n: R.jokers.length, pid: e.pointerId };
@@ -596,6 +617,7 @@
   function cvMove(e) {
     var d = cvDrag; if (!d || e.pointerId !== d.pid) return;
     var dx = e.clientX - d.x0;
+    if (!jcHover && jcId !== null) jcHide();
     d.el.style.transform = 'translateX(' + dx + 'px) translateY(-.6rem) scale(1.08)';
     var to = Math.max(0, Math.min(d.n - 1, d.from + Math.round(dx / d.step)));
     d.to = to;
@@ -609,7 +631,7 @@
   }
   function cvUp(e) {
     var d = cvDrag; if (!d || e.pointerId !== d.pid) return;
-    cvDrag = null;
+    cvDrag = null; if (!jcHover) jcHide();
     if (d.to === d.from) {                                        // só um clique: volta tudo pro lugar
       d.el.classList.remove('dragging');
       d.items.forEach(function (it) { it.style.transform = ''; });
@@ -618,11 +640,11 @@
     var id = R.jokers.splice(d.from, 1)[0];
     R.jokers.splice(d.to, 0, id);
     render();                                                     // atualiza a carteira pequena
-    cvRender(jk(id));
+    cvRender();
   }
   function cvCancel(e) {
     var d = cvDrag; if (!d || e.pointerId !== d.pid) return;
-    cvDrag = null; cvRender();
+    cvDrag = null; jcHide(); cvRender();
   }
 
   // texto da META na folhinha: o tamanho acompanha a largura da folha (cqw) e, se mesmo assim passar, encolhe até caber
