@@ -519,6 +519,29 @@
     }
   }
 
+  // texto da META na folhinha (e tamanho da fonte conforme o nº de dígitos)
+  function setMetaText(b) {
+    var tgEl = $('tt-target'); if (!tgEl) return;
+    tgEl.textContent = fmt(b.target);
+    var tl = tgEl.textContent.length;
+    tgEl.style.fontSize = tl <= 3 ? '3.6rem' : tl === 4 ? '3rem' : tl === 5 ? '2.5rem' : '2rem';
+  }
+  // avançou de fase: a folha antiga vira pra cima (como calendário de arrancar) e aparece a folha com a nova meta
+  function flipMeta(b) {
+    if (shownBlind === b) return;
+    var notes = $('tt-notes'), sheet = $('tt-postit') && $('tt-postit').querySelector('.tt-sheet'), leaf = null;
+    if (notes && sheet && !REDUCED) {
+      leaf = document.createElement('div'); leaf.className = 'tt-leaf';
+      leaf.innerHTML = sheet.innerHTML;                         // cópia da folha atual (com a meta antiga)
+      [].forEach.call(leaf.querySelectorAll('[id]'), function (e) { e.removeAttribute('id'); });
+      notes.appendChild(leaf);
+      var kill = function () { if (leaf && leaf.parentNode) leaf.parentNode.removeChild(leaf); };
+      leaf.addEventListener('animationend', kill); setTimeout(kill, 1400);
+    }
+    shownBlind = b;
+    setMetaText(b);                                             // por baixo, já está a folha nova
+  }
+
   function render() {
     if (!R) return;
     $('tt-ante').textContent = 'Ante ' + R.ante + '/' + ANTES;
@@ -529,13 +552,7 @@
     $('tt-bicon').innerHTML = ic(b.opp.icon);
     $('tt-bname').textContent = b.opp.name;
     $('tt-beffect').textContent = b.boss ? b.effect : '';
-    if (shownBlind !== b) {                                    // blind nova: a folha antiga sobe e o grampo prende outra
-      var curNote = $('tt-postit');
-      shownBlind = b;
-    }
-    $('tt-target').textContent = fmt(b.target);
-    var tgEl = $('tt-target'), tl = tgEl.textContent.length;
-    tgEl.style.fontSize = tl <= 3 ? '3.6rem' : tl === 4 ? '3rem' : tl === 5 ? '2.5rem' : '2rem';
+    if (shownBlind) setMetaText(shownBlind);                  // a folha só troca quando a fase começa (flipMeta)
     var pit = $('tt-postit'); if (pit && R.noteColor !== undefined) pit.style.setProperty('--note', NOTE_COLORS[R.noteColor]);
     if (window.TruCount) TruCount.run($('tt-score'), R.score, {
       format: function (v) { return fmt(Math.round(v)); },
@@ -617,6 +634,7 @@
     if (window.showScreen) window.showScreen('screen-trutec');
     else { document.querySelectorAll('.screen').forEach(function (e) { e.classList.remove('active'); }); $('screen-trutec').classList.add('active'); }
     tok++; R = null; H = null; shownBlind = null;
+    [].forEach.call(document.querySelectorAll('.tt-leaf'), function (e) { e.remove(); });
     ['tt-hand', 'tt-opphand', 'tt-vira', 'tt-slot-me', 'tt-slot-opp', 'tt-jokers'].forEach(function (id) { $(id).innerHTML = ''; });
     $('tt-ante').textContent = 'Trutec'; $('tt-money').textContent = ''; $('tt-bname').textContent = 'Roguelike solo';
     $('tt-bicon').innerHTML = ic('maocheia'); $('tt-beffect').textContent = ''; $('tt-oppname').textContent = ''; $('tt-oppicon').textContent = '';
@@ -687,6 +705,7 @@
     R.handsLeft = HANDS + (hasV('maoextra') ? 1 : 0) - (boss === 'coringa' ? 1 : 0);
     R.trocasLeft = boss === 'marquinhos' ? 0 : TROCAS + (hasV('baralho') ? 1 : 0) + (hasJ('gato') ? 1 : 0);
     R.leader = Math.random() < 0.5 ? 'me' : 'opp';
+    flipMeta(R.blind);
     render();
     newHand();
   }
@@ -1386,7 +1405,8 @@
       '.tt-notewrap,.tt-notes,.tt-postit,.tt-sheet,.tt-paper,.tt-ntext{animation:none!important;transition:none!important;transform:none!important;filter:none!important}' +
       '.tt-have{display:flex;flex-direction:column;align-items:center;gap:.1rem;color:#fff8f0}' +
       '.tt-have small{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75}' +
-      '.tt-have b{font-size:2rem;line-height:1.05;text-shadow:0 .1rem .3rem rgba(0,0,0,.5)}';
+      '.tt-have b{font-size:2rem;line-height:1.05}' +
+      '.tt-ntext,.tt-ntext *,.tt-have,.tt-have *{text-shadow:none!important}';
     document.head.appendChild(st);
   })();
 

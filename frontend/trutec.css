@@ -533,3 +533,22 @@
   background: rgba(14,16,28,.55); background-image: none; color: rgba(255,255,255,.5); opacity: .7; transform: none; cursor: not-allowed;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
 }
+
+
+/* ============================================================================
+   FOLHA DA META: ao avançar de fase, a folha antiga vira pra cima (dobradiça logo
+   abaixo do rolo, como calendário de arrancar) e deixa à mostra a folha da nova meta.
+   ============================================================================ */
+.tt-notes { perspective: 30rem; }
+.tt-leaf { position: absolute; inset: 0; z-index: 3; pointer-events: none; transform-origin: 50% 29%;
+  clip-path: inset(28% -12% -12% -12%);              /* só a folha (o rolo de cima fica parado) */
+  animation: ttLeafUp .75s cubic-bezier(.5, .05, .8, .45) forwards; }
+@keyframes ttLeafUp {
+  0%   { transform: rotateX(0deg); opacity: 1; filter: brightness(1); }
+  65%  { opacity: 1; }
+  100% { transform: rotateX(-105deg) translateY(-3%); opacity: 0; filter: brightness(.8); }
+}
+@media (prefers-reduced-motion: reduce) { .tt-leaf { display: none; } }
+
+/* sem sombreado nos textos do META e dos pontos */
+#screen-trutec .tt-side :is(.tt-ntext, .tt-ntext *, .tt-have, .tt-have *) { text-shadow: none; }
