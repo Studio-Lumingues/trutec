@@ -603,3 +603,57 @@
 /* card com o efeito do curinga (usa o visual do .stats-card do style.css; acompanha o mouse, ver jcShow/jcPlace em trutec.js) */
 .stats-card.tt-jcard { max-width: 17rem; }
 .stats-card.tt-jcard .tt-jc-desc { display: block; line-height: 1.35; }
+
+
+/* ============================================================================
+   CRACHÁS NA LOJA (assets/cracha.png): cada curinga é um crachá pendurado numa fita roxa.
+   O CSS recorta a imagem (1024x1536) na área útil: x 253 a 770, y 225 a 1415 (começa um pouco acima da argola).
+   A fita continua pra cima por um pseudo-elemento, até a borda do painel. A carta (parte branca) começa a ~26% da altura.
+   Ao abrir a loja (e ao comprar), os crachás descem de cima com efeito elástico (ttBadgeDrop): estica, quica e balança.
+   ============================================================================ */
+.tt-stall .tt-shopcards { --scw: calc(clamp(3.4rem, 9.5vh, 7rem) * var(--shopscale, 1)); gap: .8rem .9rem; }
+.tt-own .tt-shopcards   { --scw: calc(clamp(3rem, 8vh, 6rem) * var(--shopscale, 1)); gap: .7rem .9rem; }
+.tt-own { overflow: hidden; }                                              /* a fita some na borda de cima do painel */
+.tt-awning { position: relative; z-index: 5; }                             /* na barraquinha, os crachás saem de baixo do toldo */
+:is(#screen-trutec, .tt-demo) .tt-shop h3.tt-ribbon { position: relative; z-index: 6; }
+
+:is(#screen-trutec, .tt-demo) .tt-sc .tt-sc-face {
+  display: block; aspect-ratio: 517 / 1190; border: 0; border-radius: 0; box-shadow: none; transform: none; transform-origin: 50% 0;
+  background: var(--badge-img) 49.9% 65.03% / 198.05% auto no-repeat;
+  filter: drop-shadow(0 .25rem .35rem rgba(0, 0, 0, .45)); transition: filter .15s; }
+:is(#screen-trutec, .tt-demo) .tt-sc:not(.empty) .tt-sc-face::before {      /* a fita, subindo até o topo do painel */
+  content: ""; position: absolute; left: 33.65%; width: 33.1%; bottom: 100%; height: 100vh;
+  background: linear-gradient(90deg, rgba(0,0,0,.24), rgba(0,0,0,0) 16%, rgba(255,255,255,.13) 50%, rgba(0,0,0,0) 84%, rgba(0,0,0,.24)),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 2px, rgba(0,0,0,.07) 2px 4px), #632a95; }
+:is(#screen-trutec, .tt-demo) .tt-sc-face .tt-ic { position: absolute; left: 50%; top: 58%; width: 62%; height: auto; aspect-ratio: 1; transform: translate(-50%, -50%); }
+:is(#screen-trutec, .tt-demo) .tt-sc-face .tt-sc-tag { top: 28%; }
+:is(#screen-trutec, .tt-demo) .tt-sc.poor .tt-sc-face { filter: drop-shadow(0 .25rem .35rem rgba(0, 0, 0, .45)) grayscale(.85) brightness(.78); }
+:is(#screen-trutec, .tt-demo) .tt-sc:not(.empty) .tt-sc-face:is(:hover, :focus-visible) {
+  z-index: 2; animation: ttBadgeSwing .9s ease-out;
+  filter: drop-shadow(0 0 .45rem rgba(255, 210, 63, .9)) drop-shadow(0 .25rem .35rem rgba(0, 0, 0, .45)); }
+:is(#screen-trutec, .tt-demo) .tt-sc-face.voucher { box-shadow: none; animation: ttBadgeGlow 2s ease-in-out infinite; }
+:is(#screen-trutec, .tt-demo) .tt-sc.empty .tt-sc-face {                   /* vaga livre: só o contorno da parte branca, alinhado com os outros crachás */
+  aspect-ratio: 517 / 878; margin-top: calc(var(--scw) * .604); background: rgba(255, 248, 240, .05); border: 2px dashed rgba(255, 248, 240, .25);
+  border-radius: .5rem; filter: none; }
+
+@keyframes ttBadgeSwing { 0% { transform: rotate(0); } 20% { transform: rotate(4deg); } 45% { transform: rotate(-3deg); } 65% { transform: rotate(1.8deg); } 82% { transform: rotate(-.8deg); } 100% { transform: rotate(0); } }
+@keyframes ttBadgeGlow { 50% { filter: drop-shadow(0 0 .5rem #ffd23f) drop-shadow(0 .25rem .35rem rgba(0, 0, 0, .45)); } }
+
+/* a descida elástica: cai, estica no fim da fita, quica e balança (poin, poin, poin) */
+:is(#screen-trutec, .tt-demo) .tt-fresh .tt-sc:not(.empty), :is(#screen-trutec, .tt-demo) .tt-own .tt-sc.just {
+  transform-origin: 50% 0; animation: ttBadgeDrop 1.15s ease-in-out both; animation-delay: calc(var(--i, 0) * 110ms); }
+:is(#screen-trutec, .tt-demo) .tt-sc.just .tt-sc-face { animation: none; }
+@keyframes ttBadgeDrop {
+  0%   { transform: translateY(-115%) scaleY(1) rotate(0deg); animation-timing-function: cubic-bezier(.55, 0, 1, .6); }
+  34%  { transform: translateY(7%) scaleY(1.07) rotate(3deg); animation-timing-function: cubic-bezier(.2, .7, .4, 1); }
+  48%  { transform: translateY(-5%) scaleY(.96) rotate(-3.5deg); }
+  60%  { transform: translateY(3%) scaleY(1.03) rotate(2.4deg); }
+  71%  { transform: translateY(-1.8%) scaleY(.99) rotate(-1.6deg); }
+  82%  { transform: translateY(1%) scaleY(1.01) rotate(.9deg); }
+  92%  { transform: translateY(-.3%) rotate(-.3deg); }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(#screen-trutec, .tt-demo) .tt-fresh .tt-sc, :is(#screen-trutec, .tt-demo) .tt-own .tt-sc.just,
+  :is(#screen-trutec, .tt-demo) .tt-sc-face, :is(#screen-trutec, .tt-demo) .tt-sc-face.voucher { animation: none !important; }
+}
