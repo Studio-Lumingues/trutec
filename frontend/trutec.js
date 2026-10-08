@@ -126,45 +126,29 @@
   var NOTE_RANDOM = false;       // false = o post-it é sempre amarelo; true = muda de cor a cada corrida
   var shownBlind = null;         // blind cuja meta está no post-it (pra animar a troca de folha)
   var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // folha PARADA; só o cantinho dobrado se mexe, devagar (SMIL). Os 3 estados do canto: [controle x, controle y, ponta x, ponta y]
-  var CURL = [[168, 176, 184, 171], [166, 183, 190, 178], [171, 172, 180, 166]];
-  function curlD(c) { return 'M190 140L150 166Q' + c[0] + ' ' + c[1] + ' ' + c[2] + ' ' + c[3] + 'Z'; }
-  function curlShadowD(c) { return 'M188 146L152 170Q' + (c[0] + 1) + ' ' + (c[1] + 5) + ' ' + (c[2] + 2) + ' ' + (c[3] + 6) + 'Z'; }
-  function curlAnim(fn) {
-    if (REDUCED) return '';
-    var v = [fn(CURL[0]), fn(CURL[1]), fn(CURL[2]), fn(CURL[0])].join(';');
-    return '<animate attributeName="d" dur="7s" repeatCount="indefinite" values="' + v +
-      '" keyTimes="0;.35;.7;1" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1;.45 0 .55 1"/>';
-  }
+  // post-it PRETO, parado (sem animação), com grampo prateado no canto de cima à direita
   function noteSvg() {
-    var SHEET = 'M20 44Q102 40 184 36Q190 88 190 140L150 166Q92 169 34 172Q27 108 20 44Z';
-    return '<svg class="tt-paper" viewBox="0 0 200 190" aria-hidden="true" focusable="false">' +
+    return '<svg class="tt-paper" viewBox="0 0 200 215" aria-hidden="true" focusable="false">' +
       '<defs>' +
-        '<linearGradient id="ttg1" x1="0" y1="0" x2="1" y2="1">' +
-          '<stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".16"/></linearGradient>' +
-        '<linearGradient id="ttg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>' +
-        '<filter id="ttblur" x="-10%" y="-10%" width="120%" height="130%"><feGaussianBlur stdDeviation="2.4"/></filter>' +
+        '<linearGradient id="ttpg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a2a2d"/><stop offset=".5" stop-color="#1d1d20"/><stop offset="1" stop-color="#151517"/></linearGradient>' +
+        '<filter id="ttgrain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="n"/>' +
+          '<feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .5 -.18"/></filter>' +
+        '<filter id="ttblur" x="-10%" y="-10%" width="125%" height="130%"><feGaussianBlur stdDeviation="3"/></filter>' +
       '</defs>' +
-      '<path d="M30 62L194 54L200 176L46 188Z" fill="#000" opacity=".28" filter="url(#ttblur)"/>' +
-      '<g style="filter:brightness(.84)"><path style="fill:var(--note)" d="M34 46L190 38L198 150L48 177Z"/></g>' +
-      '<g style="filter:brightness(.92)"><path style="fill:var(--note)" d="M26 51L182 40L194 160L40 181Z"/></g>' +
-      '<path style="fill:var(--note)" d="' + SHEET + '"/>' +
-      '<path fill="url(#ttg1)" d="' + SHEET + '"/>' +
-      '<path fill="#000" opacity=".24" filter="url(#ttblur)" d="' + curlShadowD(CURL[0]) + '">' + curlAnim(curlShadowD) + '</path>' +
-      '<path style="fill:var(--note)" d="' + curlD(CURL[0]) + '">' + curlAnim(curlD) + '</path>' +
-      '<path fill="url(#ttg2)" d="' + curlD(CURL[0]) + '">' + curlAnim(curlD) + '</path>' +
+      '<rect x="24" y="44" width="160" height="160" fill="#000" opacity=".5" filter="url(#ttblur)"/>' +
+      '<rect x="20" y="34" width="160" height="160" fill="url(#ttpg)"/>' +
+      '<rect x="20" y="34" width="160" height="160" filter="url(#ttgrain)" opacity=".35"/>' +
+      '<path d="M20 34H180M20 34V194" stroke="#fff" stroke-opacity=".07" stroke-width="1"/>' +
+      '<path d="M20 188L26 194H20Z" fill="#3a3a3d" opacity=".7"/>' +
     '</svg>';
   }
-  // grampo vermelho: a laçada de cima aparece acima da folha; o fio da direita passa ATRÁS da folha
-  // e o fio da esquerda + a laçada de dentro passam NA FRENTE (duas camadas: 'back' fica embaixo da folha, 'front' em cima).
-  function clipSvg(layer) {
-    var full = 'M99 52V89a3.5 3.5 0 0 1-7 0V27.5a7.5 7.5 0 0 1 15 0V72';   // inteiro (camada de trás)
-    var front = 'M92 36V89a3.5 3.5 0 0 0 7 0V52';                            // fio da esquerda + laçada interna (camada da frente)
-    var d = layer === 'front' ? front : full;
-    return '<svg class="tt-clip tt-clip-' + layer + '" viewBox="0 0 200 190" aria-hidden="true" focusable="false">' +
-      '<path d="' + d + '" fill="none" stroke="#a81f27" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<path d="' + d + '" fill="none" stroke="#ec4650" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>' +
-      (layer === 'front' ? '<path d="M90.9 38V86" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width=".7" stroke-linecap="round"/>' : '') +
+  // grampo prateado
+  function clipSvg() {
+    var d = 'M142 26V52a3.5 3.5 0 0 1-7 0V13a8 8 0 0 1 16 0V44';
+    return '<svg class="tt-clip tt-clip-front" viewBox="0 0 200 215" aria-hidden="true" focusable="false">' +
+      '<path d="' + d + '" fill="none" stroke="#6d737a" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="' + d + '" fill="none" stroke="#dde1e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<path d="M136.4 15V50" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width=".7" stroke-linecap="round"/>' +
     '</svg>';
   }
   // troca de folha: a atual sobe e some, o grampo prende uma nova que sobe de baixo
@@ -238,11 +222,10 @@
           '<div class="tt-bname"><span id="tt-bicon"></span><b id="tt-bname"></b><small id="tt-beffect"></small></div>' +
           '<div class="tt-notewrap" id="tt-ring" aria-label="Meta e pontos">' +
             '<div class="tt-notes" id="tt-notes">' +
-              clipSvg('back') +
               '<div class="tt-postit" id="tt-postit"><div class="tt-sway">' + noteSvg() +
                 '<div class="tt-ntext"><small>Meta</small><b id="tt-target">0</b></div>' +
               '</div></div>' +
-              clipSvg('front') +
+              clipSvg() +
             '</div>' +
             '<div class="tt-have"><small>Pontos</small><b id="tt-score">0</b></div>' +
           '</div>' +
@@ -1408,12 +1391,12 @@
     var st = document.createElement('style'); st.id = 'tt-postit-css';
     st.textContent =
       '.tt-notewrap{display:flex;flex-direction:column;align-items:center;gap:.4rem;padding:.6rem 0 .2rem}' +
-      '.tt-notes{--note:#f0e062;position:relative;width:9.6rem;aspect-ratio:200/190;margin:0 auto}' +
+      '.tt-notes{--note:#f0e062;position:relative;width:9.6rem;aspect-ratio:200/215;margin:0 auto}' +
       '.tt-postit{--note:#f0e062;position:absolute;inset:0;z-index:1}' +
       '.tt-sway{position:absolute;inset:0}' +
       '.tt-paper{position:absolute;inset:0;width:100%;height:100%;overflow:visible}' +
-      '.tt-ntext{position:absolute;left:15%;right:11%;top:42%;bottom:18%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;color:#33290a}' +
-      '.tt-ntext small{font:700 1rem/1 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;letter-spacing:.04em;text-transform:none;opacity:.8}' +
+      '.tt-ntext{position:absolute;left:14%;right:12%;top:33%;bottom:21%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem;color:#f4f1ea}' +
+      '.tt-ntext small{font:700 1rem/1 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;letter-spacing:.04em;text-transform:none;opacity:.75}' +
       '.tt-ntext b{font:700 2.1rem/1.05 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;white-space:nowrap}' +
       '.tt-clip{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}' +
       '.tt-clip-back{z-index:0}' +
