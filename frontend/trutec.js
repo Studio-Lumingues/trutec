@@ -142,24 +142,15 @@
       '<path d="M20 188L26 194H20Z" fill="#3a3a3d" opacity=".7"/>' +
     '</svg>';
   }
-  // grampo prateado
-  function clipSvg() {
-    var d = 'M142 26V52a3.5 3.5 0 0 1-7 0V13a8 8 0 0 1 16 0V44';
-    return '<svg class="tt-clip tt-clip-front" viewBox="0 0 200 215" aria-hidden="true" focusable="false">' +
+  // grampo prateado em duas camadas: 'back' fica ATRÁS da folha (fio da direita some atrás dela),
+  // 'front' fica NA FRENTE (fio da esquerda + laçada de dentro)
+  function clipSvg(layer) {
+    var d = layer === 'front' ? 'M135 30V52a3.5 3.5 0 0 0 7 0V26' : 'M142 26V52a3.5 3.5 0 0 1-7 0V13a8 8 0 0 1 16 0V44';
+    return '<svg class="tt-clip tt-clip-' + layer + '" viewBox="0 0 200 215" aria-hidden="true" focusable="false">' +
       '<path d="' + d + '" fill="none" stroke="#6d737a" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>' +
       '<path d="' + d + '" fill="none" stroke="#dde1e6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<path d="M136.4 15V50" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width=".7" stroke-linecap="round"/>' +
+      (layer === 'front' ? '<path d="M136.4 32V50" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width=".7" stroke-linecap="round"/>' : '') +
     '</svg>';
-  }
-  // troca de folha: a atual sobe e some, o grampo prende uma nova que sobe de baixo
-  function flipNote(cur) {
-    var host = cur.parentNode, ghost = cur.cloneNode(true);
-    ghost.removeAttribute('id'); var t = ghost.querySelector('#tt-target'); if (t) t.removeAttribute('id');
-    ghost.setAttribute('aria-hidden', 'true'); ghost.classList.add('leaving');
-    host.insertBefore(ghost, cur);
-    setTimeout(function () { if (ghost.parentNode) ghost.parentNode.removeChild(ghost); }, 1200);
-    cur.classList.remove('entering'); void cur.offsetWidth; cur.classList.add('entering');
-    host.classList.remove('clipbump'); void host.offsetWidth; host.classList.add('clipbump');
   }
   var NOTE_COLORS = ['#f0489f', '#f0e062', '#5ec8f2', '#7ddc6e', '#ff9a4d', '#b98cf0'], lastNote = -1;
   function pickNote() { if (!NOTE_RANDOM) return 1; var n; do { n = rnd(NOTE_COLORS.length); } while (n === lastNote); lastNote = n; return n; }
@@ -222,10 +213,11 @@
           '<div class="tt-bname"><span id="tt-bicon"></span><b id="tt-bname"></b><small id="tt-beffect"></small></div>' +
           '<div class="tt-notewrap" id="tt-ring" aria-label="Meta e pontos">' +
             '<div class="tt-notes" id="tt-notes">' +
+              clipSvg('back') +
               '<div class="tt-postit" id="tt-postit"><div class="tt-sway">' + noteSvg() +
                 '<div class="tt-ntext"><small>Meta</small><b id="tt-target">0</b></div>' +
               '</div></div>' +
-              clipSvg() +
+              clipSvg('front') +
             '</div>' +
             '<div class="tt-have"><small>Pontos</small><b id="tt-score">0</b></div>' +
           '</div>' +
@@ -546,7 +538,6 @@
     $('tt-beffect').textContent = b.boss ? b.effect : '';
     if (shownBlind !== b) {                                    // blind nova: a folha antiga sobe e o grampo prende outra
       var curNote = $('tt-postit');
-      if (shownBlind && curNote && !REDUCED) flipNote(curNote);
       shownBlind = b;
     }
     $('tt-target').textContent = fmt(b.target);
@@ -1401,17 +1392,10 @@
       '.tt-clip{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}' +
       '.tt-clip-back{z-index:0}' +
       '.tt-clip-front{z-index:2;filter:drop-shadow(.05rem .1rem .08rem rgba(0,0,0,.45))}' +
-      '.tt-postit.leaving{animation:ttNoteOut .85s cubic-bezier(.5,0,.8,.4) forwards;pointer-events:none}' +
-      '.tt-postit.entering{animation:ttNoteIn .95s .4s cubic-bezier(.2,.9,.3,1) both}' +
-      '.tt-notes.clipbump .tt-clip{animation:ttClipBump .45s .85s ease-out}' +
-      '.tt-have{display:flex;flex-direction:column;align-items:center;gap:.1rem;color:#fff8f0}' +
+                        '.tt-have{display:flex;flex-direction:column;align-items:center;gap:.1rem;color:#fff8f0}' +
       '.tt-have small{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75}' +
-      '.tt-have b{font-size:2rem;line-height:1.05;text-shadow:0 .1rem .3rem rgba(0,0,0,.5)}' +
-      '@keyframes ttNoteOut{to{transform:translateY(-150%) rotate(-6deg);opacity:0}}' +
-      '@keyframes ttNoteIn{from{transform:translateY(75%) rotate(4deg);opacity:0}to{transform:none;opacity:1}}' +
-      '@keyframes ttClipBump{0%{transform:translateY(0)}40%{transform:translateY(.15rem)}100%{transform:none}}' +
-      '@media (prefers-reduced-motion:reduce){.tt-postit.entering,.tt-postit.leaving,.tt-notes.clipbump .tt-clip{animation:none}}';
-    document.head.appendChild(st);
+      '.tt-have b{font-size:2rem;line-height:1.05;text-shadow:0 .1rem .3rem rgba(0,0,0,.5)}';
+                            document.head.appendChild(st);
   })();
 
   // ---------- ligação com o lobby ----------
