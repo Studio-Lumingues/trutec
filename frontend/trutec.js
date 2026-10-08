@@ -766,64 +766,6 @@
     return { steps: steps, chips: chips, mult: mult, xm: xm, money: money, total: how === 'run' && !chips ? 0 : Math.round(chips * mult * xm) };
   }
 
-  // número grande no meio da tela que "cai" em cima da pontuação e é somado
-  function flyTotal(total, land) {
-    var t = tok, sc = $('tt-score'), ring = $('tt-ring');
-    var el = document.createElement('div');
-    el.className = 'tt-fly'; el.textContent = '+' + fmt(total);
-    document.body.appendChild(el);
-    var gone = false;
-    function kill() { if (gone) return; gone = true; if (el.parentNode) el.parentNode.removeChild(el); }
-    setTimeout(kill, 4000);                                     // segurança
-    var mid = document.querySelector('#screen-trutec .tt-center') || document.body;
-    var mr = mid.getBoundingClientRect();
-    var cx = mr.left + mr.width / 2, cy = mr.top + mr.height / 2;
-    var at = function (x, y, sc2, rot) { return 'translate(' + x + 'px,' + y + 'px) translate(-50%,-50%) scale(' + sc2 + ') rotate(' + rot + 'deg)'; };
-    sfx();
-    var pop = el.animate([
-      { transform: at(cx, cy, .15, -10), opacity: 0 },
-      { transform: at(cx, cy, 1.4, 4), opacity: 1, offset: .55 },
-      { transform: at(cx, cy, 1, -2), opacity: 1 }
-    ], { duration: 420, easing: 'ease-out', fill: 'forwards' });
-    pop.onfinish = function () {
-      later(function () {
-        if (t !== tok) return kill();
-        var r = sc.getBoundingClientRect();
-        var tx = r.left + r.width / 2, ty = r.top + r.height / 2;
-        var fly = el.animate([
-          { transform: at(cx, cy, 1, -2) },
-          { transform: at(cx, cy - 18, 1.12, -4), offset: .22 },
-          { transform: at(tx, ty, .3, 0), opacity: 1, offset: .92 },
-          { transform: at(tx, ty, .2, 0), opacity: 0 }
-        ], { duration: 480, easing: 'cubic-bezier(.55,0,.9,.55)', fill: 'forwards' });
-        fly.onfinish = function () {
-          kill();
-          if (t !== tok) return;
-          impact(tx, ty, ring);
-          land();
-        };
-      }, 480);
-    };
-  }
-  function impact(x, y, ring) {
-    var boom = document.createElement('div');
-    boom.className = 'tt-boom'; boom.style.left = x + 'px'; boom.style.top = y + 'px';
-    document.body.appendChild(boom);
-    setTimeout(function () { if (boom.parentNode) boom.parentNode.removeChild(boom); }, 700);
-    for (var i = 0; i < 10; i++) {
-      var sp = document.createElement('i');
-      sp.className = 'tt-spark'; sp.style.left = x + 'px'; sp.style.top = y + 'px';
-      document.body.appendChild(sp);
-      var a = (i / 10) * Math.PI * 2 + Math.random() * .4, d = 36 + Math.random() * 40;
-      sp.animate([
-        { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
-        { transform: 'translate(calc(-50% + ' + Math.cos(a) * d + 'px), calc(-50% + ' + Math.sin(a) * d + 'px)) scale(.2)', opacity: 0 }
-      ], { duration: 420 + Math.random() * 160, easing: 'ease-out', fill: 'forwards' });
-      (function (e) { setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, 700); })(sp);
-    }
-    if (ring) { ring.classList.remove('tt-hit'); void ring.offsetWidth; ring.classList.add('tt-hit'); setTimeout(function () { ring.classList.remove('tt-hit'); }, 600); }
-  }
-
   function animateScore(res, done) {
     H.scoring = true;
     setCalc(res.steps.length ? CHIPS0 : res.chips, stakeMult(H.level), 1, 0);
@@ -838,17 +780,12 @@
         sfx();
       }, 550 * (i + 1));
     });
-    var n = res.steps.length, T = 550 * (n + 1);
-    var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var fancy = !DEMO && res.total > 0 && !reduced && $('tt-score') && Element.prototype.animate;
-    var land = function () {
+    var n = res.steps.length;
+    later(function () { setCalc(res.chips, res.mult, res.xm, res.total, true); say('+' + fmt(res.total) + ' pontos!'); }, 550 * (n + 1));
+    later(function () {
       R.score += res.total; R.money += res.money; H.scoring = false;
       render(); done();
-    };
-    // com a animação, o total não aparece no painel (o número grande faz esse papel)
-    later(function () { setCalc(res.chips, res.mult, res.xm, fancy ? 0 : res.total, true); say('+' + fmt(res.total) + ' pontos!'); }, T);
-    if (fancy) later(function () { flyTotal(res.total, land); }, T + 150);
-    else later(land, T + 1100);
+    }, 550 * (n + 1) + 1100);
   }
 
   function endHand(winner, how) {
@@ -931,6 +868,44 @@
     w.appendChild(f);
     return w;
   }
+  // ---- ETIQUETA DE PREÇO (estilo etiqueta de gôndola: papel branco, 2 listras vermelhas, "R$" na vertical) ----
+  // Ajustes: TAG_TILT (inclinação em graus) e TAG_CURRENCY ('R$' ou '$').
+  var TAG_TILT = -14, TAG_CURRENCY = 'R$';
+  (function injectTagCss() {
+    if (document.getElementById('tt-pricetag-css')) return;
+    var st = document.createElement('style'); st.id = 'tt-pricetag-css';
+    st.textContent =
+      '.tt-sc-face{position:relative}' +
+      '.tt-ptag{position:absolute;right:-.55rem;bottom:-.7rem;z-index:3;pointer-events:none;' +
+        'display:flex;align-items:center;gap:.15rem;box-sizing:border-box;' +
+        'width:calc(4.6rem*var(--shopscale,1));height:calc(2.45rem*var(--shopscale,1));padding:0 calc(.4rem*var(--shopscale,1)) 0 calc(.3rem*var(--shopscale,1));' +
+        'background:linear-gradient(135deg,#fff 0%,#f6f4f1 60%,#ebe7e2 100%);' +
+        'border-top:calc(.2rem*var(--shopscale,1)) solid transparent;border-bottom:calc(.2rem*var(--shopscale,1)) solid transparent;' +
+        'background-clip:padding-box;border-radius:.12rem;' +
+        'box-shadow:0 .12rem .3rem rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.08);' +
+        'transform:rotate(var(--tilt,-14deg));transform-origin:center;transition:transform .15s}' +
+      /* listras vermelhas em cima e embaixo */
+      '.tt-ptag::before,.tt-ptag::after{content:"";position:absolute;left:0;right:0;height:calc(.17rem*var(--shopscale,1));' +
+        'background:#d9313a;box-shadow:0 0 .5px rgba(217,49,58,.8)}' +
+      '.tt-ptag::before{top:calc(.22rem*var(--shopscale,1))}' +
+      '.tt-ptag::after{bottom:calc(.22rem*var(--shopscale,1))}' +
+      '.tt-ptag .cur{writing-mode:vertical-rl;transform:rotate(180deg);font:700 calc(.62rem*var(--shopscale,1))/1 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;' +
+        'color:#2b3135;letter-spacing:.05em;flex:none}' +
+      '.tt-ptag .num{flex:1;text-align:right;font:500 calc(1.35rem*var(--shopscale,1))/1 "Segoe Print","Bradley Hand","Comic Sans MS",cursive;' +
+        'color:#2b3135;white-space:nowrap;text-shadow:0 0 .5px #2b3135}' +
+      '.tt-sc.poor .tt-ptag .num{color:#a3262d;text-shadow:0 0 .5px #a3262d}' +
+      '.tt-sc:hover .tt-ptag{transform:rotate(calc(var(--tilt,-14deg) + 4deg)) scale(1.06)}' +
+      '@media (prefers-reduced-motion:reduce){.tt-ptag{transition:none}.tt-sc:hover .tt-ptag{transform:rotate(var(--tilt,-14deg))}}';
+    document.head.appendChild(st);
+  })();
+  function priceTag(price) {
+    var t = document.createElement('div'); t.className = 'tt-ptag'; t.setAttribute('aria-hidden', 'true');
+    t.style.setProperty('--tilt', TAG_TILT + 'deg');
+    var c = document.createElement('span'); c.className = 'cur'; c.textContent = TAG_CURRENCY;
+    var n = document.createElement('span'); n.className = 'num'; n.textContent = Number(price).toFixed(2).replace('.', ',');
+    t.appendChild(c); t.appendChild(n);
+    return t;
+  }
   // o: { label, voucher, poor, just, i }
   function shopCard(d, name, tag, button, o) {
     o = o || {};
@@ -938,7 +913,8 @@
     if (o.i !== undefined) w.style.setProperty('--i', o.i);
     var f = document.createElement('div'); f.className = 'tt-sc-face' + (o.voucher ? ' voucher' : ''); f.tabIndex = 0;
     f.innerHTML = ic(d.icon) + (tag ? '<span class="tt-sc-tag">' + tag + '</span>' : '');
-    f.setAttribute('aria-label', name + ': ' + d.desc);
+    f.setAttribute('aria-label', name + ': ' + d.desc + (o.price !== undefined ? '. Preço: ' + o.price : ''));
+    if (o.price !== undefined) f.appendChild(priceTag(o.price));   // etiqueta em cima da carta
     var on = function () { showTip(f, name, d.desc); };
     f.addEventListener('mouseenter', on); f.addEventListener('focus', on);
     f.addEventListener('mouseleave', hideTip); f.addEventListener('blur', hideTip);
@@ -1032,7 +1008,7 @@
             S.items.splice(i, 1); render(); renderShop('buy');
           }, poor, poor ? 'Faltam $' + (it.price - R.money) : '');
       list.appendChild(shopCard(d, d.name + (it.type === 'voucher' ? ' (permanente)' : ''), it.type === 'voucher' ? 'PERM.' : '', buy,
-        { label: d.name, voucher: it.type === 'voucher', poor: poor || full, i: i }));
+        { label: d.name, voucher: it.type === 'voucher', poor: poor || full, i: i, price: it.price }));
     });
     pShop.appendChild(list);
     var cost = 3 + S.rerolls;
