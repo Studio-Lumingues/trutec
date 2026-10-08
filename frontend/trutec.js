@@ -128,9 +128,6 @@
   var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // FOLHINHA de calendário de arrancar (parada): bloco enrolado em cima, folha do dia embaixo
   function noteSvg() {
-    var stack = '';
-    var cols = ['#cdbf95', '#e9e2c9', '#b3a67c', '#ddd5b6', '#a89a6e', '#e2dac0'];
-    for (var i = 0; i < cols.length; i++) stack += '<rect x="' + (14 + (i % 2) * 1.5) + '" y="' + (68 + i * 2.6) + '" width="' + (172 - (i * 5 % 7)) + '" height="2.7" fill="' + cols[i] + '"/>';
     return '<svg class="tt-paper" viewBox="0 84 200 216" aria-hidden="true" focusable="false">' +
       '<defs>' +
         '<linearGradient id="ttsheet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6f2e4"/><stop offset="1" stop-color="#ebe6d3"/></linearGradient>' +
@@ -203,7 +200,7 @@
           '<div class="tt-bname"><span id="tt-bicon"></span><b id="tt-bname"></b><small id="tt-beffect"></small></div>' +
           '<div class="tt-notewrap" id="tt-metawrap" aria-label="Meta e pontos">' +
             '<div class="tt-notes" id="tt-notes">' +
-              '<div class="tt-postit" id="tt-postit"><div class="tt-sheet">' + noteSvg() +
+              '<div class="tt-postit" id="tt-postit"><div class="tt-sheet">' + noteSvg() + '<div class="tt-fold"><i></i></div>' +
                 '<div class="tt-ntext"><small>META</small><b id="tt-target">0</b></div>' +
               '</div></div>' +
             '</div>' +
@@ -1437,7 +1434,7 @@
       '.tt-ntext{position:absolute;left:10%;right:10%;top:11%;bottom:16.7%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;color:#1d1d1f;font-family:' + FONT + '}' +
       '.tt-ntext small{font:900 .8rem/1 ' + FONT + ';letter-spacing:.16em;text-transform:uppercase;color:#1d1d1f}' +
       '.tt-ntext b{font:900 3.6rem/.95 ' + FONT + ';letter-spacing:-.03em;white-space:nowrap;color:#1d1d1f}' +
-      '.tt-notewrap,.tt-notes,.tt-postit,.tt-sheet,.tt-paper,.tt-ntext{animation:none!important;transition:none!important;transform:none!important;filter:none!important}' +
+      '.tt-notewrap,.tt-postit,.tt-sheet,.tt-paper,.tt-ntext{animation:none!important;transition:none!important;transform:none!important;filter:none!important}' +
       '.tt-have{display:flex;flex-direction:column;align-items:center;gap:.1rem;color:#fff8f0}' +
       '.tt-have small{font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;opacity:.75}' +
       '.tt-have b{font-size:2rem;line-height:1.05}' +
