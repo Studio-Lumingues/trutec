@@ -842,34 +842,39 @@
 @media (prefers-reduced-motion: reduce) { .tt-sc.releasing .tt-cordend { animation: none; } }
 
 /* ============================================================================
-   Indicador de rodadas (topo): 3 quadradinhos creme com contorno preto fino.
-   Ponto ganho  -> rabisco verde. Ponto perdido -> rabisco vermelho.
-   Empate (cangou) -> rabisco cinza. O rabisco "se desenha" da esquerda p/ direita.
+   Indicador de rodadas (topo) — versão refinada das pílulas.
+   Vidro fosco com brilho sutil; cada trilho se preenche da esquerda p/ direita
+   com degradê e um leve halo: verde = ponto, vermelho = perdeu, cinza = empate.
    ============================================================================ */
-#screen-trutec .tt-pips-top { gap: .4rem; padding: 0; border-radius: 0; background: none; box-shadow: none; }
+#screen-trutec .tt-pips-top {
+  gap: .42rem; padding: .42rem .75rem; border-radius: 99px;
+  background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0) 70%), rgba(14,16,28,.5);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4); backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), inset 0 1px 0 rgba(255,255,255,.22), 0 .45rem 1.1rem rgba(0,0,0,.28);
+}
 #screen-trutec .tt-pips-top i,
 #screen-trutec .tt-pips-top i.on,
 #screen-trutec .tt-pips-top i.lost,
 #screen-trutec .tt-pips-top i.tie {
-  position: relative; width: 1.6rem; height: 1.6rem; box-sizing: border-box;
-  background: #fff8f0; border: 1px solid #0a0a0a; border-radius: .22rem;
-  box-shadow: 0 1px 0 rgba(0,0,0,.35); transform: none; transition: none;
+  position: relative; overflow: hidden; width: 1.75rem; height: .4rem; border: 0; border-radius: 99px;
+  background: rgba(255,248,240,.14); transform: none;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.35);
+  transition: box-shadow .5s ease;
 }
 #screen-trutec .tt-pips-top i::after {
-  content: ''; position: absolute; inset: 1px; background: center / 100% 100% no-repeat;
-  clip-path: inset(0 100% 0 0); transition: clip-path .45s ease-out;
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  transform: scaleX(0); transform-origin: left center;
+  transition: transform .55s cubic-bezier(.22, 1, .36, 1);
 }
 #screen-trutec .tt-pips-top i.on::after,
 #screen-trutec .tt-pips-top i.lost::after,
-#screen-trutec .tt-pips-top i.tie::after { clip-path: inset(0 0 0 0); }
+#screen-trutec .tt-pips-top i.tie::after { transform: scaleX(1); }
 
-#screen-trutec .tt-pips-top i.on::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M5 11 L34 7 L6 17 L35 14 L5 24 L34 21 L7 31 L33 28 L10 35' fill='none' stroke='%231fb34d' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-#screen-trutec .tt-pips-top i.lost::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M6 9 L33 8 L5 18 L35 16 L6 26 L34 24 L8 33 L32 31' fill='none' stroke='%23e0302a' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-#screen-trutec .tt-pips-top i.tie::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M6 12 L34 10 L6 20 L34 18 L7 28 L33 26' fill='none' stroke='%23908a9c' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-@media (prefers-reduced-motion: reduce) { #screen-trutec .tt-pips-top i::after { transition: none; } }
+#screen-trutec .tt-pips-top i.on::after   { background: linear-gradient(90deg, #3ecf6b, #8df2a8); }
+#screen-trutec .tt-pips-top i.lost::after { background: linear-gradient(90deg, #ff5f52, #ff9d8f); }
+#screen-trutec .tt-pips-top i.tie::after  { background: linear-gradient(90deg, #9a95a8, #cbc7d6); }
+
+#screen-trutec .tt-pips-top i.on   { box-shadow: inset 0 1px 2px rgba(0,0,0,.2), 0 0 .7rem rgba(79,214,120,.55); }
+#screen-trutec .tt-pips-top i.lost { box-shadow: inset 0 1px 2px rgba(0,0,0,.2), 0 0 .7rem rgba(255,95,82,.5); }
+#screen-trutec .tt-pips-top i.tie  { box-shadow: inset 0 1px 2px rgba(0,0,0,.2), 0 0 .5rem rgba(200,196,214,.35); }
+@media (prefers-reduced-motion: reduce) { #screen-trutec .tt-pips-top i, #screen-trutec .tt-pips-top i::after { transition: none; } }
