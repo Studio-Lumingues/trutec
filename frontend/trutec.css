@@ -965,7 +965,7 @@
 #screen-trutec .tt-side .tt-have small { font-size: .7rem; font-weight: 800; letter-spacing: .22em; color: rgba(29,29,31,.62); opacity: 1; }
 #screen-trutec .tt-side .tt-have b { color: #1d1d1f; font-variant-numeric: tabular-nums; }
 #screen-trutec .tt-side .tt-have::before {                                   /* fita adesiva colando o canto superior esquerdo */
-  content: ''; position: absolute; left: -1.7rem; top: -.95rem; width: 5.6rem; aspect-ratio: 480 / 165;
+  content: ''; position: absolute; left: -1.42rem; top: -.86rem; width: 5.04rem; aspect-ratio: 480 / 165;
   background: var(--tape-img) center / 100% 100% no-repeat; transform: rotate(-36deg); transform-origin: 50% 50%;
   filter: drop-shadow(0 .14rem .12rem rgba(0,0,0,.42)); pointer-events: none;
 }
@@ -991,3 +991,10 @@
 
 /* META e PONTOS não se encostam mais: a tira desce e deixa um respiro embaixo da folha (a META sobe junto) */
 #screen-trutec .tt-side .tt-have { margin-top: 1rem; }
+
+/* segundo pedaço de fita, no canto inferior direito: ângulo diferente e espelhado (outro amassado) */
+#screen-trutec .tt-side .tt-have::after {
+  content: ''; position: absolute; right: -1.62rem; bottom: -.62rem; width: 5.04rem; aspect-ratio: 480 / 165;
+  background: var(--tape-img) center / 100% 100% no-repeat; transform: rotate(-52deg) scaleX(-1); transform-origin: 50% 50%;
+  filter: drop-shadow(0 .14rem .12rem rgba(0,0,0,.42)); pointer-events: none;
+}
