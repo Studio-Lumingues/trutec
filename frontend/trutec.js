@@ -89,7 +89,7 @@
       calc: function (x) { return x.results[0] === 'opp' ? { xmult: 2 } : null; } },
     { id: 'limpa',     icon: 'limpa', name: 'Limpa',         price: 5, desc: 'x1,5 Mult se ganhou por 2 a 0.',
       calc: function (x) { return x.results.length === 2 && x.results.every(function (r) { return r === 'me'; }) ? { xmult: 1.5 } : null; } },
-    { id: 'poupador',  icon: 'poupador', name: 'Poupador',      price: 5, desc: '+1 Mult a cada $4 que você tem.',
+    { id: 'poupador',  icon: 'poupador', name: 'Poupador',      price: 5, desc: '+1 Mult a cada R$4 que você tem.',
       calc: function (x) { var n = Math.floor(x.money / 4); return n ? { mult: n } : null; } },
     { id: 'paciencia', icon: '⏳', name: 'Paciência',     price: 4, desc: '+25 Fichas por mão que ainda sobra.',
       calc: function (x) { return x.handsLeft > 0 ? { chips: 25 * x.handsLeft } : null; } },
@@ -97,9 +97,9 @@
       calc: function (x) { return x.played.length === 3 ? { chips: 60 } : null; } },
     { id: 'blefe',     icon: 'blefe', name: 'Blefe',         price: 6, desc: 'x2,5 Mult quando o rival corre do seu pedido.',
       calc: function (x) { return x.how === 'oppRun' ? { xmult: 2.5 } : null; } },
-    { id: 'banqueiro', icon: 'banqueiro', name: 'Banqueiro',     price: 5, desc: '+$2 sempre que ganhar uma mão.',
+    { id: 'banqueiro', icon: 'banqueiro', name: 'Banqueiro',     price: 5, desc: '+R$2 sempre que ganhar uma mão.',
       calc: function () { return { money: 2 }; } },
-    { id: 'moedeiro',  icon: 'moedeiro', name: 'Moedeiro',      price: 4, desc: '+$1 por vaza que você ganhou na mão.',
+    { id: 'moedeiro',  icon: 'moedeiro', name: 'Moedeiro',      price: 4, desc: '+R$1 por vaza que você ganhou na mão.',
       calc: function (x) { return x.won.length ? { money: x.won.length } : null; } },
     { id: 'coelho',    icon: 'coelho', name: 'Pé de Coelho',  price: 6, desc: 'Empate (cangou) vale vaza sua. +15 Fichas.',
       calc: function () { return { chips: 15 }; } },
@@ -111,7 +111,7 @@
   var VOUCHERS = [
     { id: 'maoextra', icon: 'maoextra', name: 'Mão Extra',      price: 8, desc: '+1 mão em toda blind.' },
     { id: 'baralho',  icon: 'baralho',  name: 'Baralho Marcado', price: 6, desc: '+1 troca em toda blind.' },
-    { id: 'juros',    icon: 'juros', name: 'Poupança',       price: 7, desc: 'Juros por $5 guardados vão até $10 (em vez de $5).' }
+    { id: 'juros',    icon: 'juros', name: 'Poupança',       price: 7, desc: 'Juros por R$5 guardados vão até R$10 (em vez de R$5).' }
   ];
   function jk(id) { return JOKERS.filter(function (j) { return j.id === id; })[0]; }
   function vc(id) { return VOUCHERS.filter(function (v) { return v.id === id; })[0]; }
@@ -219,7 +219,7 @@
           '<button type="button" class="action-btn" id="tt-swap">TROCAR</button>' +
           '<button type="button" class="action-btn danger" id="tt-run">FUGIR</button>' +
         '</div>' +
-        '<div class="tt-moneybox"><span>Dinheiro</span><div class="tt-money" id="tt-money"></div></div>' +
+        '<div class="tt-moneybox" aria-label="Dinheiro"><span>R$</span><div class="tt-money" id="tt-money"></div></div>' +
       '</aside>' +
       '<div class="tt-main">' +
         '<section class="tt-opp">' +
@@ -376,7 +376,7 @@
     $('tt-overlay').classList.remove('hidden');
     var f = box.querySelector('button') || m.querySelector('.tt-mbody button'); if (f) f.focus();
   }
-  function closeModal() { if (typeof hideTip === 'function') hideTip(); hideBilly(); $('tt-overlay').classList.add('hidden'); }
+  function closeModal() { if (typeof hideTip === 'function') hideTip(); hideBilly(); var wc = $('tt-overlay').querySelector(':scope > .tt-walletcorner'); if (wc) wc.remove(); $('tt-overlay').classList.add('hidden'); }
 
   // ---------- BILLY, o vendedor ----------
   // Aparece grande à direita da loja, com balão de fala. Esquisitão e SEMPRE com pressa: fala rápido,
@@ -846,7 +846,7 @@
   function render() {
     if (!R) return;
     $('tt-ante').textContent = 'Ante ' + R.ante + '/' + ANTES;
-    $('tt-money').textContent = '$' + R.money;
+    $('tt-money').textContent = R.money;
     renderJokers();
     var b = R.blind;
     if (!b) return;
@@ -983,7 +983,7 @@
       '<li>Cada <b>blind</b> tem uma <b>meta de pontos</b>. Você tem poucas <b>mãos</b> pra bater a meta.</li>' +
       '<li>Mão ganha vale <b>Fichas × Mult</b>. O valor do truco é o seu Mult: <b>TRUCO ×3, SEIS ×6, NOVE ×9, DOZE ×12</b>.</li>' +
       '<li>Perder uma mão valendo truco+ custa dinheiro. Fugir não custa, mas gasta a mão.</li>' +
-      '<li>Ganhe <b>$</b>, compre <b>curingas</b> na loja e monte combos. Use as <b>trocas</b> pra melhorar a mão.</li>' +
+      '<li>Ganhe <b>R$</b>, compre <b>curingas</b> na loja e monte combos. Use as <b>trocas</b> pra melhorar a mão.</li>' +
       '<li>Chefes mudam as regras. Vença os 4 Antes pra ser campeão.</li></ul>' +
       (b ? '<p class="tt-best">Recorde: ' + b + ' blind' + (b === 1 ? '' : 's') + ' vencida' + (b === 1 ? '' : 's') + ' de ' + (ANTES * 3) + '</p>' : ''),
       [{ label: 'Começar corrida', cls: 'btn-primary', fn: startRun }, { label: 'Voltar', fn: leave }]);
@@ -1017,10 +1017,10 @@
     var b = R.blind;
     var body = '<p class="tt-bigicon">' + ic(b.opp.icon) + '</p><p><b>' + b.opp.name + '</b><br>' + b.opp.bio + '</p>' +
       '<p class="tt-goalbig">Meta: <b>' + fmt(b.target) + '</b> pontos</p>' +
-      '<p>Recompensa: <b>$' + b.reward + '</b> + $1 por mão que sobrar + juros</p>' +
+      '<p>Recompensa: <b>R$' + b.reward + '</b> + R$1 por mão que sobrar + juros</p>' +
       (b.boss ? '<p class="tt-bosseffect">' + ic('alerta', 'tt-ic-inline') + ' ' + b.effect + '</p>' : '');
     var btns = [{ label: 'Jogar', cls: 'btn-primary', fn: beginBlind }];
-    if (b.kind !== 'boss') btns.push({ label: 'Pular (+$3, sem loja)', fn: function () { R.money += 3; advance(); blindSelect(); } });
+    if (b.kind !== 'boss') btns.push({ label: 'Pular (+R$3, sem loja)', fn: function () { R.money += 3; advance(); blindSelect(); } });
     modal('Ante ' + R.ante + ' — ' + b.title, body, btns);
   }
 
@@ -1144,7 +1144,7 @@
       if (e.chips) { chips += e.chips; txt.push('+' + e.chips + ' fichas'); }
       if (e.mult) { mult += e.mult; txt.push('+' + e.mult + ' mult'); }
       if (e.xmult) { xm *= e.xmult; txt.push('×' + e.xmult + ' mult'); }
-      if (e.money) { money += e.money; txt.push('+$' + e.money); }
+      if (e.money) { money += e.money; txt.push('+R$' + e.money); }
       steps.push({ t: 'joker', idx: i, label: j.name + ' ' + txt.join(' '), chips: chips, mult: mult, xm: xm });
     });
     return { steps: steps, chips: chips, mult: mult, xm: xm, money: money, total: how === 'run' && !chips ? 0 : Math.round(chips * mult * xm) };
@@ -1186,7 +1186,7 @@
     }
     var pen = Math.min(R.money, H.level);
     R.money -= pen;
-    say('O rival ganhou a mão.' + (pen ? ' Você perdeu $' + pen + '.' : '')); render();
+    say('O rival ganhou a mão.' + (pen ? ' Você perdeu R$' + pen + '.' : '')); render();
     later(handDone, 1800);
   }
 
@@ -1245,10 +1245,10 @@
     R.money += total;
     render();
     var isLast = b.kind === 'boss' && R.ante >= ANTES;
-    var body = '<ul class="tt-pay"><li><span>Blind vencida</span><b>$' + b.reward + '</b></li>' +
-      '<li><span>Mãos que sobraram (' + hl + ')</span><b>$' + hl + '</b></li>' +
-      '<li><span>Juros ($1 a cada $5)</span><b>$' + interest + '</b></li></ul>' +
-      '<p class="tt-best">Você tem $' + R.money + '</p>';
+    var body = '<ul class="tt-pay"><li><span>Blind vencida</span><b>R$' + b.reward + '</b></li>' +
+      '<li><span>Mãos que sobraram (' + hl + ')</span><b>R$' + hl + '</b></li>' +
+      '<li><span>Juros (R$1 a cada R$5)</span><b>R$' + interest + '</b></li></ul>' +
+      '<p class="tt-best">Você tem R$' + R.money + '</p>';
     if (isLast) return modal('Campeão do Trutec!', '<p class="tt-bigicon">' + ic('trofeu') + '</p><p>Você derrotou O Coringa e venceu os ' + ANTES + ' Antes!</p>' + body,
       [{ label: 'Nova corrida', cls: 'btn-primary', fn: startRun }, { label: 'Sair', fn: leave }]);
     modal('Blind vencida!', receiptHtml(b.reward, hl, interest, R.money - total, R.money), [{ label: 'Ir à loja', cls: 'btn-primary', fn: openShop }], { receipt: true });
@@ -1369,7 +1369,7 @@
     }
     var poor = st.money < st.price, blocked = st.full || poor;
     var msg = st.full ? 'Sem espaço. Venda um curinga pra abrir espaço.'
-      : poor ? 'Faltam $' + (st.price - st.money) + ' pra comprar.'
+      : poor ? 'Faltam R$' + (st.price - st.money) + ' pra comprar.'
       : 'Deseja comprar esta carta?';
     confEl.innerHTML =
       '<div class="tt-confirm" role="dialog" aria-modal="true" aria-label="Confirmar compra">' +
@@ -1426,8 +1426,8 @@
   function shopSnd(k) { if (DEMO) return; try { if (window.TruCount && TruCount.sfx) TruCount.sfx(k); } catch (e) {} }
   function shopBtn(label, price, cls, fn, dis, title) {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'btn ' + cls; b.disabled = !!dis;
-    var s = document.createElement('span'); s.textContent = label; b.appendChild(s);
-    if (price !== undefined) { var p = document.createElement('span'); p.className = 'tt-price'; p.textContent = '$' + price; b.appendChild(p); }
+    var s = document.createElement('span'); if (label && label.nodeType) s.appendChild(label); else s.textContent = label; b.appendChild(s);
+    if (price !== undefined) { var p = document.createElement('span'); p.className = 'tt-price'; p.textContent = 'R$' + price; b.appendChild(p); }
     if (title) b.title = title;
     b.addEventListener('click', fn);
     return b;
@@ -1499,14 +1499,14 @@
     // ---- carteira: moeda + dinheiro (sobe contando quando ganha; treme e mostra "-$" quando gasta) ----
     var row = document.createElement('div'); row.className = 'tt-walletrow';
     var wal = document.createElement('div'); wal.className = 'tt-wallet';
-    var coin = document.createElement('span'); coin.className = 'tt-coin'; coin.textContent = '$'; coin.setAttribute('aria-hidden', 'true');
+    var coin = document.createElement('span'); coin.className = 'tt-coin'; coin.textContent = 'R$'; coin.setAttribute('aria-hidden', 'true');
     var num = document.createElement('b'); num.setAttribute('aria-label', 'Dinheiro: ' + R.money);
     wal.appendChild(coin); wal.appendChild(num);
     var prev = shopShownMoney; shopShownMoney = R.money;
     if (prev === null || prev === R.money) num.textContent = R.money;
     else {
       var up = R.money > prev, dl = document.createElement('i');
-      dl.className = 'tt-delta ' + (up ? 'up' : 'down'); dl.textContent = (up ? '+$' : '−$') + Math.abs(R.money - prev);
+      dl.className = 'tt-delta ' + (up ? 'up' : 'down'); dl.textContent = (up ? '+R$' : '−R$') + Math.abs(R.money - prev);
       wal.appendChild(dl); wal.classList.add(up ? 'gain' : 'lose');
       if (up && window.TruCount) { num.textContent = prev; TruCount.run(num, R.money, { ding: false, max: 600 }); }
       else num.textContent = R.money;
@@ -1566,16 +1566,24 @@
     });
     pShop.appendChild(list);
     var cost = 3 + S.rerolls;
-    pShop.appendChild(shopBtn('Rolar loja', cost, 'tt-reroll', function () {
+    var rrIcon = document.createElement('span'); rrIcon.className = 'tt-rr-ic'; rrIcon.setAttribute('aria-hidden', 'true');
+    rrIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>' +
+      '<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>';
+    var rrBtn = shopBtn(rrIcon, cost, 'tt-reroll', function () {
       shopSnd('roll');
       R.money -= cost; S.rerolls++;
       S.items = rollItems(); render(); renderShop('reroll');
-    }, R.money < cost, R.money < cost ? 'Faltam $' + (cost - R.money) : ''));
+    }, R.money < cost, R.money < cost ? 'Faltam R$' + (cost - R.money) : 'Rolar loja');
+    rrBtn.setAttribute('aria-label', 'Rolar loja por R$' + cost);
+    pShop.appendChild(rrBtn);
     box.appendChild(pShop);
 
     var cheapest = S.items.reduce(function (m, it) { return it.sold ? m : Math.min(m, it.price); }, Infinity);
     var speech = (kind === 'greet' && S.items.some(function (it) { return !it.sold; }) && R.money < cheapest) ? 'poor' : (kind || 'greet');
     modal('Loja', box, [{ label: 'Avançar ›', cls: 'btn-primary tt-go', fn: function () { cvShow(true); } }], { billy: speech });
+    var ovl = $('tt-overlay'), oldCorner = ovl.querySelector(':scope > .tt-walletcorner'); if (oldCorner) oldCorner.remove();
+    var corner = document.createElement('div'); corner.className = 'tt-walletcorner'; corner.appendChild(wal); ovl.appendChild(corner);   // R$ fixo no canto superior esquerdo
     fitShop();
     springDrop($('tt-modal'));
   }
@@ -1745,7 +1753,7 @@
     } });
     var pen = H.pending;   // perder valendo isso custa $ (nível aceito)
     modal('O rival pediu ' + CALLS[H.pending] + '!',
-      '<p>Aceitar deixa o Mult em <b>×' + stakeMult(H.pending) + '</b>. Se perder a mão, você paga <b>$' + pen + '</b>.</p>' +
+      '<p>Aceitar deixa o Mult em <b>×' + stakeMult(H.pending) + '</b>. Se perder a mão, você paga <b>R$' + pen + '</b>.</p>' +
       '<p>Correr: perde a mão, sem custo.</p>', btns);
   }
 
