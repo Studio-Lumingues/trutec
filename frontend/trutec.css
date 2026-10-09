@@ -1018,3 +1018,18 @@
 .tt-carteira .tt-joker { box-shadow: -.22rem .1rem .45rem rgba(0, 0, 0, .5); }
 .tt-carteira .tt-joker + .tt-joker { margin-left: calc(var(--cj) * -.3); }             /* 30% de cada carta fica embaixo da próxima */
 .tt-carteira .tt-joker:not(.empty):hover { z-index: 3; transform: translateY(calc(var(--cw) * -.05)); }
+
+/* ============================================================================
+   CENTRALIZAR + AMPLIADA: os curingas ficam centralizados no meio da carteira (só os que existem;
+   vagas livres não ocupam espaço). Na carteira ampliada eles também ficam 30% maiores, sobrepostos e com sombrinha.
+   ============================================================================ */
+.tt-carteira .tt-jokers { left: 0; right: 0; justify-content: center; }
+.tt-carteira .tt-joker.empty { display: none; }
+
+.tt-cv-wallet { --cj: calc(var(--cw) * .2015); margin-top: calc(var(--cw) * .115); }     /* era .155 */
+.tt-cv-jokers { left: 0; right: 0; top: calc(var(--cw) * -.11); gap: 0; justify-content: center; }
+.tt-cv .tt-joker { box-shadow: -.25rem .1rem .55rem rgba(0, 0, 0, .5); }
+.tt-cv .tt-joker + .tt-joker { margin-left: calc(var(--cj) * -.3); }
+.tt-cv .tt-joker.empty { display: none; }
+.tt-cv .tt-joker:not(.empty):hover { z-index: 3; }
+.tt-cv .tt-joker.dragging { box-shadow: .2rem .6rem 1.1rem rgba(0, 0, 0, .55); }
