@@ -1350,26 +1350,31 @@
   }
 
   // a loja não deve precisar de rolagem: se a tela for baixa demais, encolhe as cartinhas aos poucos até caber
-  // ---- ELÁSTICO DE VERDADE: simulação de física (queda livre + mola amortecida + pêndulo) ----
-  // Cada crachá cai do topo da tela, a fita estica como borracha, ele quica pra cima e pra baixo
-  // com a energia se perdendo aos poucos, e balança de lado como um pêndulo. Tudo integrado a 240 Hz.
+  // ---- ELÁSTICO DE VERDADE: física (gravidade + mola amortecida + pêndulo), rápido, e os crachás nunca param ----
+  // Cai do topo com gravidade, a fita estica como borracha, quica e balança; depois fica balançando de leve pra sempre
+  // (um "vento" suave empurra o pêndulo e a mola). Integrado a 240 Hz.
   function springDrop(root) {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var els = [].slice.call(root.querySelectorAll('.tt-fresh .tt-sc:not(.empty), .tt-own .tt-sc.just'));
-    var G = 3400, K = 330, C = 5.2, KP = 62, CP = 2.0, DT = 1 / 240;     // gravidade, mola, amortecimento, pêndulo
+    var ov = $('tt-overlay');
+    var els = [].slice.call(root.querySelectorAll('.tt-sc:not(.empty)'));
+    var G = 9000, K = 900, C = 7.2, KP = 90, CP = 1.6, DT = 1 / 240;     // gravidade, mola, amortecimento, pêndulo
+    var AP = 3.2, AY = 2700;                                              // força do "vento" (balanço eterno)
     els.forEach(function (el, n) {
+      var fresh = !!el.closest('.tt-fresh') || el.classList.contains('just');
       var r = el.getBoundingClientRect(), h = r.height || 200;
-      var y = -(r.bottom + 40), v = 0, th = 0, w = 0, phase = 0, last = 0, t0 = 0;
-      var delay = n * 130, sgn = Math.random() < .5 ? -1 : 1, kick = (0.55 + Math.random() * 0.4) * sgn;
+      var y = fresh ? -(r.bottom + 40) : 0, v = 0, th = 0, w = 0, phase = fresh ? 0 : 1, last = 0, t0 = 0, T = 0;
+      var delay = fresh ? n * 45 : 0, kick = (0.7 + Math.random() * 0.5) * (Math.random() < .5 ? -1 : 1);
+      var f1 = 2 * Math.PI * (0.38 + Math.random() * .2), f2 = 2 * Math.PI * (0.9 + Math.random() * .3);
+      var p1 = Math.random() * 6.28, p2 = Math.random() * 6.28, fy = 2 * Math.PI * (0.55 + Math.random() * .25), py = Math.random() * 6.28;
       el.style.transformOrigin = '50% 0';
-      el.style.transform = 'translateY(' + y + 'px)';
+      if (fresh) el.style.transform = 'translateY(' + y + 'px)';
       function draw() {
         var st = y > 0 ? 1 + Math.min(y / (h * 2.2), .35) : 1 - Math.min(-y / (h * 4), .06);   // estica quando a fita estica
         var sx = 1 / Math.sqrt(st);
         el.style.transform = 'translateY(' + y.toFixed(2) + 'px) rotate(' + th.toFixed(4) + 'rad) scale(' + sx.toFixed(4) + ',' + st.toFixed(4) + ')';
       }
       function frame(now) {
-        if (!el.isConnected) return;
+        if (!el.isConnected || ov.classList.contains('hidden')) return;
         if (!t0) { t0 = now; last = now; }
         if (now - t0 < delay) { last = now; requestAnimationFrame(frame); return; }
         var acc = Math.min((now - last) / 1000, 0.05); last = now;
@@ -1377,14 +1382,15 @@
           var dt = Math.min(DT, acc); acc -= dt;
           if (phase === 0) {                                          // queda livre até a fita ficar esticada
             v += G * dt; y += v * dt;
-            if (y >= 0) { y = 0; v *= 0.62; w = kick; phase = 1; }    // o tranco: perde energia e dá um empurrão de lado
-          } else {                                                    // mola amortecida (a fita elástica) + pêndulo
-            v += (-K * y - C * v) * dt; y += v * dt;
-            w += (-KP * th - CP * w) * dt; th += w * dt;
+            if (y >= 0) { y = 0; v *= 0.6; w = kick; phase = 1; }     // o tranco: perde energia e dá um empurrão de lado
+          } else {                                                    // mola amortecida (a fita) + pêndulo, sempre com vento
+            T += dt;
+            var wind = AP * (Math.sin(f1 * T + p1) + .6 * Math.sin(f2 * T + p2));
+            v += (-K * y - C * v + AY * Math.sin(fy * T + py)) * dt; y += v * dt;
+            w += (-KP * th - CP * w + wind) * dt; th += w * dt;
           }
         }
         draw();
-        if (phase === 1 && Math.abs(y) < .15 && Math.abs(v) < 1 && Math.abs(th) < .002 && Math.abs(w) < .01) { el.style.transform = ''; el.style.transformOrigin = ''; return; }
         requestAnimationFrame(frame);
       }
       requestAnimationFrame(frame);

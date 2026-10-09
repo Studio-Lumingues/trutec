@@ -690,3 +690,11 @@
 /* crachás ainda maiores; a queda agora é uma simulação de mola feita no JS (springDrop), então desligo a animação em CSS */
 .tt-stall .tt-shopcards, .tt-own .tt-shopcards { --scw: calc(clamp(6.5rem, min(25vh, 11.5vw), 17rem) * var(--shopscale, 1)); gap: 1rem 1.3rem; }
 :is(#screen-trutec, .tt-demo) .tt-fresh .tt-sc:not(.empty), :is(#screen-trutec, .tt-demo) .tt-own .tt-sc.just { animation: none !important; }
+
+/* passar o mouse no crachá: sem balanço, sem brilho, sem pulo */
+:is(#screen-trutec, .tt-demo) .tt-sc:not(.empty) .tt-sc-face:is(:hover, :focus-visible),
+.tt-sc-face:hover, .tt-sc-face:focus-visible, .tt-sc-face.voucher:hover, .tt-sc-face.voucher:focus-visible {
+  animation: none !important; transform: none !important; box-shadow: none !important; z-index: auto;
+  filter: drop-shadow(0 .25rem .35rem rgba(0, 0, 0, .45)) !important; }
+:is(#screen-trutec, .tt-demo) .tt-sc.poor .tt-sc-face:is(:hover, :focus-visible) {
+  filter: drop-shadow(0 .25rem .35rem rgba(0, 0, 0, .45)) grayscale(.85) brightness(.78) !important; }
