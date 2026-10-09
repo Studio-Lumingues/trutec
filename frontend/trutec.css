@@ -1008,3 +1008,13 @@
   font-family: inherit; font-weight: 800; font-size: .7rem; line-height: 1; letter-spacing: .22em; text-transform: uppercase; color: rgba(18,18,20,.62); opacity: 1;
 }
 #screen-trutec .tt-side :is(.tt-ntext b, .tt-have b) { font-family: inherit; font-weight: 900; letter-spacing: -.03em; color: #121214; }
+
+/* ============================================================================
+   CURINGAS DENTRO DA CARTEIRA (canto da tela): 30% maiores e sobrepostos, cada um com uma
+   sombrinha caindo sobre o anterior. Passar o mouse traz o curinga pra frente e levanta ele.
+   ============================================================================ */
+.tt-carteira { --cj: calc(var(--cw) * .2015); }                                        /* era .155 */
+.tt-carteira .tt-jokers { top: calc(var(--cw) * -.075); gap: 0; }                      /* mais alto, pra continuar saindo do bolso */
+.tt-carteira .tt-joker { box-shadow: -.22rem .1rem .45rem rgba(0, 0, 0, .5); }
+.tt-carteira .tt-joker + .tt-joker { margin-left: calc(var(--cj) * -.3); }             /* 30% de cada carta fica embaixo da próxima */
+.tt-carteira .tt-joker:not(.empty):hover { z-index: 3; transform: translateY(calc(var(--cw) * -.05)); }
