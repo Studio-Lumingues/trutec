@@ -838,11 +838,11 @@
     // vira por cima do monte: algumas cartas viradas aparecem escapando por baixo (o "tombo")
     var vi = $('tt-vira'); vi.innerHTML = '';
     var deck = document.createElement('div'); deck.className = 'tt-deck';
-    var nb = Math.min(4, H.deck.length);
+    var nb = Math.min(2, H.deck.length);                           // só duas cartas viradas espiando atrás da vira
     for (var bi = 0; bi < nb; bi++) {
-      var bk = backEl(), d = (nb - bi) * 0.28;
+      var bk = backEl(), d = (nb - bi) * 0.2;
       bk.style.setProperty('--dx', d + 'rem'); bk.style.setProperty('--dy', d + 'rem');
-      bk.style.setProperty('--rot', (bi % 2 ? 1.6 : -1.2) + 'deg');
+      bk.style.setProperty('--rot', (bi % 2 ? 1 : -.6) + 'deg');
       deck.appendChild(bk);
     }
     deck.appendChild(cardEl(H.vira, 'tt-viracard'));
@@ -1246,6 +1246,50 @@
     w.appendChild(f);
     return w;
   }
+  // ---- FITA VAZIA (crachá comprado): a fita fica no lugar, com o fecho aberto, até rolar a loja; o crachá cai ----
+  var CORD_SVG =
+    '<svg class="tt-cordend" viewBox="0 0 100 112" aria-hidden="true" focusable="false">' +
+      '<defs>' +
+        '<linearGradient id="ttcMetal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8c96a3"/><stop offset=".35" stop-color="#f4f6f9"/><stop offset=".7" stop-color="#b3bcc7"/><stop offset="1" stop-color="#7d8794"/></linearGradient>' +
+        '<linearGradient id="ttcShade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".24"/><stop offset=".16" stop-color="#000" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".13"/><stop offset=".84" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".24"/></linearGradient>' +
+        '<pattern id="ttcWeave" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(135)"><rect width="2.5" height="5" fill="#fff" fill-opacity=".07"/><rect x="2.5" width="2.5" height="5" fill="#000" fill-opacity=".07"/></pattern>' +
+      '</defs>' +
+      '<rect x="22.4" y="0" width="55.2" height="42" fill="#632a95"/>' +
+      '<rect x="22.4" y="0" width="55.2" height="42" fill="url(#ttcWeave)"/>' +
+      '<rect x="22.4" y="0" width="55.2" height="42" fill="url(#ttcShade)"/>' +
+      '<path d="M26 31 H74 M26 35 H74" stroke="#2c0f48" stroke-opacity=".55" stroke-width="1" stroke-dasharray="3 2.2" fill="none"/>' +
+      '<rect x="19.5" y="40" width="61" height="14" rx="3.5" fill="url(#ttcMetal)" stroke="#59616c" stroke-width="1"/>' +
+      '<rect x="24" y="43.5" width="52" height="2" rx="1" fill="#fff" fill-opacity=".55"/>' +
+      '<ellipse cx="50" cy="63" rx="8.5" ry="9.5" fill="none" stroke="#59616c" stroke-width="5"/>' +
+      '<ellipse cx="50" cy="63" rx="8.5" ry="9.5" fill="none" stroke="url(#ttcMetal)" stroke-width="3"/>' +
+      '<path d="M50 72 V86 C50 103 33 103 33 89 V80" fill="none" stroke="#59616c" stroke-width="6" stroke-linecap="round"/>' +
+      '<path d="M50 72 V86 C50 103 33 103 33 89 V80" fill="none" stroke="url(#ttcMetal)" stroke-width="3.6" stroke-linecap="round"/>' +
+      '<path d="M33 79 L22 69" fill="none" stroke="#59616c" stroke-width="5.4" stroke-linecap="round"/>' +
+      '<path d="M33 79 L22 69" fill="none" stroke="url(#ttcMetal)" stroke-width="3" stroke-linecap="round"/>' +
+      '<circle cx="33" cy="80" r="2.4" fill="#59616c"/>' +
+    '</svg>';
+  var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function soldSlot(it, i) {
+    var w = document.createElement('div'); w.className = 'tt-sc sold';
+    w.style.setProperty('--i', i);
+    var f = document.createElement('div'); f.className = 'tt-sc-face gone'; f.setAttribute('aria-hidden', 'true');
+    f.innerHTML = CORD_SVG;
+    w.appendChild(f);
+    var nm = document.createElement('span'); nm.className = 'tt-sc-name'; nm.innerHTML = '&nbsp;';
+    w.appendChild(nm);
+    var fb = it.fall; it.fall = null;                         // o crachá comprado cai só uma vez
+    if (fb && !REDUCED) {
+      fb.classList.add('tt-fallbadge'); fb.removeAttribute('tabindex'); fb.removeAttribute('role'); fb.removeAttribute('aria-label');
+      fb.setAttribute('aria-hidden', 'true');
+      fb.style.setProperty('--fall-rot', ((Math.random() < .5 ? -1 : 1) * (14 + Math.random() * 14)).toFixed(1) + 'deg');
+      var done = function () { if (fb.parentNode) fb.parentNode.removeChild(fb); w.classList.remove('releasing'); };
+      fb.addEventListener('animationend', function (e) { if (e.target === fb) done(); });
+      setTimeout(done, 1800);
+      w.classList.add('releasing');
+      w.appendChild(fb);
+    }
+    return w;
+  }
   // ---- ETIQUETA DE PREÇO (estilo etiqueta de gôndola: papel branco, 2 listras vermelhas, "R$" na vertical) ----
   // Ajustes: TAG_TILT (inclinação em graus) e TAG_CURRENCY ('R$' ou '$').
   var TAG_TILT = -14, TAG_CURRENCY = 'R$';
@@ -1464,6 +1508,7 @@
     var list = document.createElement('div'); list.className = 'tt-shopcards';
     if (!S.items.length) { var e2 = document.createElement('p'); e2.className = 'tt-best'; e2.textContent = 'Esgotado. Role a loja!'; list.appendChild(e2); }
     S.items.forEach(function (it, i) {
+      if (it.sold) { list.appendChild(soldSlot(it, i)); return; }
       var d = it.type === 'joker' ? jk(it.id) : vc(it.id);
       var full = it.type === 'joker' && R.jokers.length >= JSLOTS;
       var poor = R.money < it.price;
@@ -1471,7 +1516,10 @@
         shopSnd('buy');
         R.money -= it.price;
         if (it.type === 'joker') R.jokers.push(it.id); else R.vouchers.push(it.id);
-        S.items.splice(i, 1); render(); renderShop('buy');
+        // o crachá se solta da fita e cai; a fita fica vazia no lugar até rolar a loja
+        var fe = card && card.firstChild;
+        it.sold = true; it.fall = fe ? fe.cloneNode(true) : null;
+        render(); renderShop('buy');
       };
       var card = shopCard(d, d.name + (it.type === 'voucher' ? ' (permanente)' : ''), it.type === 'voucher' ? 'PERM.' : '', null,
         { label: d.name, voucher: it.type === 'voucher', poor: poor || full, i: i, price: it.price,
@@ -1490,8 +1538,8 @@
     }, R.money < cost, R.money < cost ? 'Faltam $' + (cost - R.money) : ''));
     box.appendChild(pShop);
 
-    var cheapest = S.items.reduce(function (m, it) { return Math.min(m, it.price); }, Infinity);
-    var speech = (kind === 'greet' && S.items.length && R.money < cheapest) ? 'poor' : (kind || 'greet');
+    var cheapest = S.items.reduce(function (m, it) { return it.sold ? m : Math.min(m, it.price); }, Infinity);
+    var speech = (kind === 'greet' && S.items.some(function (it) { return !it.sold; }) && R.money < cheapest) ? 'poor' : (kind || 'greet');
     modal('Loja', box, [{ label: 'Avançar ›', cls: 'btn-primary tt-go', fn: function () { cvShow(true); } }], { billy: speech });
     fitShop();
     springDrop($('tt-modal'));

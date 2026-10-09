@@ -810,3 +810,33 @@
 #screen-trutec .tt-pips-top i { width: 1.5rem; height: .5rem; border: 0; border-radius: 99px; background: rgba(255,248,240,.2); transition: background .3s, transform .3s cubic-bezier(.34, 1.56, .64, 1); }
 #screen-trutec .tt-pips-top i.on { background: #6be08a; transform: scaleY(1.25); } #screen-trutec .tt-pips-top i.lost { background: #ff7a6b; transform: scaleY(1.25); } #screen-trutec .tt-pips-top i.tie { background: #a9a4b5; transform: scaleY(1.25); }
 #screen-trutec .tt-side #tt-truco, #screen-trutec .tt-side #tt-run { display: none; }
+
+
+/* ============================================================================
+   VIRA: só duas cartas viradas atrás, bem coladas.
+   CRACHÁ COMPRADO: a fita fica no lugar (com o fecho aberto, ver CORD_SVG no trutec.js) até rolar a loja;
+   o crachá se solta e cai girando (ttBadgeFall).
+   ============================================================================ */
+.tt-deck { margin: .2rem .7rem .7rem .2rem; }
+
+:is(#screen-trutec, .tt-demo) .tt-sc-face.gone { background: none; pointer-events: none; animation: none; cursor: default; }
+.tt-cordend { position: absolute; left: 50%; top: -1.5%; width: 60%; height: auto; overflow: visible; transform: translateX(-50%); transform-origin: 50% 0; pointer-events: none; }
+.tt-sc.releasing .tt-cordend { animation: ttCordRecoil 1.3s ease-out; }
+:is(#screen-trutec, .tt-demo) .tt-sc.sold .tt-sc-face.tt-fallbadge {
+  position: absolute !important; left: 0; top: 0; width: 100%; z-index: 4; pointer-events: none; transform-origin: 50% 0;
+  animation: ttBadgeFall 1.05s cubic-bezier(.5, 0, .9, .6) both; }
+:is(#screen-trutec, .tt-demo) .tt-sc.sold .tt-sc-face.tt-fallbadge::before { content: none; }
+@keyframes ttBadgeFall {
+  0%   { transform: translateY(0) rotate(0); opacity: 1; }
+  12%  { transform: translateY(-1.5%) rotate(calc(var(--fall-rot, 18deg) * -.25)); opacity: 1; }
+  100% { transform: translateY(85vh) rotate(var(--fall-rot, 18deg)); opacity: 0; }
+}
+@keyframes ttCordRecoil {
+  0%   { transform: translateX(-50%) rotate(0); }
+  12%  { transform: translateX(-50%) translateY(-3%) rotate(7deg); }
+  30%  { transform: translateX(-50%) rotate(-5deg); }
+  50%  { transform: translateX(-50%) rotate(3deg); }
+  72%  { transform: translateX(-50%) rotate(-1.6deg); }
+  100% { transform: translateX(-50%) rotate(0); }
+}
+@media (prefers-reduced-motion: reduce) { .tt-sc.releasing .tt-cordend { animation: none; } }
