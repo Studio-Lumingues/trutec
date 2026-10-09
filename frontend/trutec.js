@@ -252,6 +252,7 @@
             '<div class="tt-cv-jokers" id="tt-cv-jokers"></div>' +
             '<div class="tt-cart-front"></div>' +
           '</div>' +
+          '<button type="button" class="btn btn-primary tt-cv-go hidden" id="tt-cv-go">Próxima blind ›</button>' +
         '</div>' +
       '</div>' +
       '<div class="tt-overlay hidden" id="tt-overlay"><div class="tt-modal" id="tt-modal"></div></div>';
@@ -261,10 +262,11 @@
 
     // carteira: clique abre a versão ampliada, onde dá pra arrastar os curingas e mudar a ordem
     var cart = $('tt-carteira'), cv = $('tt-cv'), cvj = $('tt-cv-jokers');
-    cart.addEventListener('click', cvShow);
+    cart.addEventListener('click', function () { cvShow(); });
     cart.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cvShow(); } });
     $('tt-cv-close').addEventListener('click', cvHide);
-    cv.addEventListener('click', function (e) { if (e.target === cv || e.target.classList.contains('tt-cv-box')) cvHide(); });
+    cv.addEventListener('click', function (e) { if (!cvAdv && (e.target === cv || e.target.classList.contains('tt-cv-box'))) cvHide(); });
+    $('tt-cv-go').addEventListener('click', function () { cvHide(); advance(); blindSelect(); });
     cvj.addEventListener('pointerdown', cvDown);
     cvj.addEventListener('pointermove', cvMove);
     cvj.addEventListener('pointerup', cvUp);
@@ -554,7 +556,7 @@
   }
 
   // ---------- carteira ampliada: ver os curingas e arrastar pra mudar a ordem ----------
-  var cvOpen = false, cvDrag = null;
+  var cvOpen = false, cvDrag = null, cvAdv = false;   // cvAdv: carteira aberta depois da loja (botão "Próxima blind")
 
   // card do efeito do curinga (reaproveita o visual .stats-card do card de vitórias/derrotas)
   var jcard = null, jcId = null, JC_OFF = 18;
@@ -591,15 +593,18 @@
       box.appendChild(el);
     }
   }
-  function cvKey(e) { if (e.key === 'Escape') { e.stopPropagation(); cvHide(); } }
-  function cvShow() {
+  function cvKey(e) { if (e.key === 'Escape') { e.stopPropagation(); if (!cvAdv) cvHide(); } }
+  function cvShow(adv) {
     if (!R) return;
+    cvAdv = adv === true;
     cvOpen = true; cvDrag = null; cvRender();
+    $('tt-cv').classList.toggle('tt-cv-adv', cvAdv);
+    $('tt-cv-go').classList.toggle('hidden', !cvAdv);
     $('tt-cv').classList.remove('hidden');
     document.addEventListener('keydown', cvKey, true);
   }
   function cvHide() {
-    cvOpen = false; cvDrag = null; jcHide();
+    cvOpen = false; cvDrag = null; cvAdv = false; jcHide();
     var cv = $('tt-cv'); if (cv) cv.classList.add('hidden');
     document.removeEventListener('keydown', cvKey, true);
   }
@@ -1332,7 +1337,7 @@
 
     var cheapest = S.items.reduce(function (m, it) { return Math.min(m, it.price); }, Infinity);
     var speech = (kind === 'greet' && S.items.length && R.money < cheapest) ? 'poor' : (kind || 'greet');
-    modal('Loja', box, [{ label: 'Próxima blind ›', cls: 'btn-primary tt-go', fn: function () { advance(); blindSelect(); } }], { billy: speech });
+    modal('Loja', box, [{ label: 'Avançar ›', cls: 'btn-primary tt-go', fn: function () { cvShow(true); } }], { billy: speech });
     fitShop();
   }
 

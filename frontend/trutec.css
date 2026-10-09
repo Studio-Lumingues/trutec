@@ -679,3 +679,10 @@
 /* as fitas da fileira de baixo passam por trás dos crachás da fileira de cima */
 .tt-own .tt-sc { position: relative; z-index: 2; }
 .tt-stall .tt-sc { position: relative; z-index: 1; }
+
+/* LOJA: os seus crachás não aparecem mais aqui (ficam na carteira, depois do "Avançar") */
+.tt-overlay.tt-shopmode .tt-own { display: none !important; }
+/* carteira aberta depois da loja: sem "x", só reordenar e seguir */
+.tt-cv.tt-cv-adv .tt-cv-close { display: none; }
+.tt-cv-go { min-width: min(18rem, 80vw); padding: .85rem 1.4rem; font-size: 1.1rem; }
+.tt-cv-go.hidden { display: none; }
