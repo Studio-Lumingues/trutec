@@ -488,7 +488,7 @@
     var minLeft = L;                                         // no desktop, evita cobrir as cartas da loja (borda direita da janela da loja)
     var mod = $('tt-modal');
     if (!mobile && mod) { var mr = mod.getBoundingClientRect().right - o.left - 24; if (rightEdge - mr >= 190) minLeft = Math.max(L, mr); }
-    var cap = Math.min(27 * rem, o.width - L - Rm);
+    var cap = Math.min(20 * rem, o.width - L - Rm);
     b.style.maxWidth = Math.max(150, Math.min(cap, rightEdge - minLeft)) + 'px';
     var bw = b.offsetWidth, bh = b.offsetHeight;
     var left = Math.max(minLeft, Math.min(rightEdge - bw, o.width - Rm - bw));
@@ -959,7 +959,7 @@
     modal('Ante ' + R.ante + ' — ' + b.title, body, btns);
   }
 
-  function advance() { R.bi++; if (R.bi > 2) { R.bi = 0; R.ante++; } }
+  function advance() { R.inShop = false; R.bi++; if (R.bi > 2) { R.bi = 0; R.ante++; } }
 
   function beginBlind() {
     tok++;
@@ -1160,6 +1160,7 @@
     var vs = VOUCHERS.filter(function (v) { return R.vouchers.indexOf(v.id) < 0; });
     if (vs.length) { var v = vs[rnd(vs.length)]; items.push({ type: 'voucher', id: v.id, price: v.price }); }
     R.shop = { items: items, rerolls: 0 };
+    R.inShop = true;
     shopShownMoney = null;
     shopEnterSnd();
     renderShop('greet');
@@ -1741,11 +1742,25 @@
     return { ok: true, added: picked.map(function (j) { return j.name; }), total: R.jokers.length };
   }
 
+  // ---------- pular direto pra loja (usado pelo comando `loja` do terminal) ----------
+  // Dá a blind atual como vencida (com a recompensa normal, sem bônus de mãos) e abre a loja;
+  // o botão "Avançar ›" da loja já leva pra próxima blind. Na última blind do jogo mostra o "Campeão".
+  function skipToShop() {
+    if (!R || !R.blind) return { ok: false, error: 'nenhuma corrida em andamento. Abra o Trutec e clique em "Começar corrida".' };
+    if (R.inShop) return { ok: false, error: 'você já está na loja.' };
+    tok++;                                   // cancela qualquer animação/jogada pendente da mão atual
+    R.handsLeft = 0;
+    blindWon();
+    if (R.blind.kind === 'boss' && R.ante >= ANTES) return { ok: true, champion: true };
+    openShop();
+    return { ok: true, ante: R.ante, blind: R.blind.title };
+  }
+
   // ---------- ligação com o lobby ----------
   function init() {
     var b = $('btn-open-trutec');
     if (b) b.addEventListener('click', open);
-    window.Trutec = { open: open, demoStart: demoStart, demoStop: demoStop, addJokers: addJokers };
+    window.Trutec = { open: open, demoStart: demoStart, demoStop: demoStop, addJokers: addJokers, skipToShop: skipToShop };
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

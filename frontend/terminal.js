@@ -242,6 +242,7 @@
     ['server', '', 'testa o servidor (/health)'],
     ['auth', '<chave>', 'modo admin: placar, foto, efeito do nome (veja `auth`)'],
     ['curingas', '[qtd|limpar]', '(admin) gera curingas aleatórios na carteira do Trutec (precisa de uma corrida em andamento)'],
+    ['loja', '', '(admin) pula a blind atual e vai direto pra loja do Trutec; ao avançar, já cai na próxima rodada'],
     ['settings', '', 'abre as configurações'],
     ['desenhar', '[jpg]', 'abre o editor de avatar (o mesmo do jogo) · jpg = editor livre que baixa JPG'],
     ['tutorial', '', 'o Jailson te ensina a jogar (tela inicial)'],
@@ -1215,6 +1216,16 @@
       if (!res.ok) return out(c('r', '✘ ') + esc(res.error));
       if (res.cleared) return out(c('g', '✔ ') + 'carteira vazia');
       out(c('g', '✔ ') + res.added.map(function (n) { return c('y', n); }).join(c('d', ', ')) + c('d', '   (' + res.total + '/5 na carteira)'));
+    },
+
+    loja: function () {
+      if (!adminKey) return out(c('r', '✘ ') + 'só quem está com ' + c('y', 'auth') + ' pode usar este comando.');
+      var T = window.Trutec;
+      if (!T || !T.skipToShop) return out(c('r', '✘ ') + 'o Trutec ainda não carregou.');
+      var res = T.skipToShop();
+      if (!res.ok) return out(c('r', '✘ ') + esc(res.error));
+      if (res.champion) return out(c('g', '✔ ') + 'última blind vencida ' + c('d', '(tela de campeão)'));
+      out(c('g', '✔ ') + 'blind pulada, você está na loja ' + c('d', '(Avançar › leva pra próxima rodada)'));
     },
 
     sudo: function () { out(c('r', USER + ' is not in the sudoers file. This incident will be reported.')); },

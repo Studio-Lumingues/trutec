@@ -217,8 +217,8 @@
 .tt-body { position: absolute; inset: 0; transform-origin: 50% 100%; }
 .tt-billy.talking .tt-body { animation: billyTalk .42s ease-in-out infinite; }
 /* balão igual ao do Jailson (tutorial.js): papel creme, borda grossa torta com tremido #boil-sm, perninha e etiqueta com o nome */
-.tt-bubble { position: absolute; z-index: 6; left: 0; top: 0; width: max-content; max-width: min(27rem, calc(100% - 3rem)); isolation: isolate; pointer-events: none;
-  padding: 1.35rem 1.8rem 1.2rem; font-size: clamp(1.1rem, calc(var(--S, 520px) / 30), 1.45rem); line-height: 1.35; font-weight: 500; color: #0a0a0a;
+.tt-bubble { position: absolute; z-index: 6; left: 0; top: 0; width: max-content; max-width: min(20rem, calc(100% - 3rem)); isolation: isolate; pointer-events: none;
+  padding: 1.7rem 1.8rem 1.55rem; font-size: clamp(1.1rem, calc(var(--S, 520px) / 30), 1.45rem); line-height: 1.35; font-weight: 500; color: #0a0a0a;
   animation: bubbleIn .28s ease-out both, bubbleFloat 4.8s ease-in-out .28s infinite; }
 @keyframes bubbleIn { from { opacity: 0; scale: .85; } }
 @keyframes bubbleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-.35rem); } }
