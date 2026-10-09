@@ -3240,7 +3240,8 @@ document.getElementById('btn-correr').addEventListener('click', () => {
   };
   const press = (id) => {
     const b = document.getElementById(id);
-    if (b && !b.disabled && b.offsetParent !== null) b.click();
+    // os botões do Trutec ficam escondidos (só atalho), então não exigem estar visíveis
+    if (b && !b.disabled && (id.startsWith('tt-') || b.offsetParent !== null)) b.click();
   };
   document.addEventListener('keydown', (e) => {
     if (e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;

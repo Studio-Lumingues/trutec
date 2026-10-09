@@ -190,6 +190,7 @@
     s.className = 'screen';
     s.innerHTML =
       '<div class="social-bg" aria-hidden="true"></div><div class="social-sheen" aria-hidden="true"></div>' +
+      '<div class="tt-pips tt-pips-top" id="tt-pips"><i></i><i></i><i></i></div>' +
       '<div class="tt-wrap">' +
         '<aside class="tt-side">' +
         '<header class="tt-top">' +
@@ -213,7 +214,6 @@
           '<small class="tt-kicker">Valor da mão</small>' +
           '<div class="tt-cm"><span class="tt-chips" id="tt-chips">30</span><i>×</i><span class="tt-mult" id="tt-mult">1</span></div>' +
           '<div class="tt-total" id="tt-total"></div>' +
-          '<div class="tt-pips" id="tt-pips"><i></i><i></i><i></i></div>' +
         '</div>' +
         '<div class="tt-actions">' +
           '<button type="button" class="action-btn" id="tt-truco">TRUCO</button>' +

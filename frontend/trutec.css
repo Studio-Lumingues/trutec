@@ -798,3 +798,15 @@
   100% { transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { .tt-modal.tt-rcpt { animation: none; } }
+
+
+/* ============================================================================
+   RODADAS: só as luzinhas, fixas no topo da tela (sem o texto "Rodadas").
+   TRUCO e FUGIR não aparecem mais no painel: usa-se T e F no teclado
+   (os botões continuam no DOM, escondidos, porque o jogo e o atalho clicam neles).
+   ============================================================================ */
+#screen-trutec .tt-pips-top { position: absolute; top: .7rem; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: .35rem; padding: .35rem .6rem; border-radius: 99px; background: rgba(14,16,28,.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1); pointer-events: none; }
+#screen-trutec .tt-pips-top::before { content: none; }
+#screen-trutec .tt-pips-top i { width: 1.5rem; height: .5rem; border: 0; border-radius: 99px; background: rgba(255,248,240,.2); transition: background .3s, transform .3s cubic-bezier(.34, 1.56, .64, 1); }
+#screen-trutec .tt-pips-top i.on { background: #6be08a; transform: scaleY(1.25); } #screen-trutec .tt-pips-top i.lost { background: #ff7a6b; transform: scaleY(1.25); } #screen-trutec .tt-pips-top i.tie { background: #a9a4b5; transform: scaleY(1.25); }
+#screen-trutec .tt-side #tt-truco, #screen-trutec .tt-side #tt-run { display: none; }
