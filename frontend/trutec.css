@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 /* ============================================================ */
 /* TRUTEC — truco roguelike solo (estilo Balatro)                 */
 /* ============================================================ */
@@ -754,32 +754,49 @@
 }
 
 
-/* ===== NOTA FISCAL (blind vencida): papel creme, bordas serrilhadas, fonte de cupom, itens, total e código de barras ===== */
-.tt-modal.tt-rcpt { width: min(21rem, 100%); padding: 0; background: none; border: 0; box-shadow: none; overflow: visible; max-height: none; }
+/* ===== NOTA FISCAL (blind vencida): papel creme torto e serrilhado, fonte de cupom, itens, total e código de barras =====
+   Fonte: JetBrains Mono (gratuita, importada do Google Fonts no topo deste arquivo): alta e estreitinha, a mais parecida com a do cupom de referência. */
+.tt-modal.tt-rcpt { width: min(20rem, 100%); padding: 0; background: none; border: 0; box-shadow: none; overflow: visible; max-height: none;
+  animation: rcDrop .46s both; }
 .tt-modal.tt-rcpt > h2 { display: none; }                         /* o título já está escrito dentro da nota */
 .tt-modal.tt-rcpt .tt-mbody { filter: drop-shadow(0 .7rem 1rem rgba(0, 0, 0, .55)); }   /* a sombra segue as pontinhas do papel */
 .tt-modal.tt-rcpt .tt-mbtns { margin-top: 1.1rem; }
-.tt-receipt { position: relative; padding: 2.2rem 1.6rem 1.7rem; text-align: left; color: #2a2722;
-  font-family: 'IBM Plex Mono', 'Courier Prime', 'Courier New', ui-monospace, monospace; font-size: .9rem; line-height: 1.25;
-  background: linear-gradient(180deg, #f0eadc 0%, #ece5d5 100%);
-  /* borda de cima e de baixo serrilhada (bolinhas "mordendo" o papel) */
-  -webkit-mask: radial-gradient(circle at 50% 0, transparent 3.4px, #000 3.9px) 0 0 / 9px 51% repeat-x, radial-gradient(circle at 50% 100%, transparent 3.4px, #000 3.9px) 0 100% / 9px 51% repeat-x;
-          mask: radial-gradient(circle at 50% 0, transparent 3.4px, #000 3.9px) 0 0 / 9px 51% repeat-x, radial-gradient(circle at 50% 100%, transparent 3.4px, #000 3.9px) 0 100% / 9px 51% repeat-x;
-  animation: rcPrint .7s cubic-bezier(.3, .7, .3, 1) both; }
-/* dobra do papel */
-.tt-receipt::before { content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(100deg, transparent 47%, rgba(60, 50, 30, .04) 49.5%, rgba(255, 255, 255, .18) 51%, transparent 53%); }
-.rc-title { text-align: center; font-weight: 700; font-size: 1.45rem; letter-spacing: .06em; margin-bottom: .9rem; }
-.rc-hr { border: 0; border-top: 1.5px solid #4a463f; margin: 0 0 1rem; opacity: .75; }
-.rc-dash { border: 0; border-top: 2px dashed #3a362f; margin: .5rem 0 1rem; opacity: .85; }
+.tt-receipt { position: relative; text-align: left; color: #2b2824;
+  font-family: 'JetBrains Mono', 'IBM Plex Mono', 'Courier New', ui-monospace, monospace; font-size: .86rem; line-height: 1.3; }
+.rc-defs { position: absolute; width: 0; height: 0; }
+/* camada do papel: .rc-paper leva o filtro que entorta as bordas; .rc-paperin leva o recorte serrilhado (o filtro roda DEPOIS do recorte, então até as pontinhas ficam irregulares) */
+.rc-paper { position: absolute; inset: 0; filter: url(#rc-wob); }
+.rc-paperin { position: absolute; inset: 0;
+  background:
+    linear-gradient(97deg, transparent 56%, rgba(70, 55, 30, .07) 56.7%, rgba(255, 255, 255, .28) 57.6%, transparent 58.8%),     /* dobra */
+    linear-gradient(172deg, transparent 22%, rgba(70, 55, 30, .05) 22.4%, rgba(255, 255, 255, .2) 23%, transparent 24%),         /* dobra fraca */
+    linear-gradient(90deg, rgba(120, 95, 50, .14), transparent 9%, transparent 91%, rgba(120, 95, 50, .14)),                    /* bordas mais escuras */
+    linear-gradient(180deg, #f1ebdd 0%, #ebe3d1 100%);
+  -webkit-mask: radial-gradient(circle at 50% 0, transparent 3.2px, #000 3.7px) 0 0 / 8px 51% repeat-x, radial-gradient(circle at 50% 100%, transparent 3.2px, #000 3.7px) 0 100% / 9px 51% repeat-x;
+          mask: radial-gradient(circle at 50% 0, transparent 3.2px, #000 3.7px) 0 0 / 8px 51% repeat-x, radial-gradient(circle at 50% 100%, transparent 3.2px, #000 3.7px) 0 100% / 9px 51% repeat-x; }
+/* granulado do papel */
+.rc-paperin::after { content: ''; position: absolute; inset: 0; opacity: .3; mix-blend-mode: multiply;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .32 0 0 0 0 .26 0 0 0 0 .16 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.rc-content { position: relative; padding: 2.7rem 1.7rem 2.3rem; text-shadow: 0 0 .5px rgba(43, 40, 36, .55); }   /* leve "tinta borrada" */
+.rc-title { text-align: center; font-weight: 700; font-size: 1.5rem; letter-spacing: .07em; margin-bottom: 1rem; }
+.rc-hr { border: 0; border-top: 2px solid #3d3a34; margin: 0 0 1.25rem; opacity: .7; }
+.rc-dash { border: 0; border-top: 2px dashed #3a362f; margin: .7rem 0 1.25rem; opacity: .8; }
 .rc-items { list-style: none; margin: 0; padding: 0; }
-.rc-items li { display: flex; align-items: baseline; gap: .8rem; padding: .22rem 0; }
+.rc-items li { display: flex; align-items: baseline; gap: .85rem; padding: .3rem 0; }
 .rc-code { flex: none; }
 .rc-name { flex: 1 1 auto; min-width: 0; }
 .rc-val { flex: none; text-align: right; }
-.rc-sub { display: flex; justify-content: space-between; padding: .2rem 0; }
-.rc-total { display: flex; justify-content: space-between; margin: .55rem 0 1.1rem; font-weight: 700; font-size: 1.3rem; }
-.rc-bar { display: block; width: 100%; height: 3.4rem; fill: #26231f; }
-.rc-num { text-align: center; font-size: 1.2rem; letter-spacing: .06em; margin-top: .1rem; }
-@keyframes rcPrint { from { clip-path: inset(0 0 100% 0); transform: translateY(-.8rem); } to { clip-path: inset(0 0 0 0); transform: none; } }
-@media (prefers-reduced-motion: reduce) { .tt-receipt { animation: none; } }
+.rc-sub { display: flex; justify-content: space-between; padding: .3rem 0; }
+.rc-total { display: flex; justify-content: space-between; align-items: baseline; margin: .8rem 0 1.5rem; font-weight: 700; font-size: 1.4rem; letter-spacing: .02em; }
+.rc-bar { display: block; width: 100%; height: 3.6rem; fill: #26231f; }
+.rc-num { text-align: center; font-size: 1.15rem; letter-spacing: .05em; margin-top: .15rem; }
+/* entrada: cai lá de cima da tela e quica elástico, tudo em menos de meio segundo */
+@keyframes rcDrop {
+  0%   { transform: translateY(calc(-50vh - 115%)); animation-timing-function: cubic-bezier(.5, 0, .9, .6); }
+  38%  { transform: translateY(0); animation-timing-function: ease-out; }
+  54%  { transform: translateY(.95rem) scale(1.02, .97); animation-timing-function: ease-in-out; }
+  70%  { transform: translateY(-.4rem) scale(.995, 1.008); animation-timing-function: ease-in-out; }
+  85%  { transform: translateY(.14rem); animation-timing-function: ease-in-out; }
+  100% { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .tt-modal.tt-rcpt { animation: none; } }
