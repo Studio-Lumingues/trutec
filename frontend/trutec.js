@@ -256,6 +256,7 @@
       '</div>' +
       '<div class="tt-overlay hidden" id="tt-overlay"><div class="tt-modal" id="tt-modal"></div></div>' +
       '<div class="tt-pause hidden" id="tt-pause"><div class="tt-pause-box" id="tt-pause-box" role="dialog" aria-modal="true" aria-label="Menu"></div></div>';
+    s.style.setProperty('--tape-img', 'url("assets/fita.png")');       // fita adesiva da tira dos PONTOS (pasta assets/)
     s.style.setProperty('--cart-img', 'url("assets/carteira.png")');   // imagem da carteira (pasta assets/)
     s.style.setProperty('--badge-img', 'url("assets/cracha.png")');    // imagem do crachá dos curingas (pasta assets/)
     host.appendChild(s);

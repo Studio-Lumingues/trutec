@@ -946,3 +946,35 @@
 @media (hover: hover) { .tt-reroll:not(:disabled):hover .tt-rr-ic svg { transform: rotate(180deg); } }
 .tt-reroll:not(:disabled):active .tt-rr-ic svg { transform: rotate(360deg); transition-duration: .25s; }
 @media (prefers-reduced-motion: reduce) { .tt-rr-ic svg { transition: none; } }
+
+/* ============================================================================
+   PONTOS EM DESTAQUE: tira de papel torta, mais larga que o card e meio sobre a folha da META,
+   presa por um pedaço de fita adesiva no canto (assets/fita.png). Texto escuro, como tinta no papel.
+   O R$ do card fica centralizado.
+   ============================================================================ */
+#screen-trutec .tt-side { --nw: 7rem; }                                    /* largura da folha da META (a tira se encaixa nela) */
+#screen-trutec .tt-side .tt-have {
+  position: relative; z-index: 4; box-sizing: border-box; min-width: 8.5rem; margin-top: calc(var(--nw) * -.2);
+  padding: .5rem 1.1rem .6rem; gap: .02rem; color: #1d1d1f;
+  transform: rotate(-1.8deg);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .38 0 0 0 0 .32 0 0 0 0 .22 0 0 0 .5 -.12'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #f0ebe0, #e5dfd2);
+  box-shadow: 0 1px 0 rgba(255,255,255,.55) inset, 0 .1rem .15rem rgba(0,0,0,.28), 0 .6rem 1.1rem rgba(0,0,0,.3);
+}
+#screen-trutec .tt-side .tt-have small { font-size: .7rem; font-weight: 800; letter-spacing: .22em; color: rgba(29,29,31,.62); opacity: 1; }
+#screen-trutec .tt-side .tt-have b { color: #1d1d1f; font-variant-numeric: tabular-nums; }
+#screen-trutec .tt-side .tt-have::before {                                   /* fita adesiva colando o canto superior esquerdo */
+  content: ''; position: absolute; left: -1.7rem; top: -.95rem; width: 5.6rem; aspect-ratio: 480 / 165;
+  background: var(--tape-img) center / 100% 100% no-repeat; transform: rotate(-36deg); transform-origin: 50% 50%;
+  filter: drop-shadow(0 .14rem .12rem rgba(0,0,0,.42)); pointer-events: none;
+}
+
+#screen-trutec .tt-side .tt-moneybox { justify-content: center; gap: .7rem; }
+
+@media (min-width: 901px) {
+  #screen-trutec .tt-side { --nw: clamp(7rem, 19vh, 11rem); }
+  #screen-trutec .tt-side .tt-notewrap { width: 100%; }
+  #screen-trutec .tt-side .tt-have { width: calc(100% + 2.9rem); }          /* passa um pouco das bordas do card */
+}
+@media (min-width: 901px) and (min-height: 561px) { #screen-trutec .tt-side { overflow: visible; } }   /* senão o card cortaria a tira */
