@@ -398,7 +398,7 @@
       'Só um minuto, você disse. Foram nove. Eu contei.'
     ]
   };
-  var billyEl = null, billyTimer = 0, billyLast = '', billyTyper = 0;
+  var billyEl = null, billyBubbleEl = null, billyTimer = 0, billyLast = '', billyTyper = 0;
   function billyLine(kind) {
     var pool = BILLY[kind] || BILLY.greet, line = pool[rnd(pool.length)], tries = 0;
     while (line === billyLast && pool.length > 1 && tries++ < 6) line = pool[rnd(pool.length)];
@@ -466,35 +466,42 @@
 
   // ---- fala letra por letra (igual ao Jailson) ----
   function billyStopTyping() { clearInterval(billyTyper); billyTyper = 0; if (billyEl) billyEl.classList.remove('talking'); }
-  // Garante que o balão (com as bolinhas de fumaça e a etiqueta) fique INTEIRO dentro da tela da loja.
-  // Falta largura à esquerda? Estreita o balão (o texto quebra em mais linhas, ele cresce pra baixo).
-  // Ainda passando? Desloca (--bx/--by no CSS). Roda a cada fala, ao redimensionar e depois da entrada do Billy.
+  // POSIÇÃO DO BALÃO. Ele é filho direto do overlay da loja (não do Billy): assim nenhum "palco"/coluna do
+  // boneco consegue cortá-lo. A posição vem da imagem do Billy: a borda direita do balão fica logo antes do rosto
+  // (o rabinho de bolinhas encosta nele) e o topo na altura dos olhos. Falta largura à esquerda? O balão estreita
+  // (o texto quebra em mais linhas); nunca sai da tela. No celular ele fica na base da faixa do Billy.
   function billyFit() {
-    if (!billyEl) return;
-    var b = billyEl.querySelector('.tt-bubble'), ov = $('tt-overlay');
-    if (!b || !ov || ov.classList.contains('hidden')) return;
-    b.style.maxWidth = ''; b.style.setProperty('--bx', '0px'); b.style.setProperty('--by', '0px');
-    var o = ov.getBoundingClientRect(), r = b.getBoundingClientRect();
-    if (!r.width || !o.width) return;
-    var L = 34, R_ = 14, T = 34, B = 26;                     // folga pras bolinhas (esq/dir), etiqueta "Billy" (topo) e sombra
-    var over = (o.left + L) - r.left;
-    if (over > 0) {                                          // passou da esquerda: estreita (a borda direita fica no lugar)
-      b.style.maxWidth = Math.max(150, r.width - over) + 'px';
-      r = b.getBoundingClientRect();
-    }
-    var dx = 0, dy = 0;
-    if (r.left < o.left + L) dx = o.left + L - r.left;
-    if (r.right + dx > o.right - R_) dx -= (r.right + dx) - (o.right - R_);
-    if (r.bottom > o.bottom - B) dy = (o.bottom - B) - r.bottom;
-    if (r.top + dy < o.top + T) dy = o.top + T - r.top;     // o topo visível tem prioridade
-    b.style.setProperty('--bx', Math.round(dx) + 'px'); b.style.setProperty('--by', Math.round(dy) + 'px');
+    var b = billyBubbleEl;
+    if (!billyEl || !b) return;
+    var ov = $('tt-overlay'), img = billyEl.querySelector('.tt-billyimg');
+    if (!ov || !img || ov.classList.contains('hidden')) return;
+    var o = ov.getBoundingClientRect(), g = img.getBoundingClientRect();
+    if (!o.width || !g.width) return;
+    var tx = 0;                                              // desconta a animação de entrada (o Billy "chega" deslizando)
+    try { tx = new DOMMatrixReadOnly(getComputedStyle(billyEl).transform).m41 || 0; } catch (e) {}
+    var gl = g.left - tx;
+    var rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    var mobile = !!(window.matchMedia && window.matchMedia('(max-width: 760px)').matches);
+    var L = 30, Rm = 14, T = 40, Bm = 26;                    // folgas: bolinhas (esq/dir), etiqueta "Billy" (topo), sombra (base)
+    b.style.setProperty('--S', g.width + 'px');
+    var rightEdge = gl - o.left + 0.29 * g.width - 44;       // 29% da imagem = lado esquerdo do rosto; 44px = rabinho de bolinhas
+    var minLeft = L;                                         // no desktop, evita cobrir as cartas da loja (borda direita da janela da loja)
+    var mod = $('tt-modal');
+    if (!mobile && mod) { var mr = mod.getBoundingClientRect().right - o.left - 24; if (rightEdge - mr >= 190) minLeft = Math.max(L, mr); }
+    var cap = Math.min(27 * rem, o.width - L - Rm);
+    b.style.maxWidth = Math.max(150, Math.min(cap, rightEdge - minLeft)) + 'px';
+    var bw = b.offsetWidth, bh = b.offsetHeight;
+    var left = Math.max(minLeft, Math.min(rightEdge - bw, o.width - Rm - bw));
+    var top = mobile ? (g.bottom - o.top - bh - 12) : (g.top - o.top + 0.40 * g.width - 14);
+    top = Math.max(T, Math.min(top, o.height - Bm - bh));    // o topo visível tem prioridade
+    b.style.left = Math.round(left) + 'px'; b.style.top = Math.round(top) + 'px';
   }
   window.addEventListener('resize', function () { billyFit(); });
 
   function billySay(kind) {
     if (!billyEl) return;
     var line = billyLine(kind);
-    var b = billyEl.querySelector('.tt-bubble');
+    var b = billyBubbleEl; if (!b) return;
     var full = b.querySelector('.tt-full'), typed = b.querySelector('.tt-typed');
     b.setAttribute('aria-label', line);
     full.textContent = line;                                   // texto invisível: já reserva o tamanho do balão
@@ -556,11 +563,6 @@
       billyEl.className = 'tt-billy';
       billyEl.innerHTML = '<div class="tt-stage"><div class="tt-sway"><div class="tt-body">' +
         '<img class="tt-billyimg" src="' + BILLY_SRCS[0] + '" alt="Billy, o vendedor" draggable="false">' +
-        '<div class="tt-bubble" role="status">' +
-          '<span class="tt-bg"><b class="tt-pf p1"></b><b class="tt-pf p2"></b><b class="tt-pf p3"></b><b class="tt-pf p4"></b><b class="tt-pf p5"></b>' +
-          '<s class="tt-wisp"></s><s class="tt-wisp"></s><s class="tt-wisp"></s><i class="tt-tail"><u></u><u></u><u></u></i></span><span class="tt-name">Billy</span>' +
-          '<div class="tt-text"><span class="tt-full" aria-hidden="true"></span><span class="tt-typed" aria-hidden="true"></span></div>' +
-        '</div>' +
         '</div></div></div>';
       var img = billyEl.querySelector('img'), tryN = 0;
       img.addEventListener('error', function () {
@@ -569,6 +571,13 @@
         if (window.console) console.warn('[Billy] imagem não encontrada. Tentei: ' + BILLY_SRCS.join(', '));
       });
       ov.appendChild(billyEl);
+      billyBubbleEl = document.createElement('div');
+      billyBubbleEl.className = 'tt-bubble'; billyBubbleEl.setAttribute('role', 'status');
+      billyBubbleEl.innerHTML =
+        '<span class="tt-bg"><b class="tt-pf p1"></b><b class="tt-pf p2"></b><b class="tt-pf p3"></b><b class="tt-pf p4"></b><b class="tt-pf p5"></b>' +
+        '<s class="tt-wisp"></s><s class="tt-wisp"></s><s class="tt-wisp"></s><i class="tt-tail"><u></u><u></u><u></u></i></span><span class="tt-name">Billy</span>' +
+        '<div class="tt-text"><span class="tt-full" aria-hidden="true"></span><span class="tt-typed" aria-hidden="true"></span></div>';
+      ov.appendChild(billyBubbleEl);
     }
     ov.classList.add('tt-shopmode');
     billySay(kind);
@@ -578,7 +587,8 @@
     clearTimeout(billyTimer); billyTimer = 0;
     billyStopTyping();
     if (billyEl && billyEl.parentNode) billyEl.parentNode.removeChild(billyEl);
-    billyEl = null;
+    if (billyBubbleEl && billyBubbleEl.parentNode) billyBubbleEl.parentNode.removeChild(billyBubbleEl);
+    billyEl = null; billyBubbleEl = null;
     if (shopBgEl && shopBgEl.parentNode) shopBgEl.parentNode.removeChild(shopBgEl);
     shopBgEl = null;
     var ov = $('tt-overlay');
