@@ -526,9 +526,8 @@
     clearTimeout(billyTimer);
     billyTimer = setTimeout(function () { if (!billyEl) return; billySay('idle'); billyArmIdle(); }, 8000 + rnd(6000));
   }
-  // ---- FUNDO DA LOJA (assets/fundo_loja.png) em TRÊS FAIXAS que descem uma depois da outra (de cima pra baixo)
-  // até a imagem ficar completa. Cada faixa mostra 1/3 da imagem (mesma imagem, deslocada). A animação só
-  // começa quando a imagem carregou (ou após 1,5 s), pra não aparecer "do nada" / falhada. Ver .tt-shopbg no CSS.
+  // ---- FUNDO DA LOJA (assets/fundo_loja.png): já existe quando a loja abre (quem cobre a entrada é a tela de
+  // carregamento, ver `cover`). A imagem se repete e anda pra direita sem parar. Ver .tt-shopbg no CSS.
   var SHOPBG_SRC = 'assets/fundo_loja.png', shopBgEl = null, shopBgPre = null;
   function preloadShopBg() { if (!shopBgPre) { shopBgPre = new Image(); shopBgPre.src = SHOPBG_SRC; } }
   var SHOPBG_SPEED = 40;   // velocidade do fundo andando pra direita, em pixels por segundo (maior = mais rápido)
@@ -552,10 +551,9 @@
     }
     ov.insertBefore(bg, ov.firstChild);
     shopBgEl = bg;
-    var started = false;
-    function go() { if (started || bg !== shopBgEl) return; started = true; bg.classList.add('go'); shopBgScroll(bg); }
-    if (shopBgPre.complete && shopBgPre.naturalWidth) go();
-    else { shopBgPre.addEventListener('load', go); shopBgPre.addEventListener('error', go); setTimeout(go, 600); }
+    var done = function () { if (bg === shopBgEl) shopBgScroll(bg); };
+    if (shopBgPre.complete && shopBgPre.naturalWidth) done();
+    else { shopBgPre.addEventListener('load', done); }
   }
   // som de entrada na loja (sininho + moedinhas, sintetizado no audio.js; respeita o volume dos efeitos)
   function shopEnterSnd() { if (DEMO) return; try { var A = window.GameAudio; if (A && A.shopBell) A.shopBell(); } catch (e) {} }
@@ -896,10 +894,33 @@
     });
   }
 
+  // ---------- TELA DE CARREGAMENTO: a mesma do truco paulista (#game-intro no index.html) ----------
+  // Escurece (fade in), troca o que está por baixo (mid) com a tela preta e o círculo girando, espera `ready`
+  // (ex.: imagem carregada) por pelo menos COVER_HOLD ms e faz fade out. Na demo da tela inicial não aparece.
+  var COVER_HOLD = 500, coverBusy = false;
+  function cover(mid, ready) {
+    var el = document.getElementById('game-intro');
+    if (DEMO || !el || coverBusy) { mid(); return; }
+    coverBusy = true;
+    el.classList.remove('fade-out'); el.classList.add('active');
+    setTimeout(function () {
+      mid();
+      var t0 = Date.now();
+      (function wait() {
+        var el2 = Date.now() - t0;
+        if ((el2 >= COVER_HOLD && (!ready || ready())) || el2 > 2500) {
+          el.classList.add('fade-out');
+          setTimeout(function () { el.classList.remove('active', 'fade-out'); coverBusy = false; }, 500);
+        } else setTimeout(wait, 60);
+      })();
+    }, 400);
+  }
+
   // ============================================================================
   // FLUXO: corrida → blind → mão → vaza
   // ============================================================================
-  function open() {
+  function open() { cover(openNow); }
+  function openNow() {
     build();
     if (cvOpen) cvHide();
     if (window.showScreen) window.showScreen('screen-trutec');
@@ -1165,12 +1186,16 @@
   }
 
   function openShop() {
+    if (R) R.inShop = true;
+    preloadShopBg();
+    cover(openShopNow, function () { return shopBgPre.complete; });
+  }
+  function openShopNow() {
     var pool = shuffle(JOKERS.filter(function (j) { return R.jokers.indexOf(j.id) < 0; })).slice(0, 3);
     var items = pool.map(function (j) { return { type: 'joker', id: j.id, price: j.price }; });
     var vs = VOUCHERS.filter(function (v) { return R.vouchers.indexOf(v.id) < 0; });
     if (vs.length) { var v = vs[rnd(vs.length)]; items.push({ type: 'voucher', id: v.id, price: v.price }); }
     R.shop = { items: items, rerolls: 0 };
-    R.inShop = true;
     shopShownMoney = null;
     shopEnterSnd();
     renderShop('greet');

@@ -733,29 +733,21 @@
 .tt-overlay.tt-shopmode .tt-sc-face { transition: none; }
 
 
-/* ===== FUNDO DA LOJA: assets/fundo_loja.png em 3 faixas que descem uma após a outra (ver buildShopBg em trutec.js) ===== */
+/* ===== FUNDO DA LOJA: assets/fundo_loja.png, já pronto quando a loja abre (a entrada é coberta pela tela de carregamento,
+   ver `cover` em trutec.js). Dividido em 3 faixas só pra ter o mesmo desenho de antes; a imagem se repete e anda pra DIREITA. ===== */
 .tt-shopbg { position: absolute; inset: 0; z-index: 0; display: flex; flex-direction: column; overflow: hidden; pointer-events: none; }
-.tt-shopbg i { position: relative; flex: 1 1 0; min-height: 0; overflow: hidden; clip-path: inset(0 0 100% 0); }
+.tt-shopbg i { position: relative; flex: 1 1 0; min-height: 0; overflow: hidden; }
 /* cada faixa mostra o seu terço: a imagem tem o tamanho da tela inteira (3 faixas) e sobe 0 / 1 / 2 faixas.
-   A imagem se repete na horizontal e anda pra DIREITA sem parar (--tw e --sbdur vêm do buildShopBg no trutec.js). */
+   --tw e --sbdur vêm do buildShopBg no trutec.js. */
 .tt-shopbg b { position: absolute; left: 0; width: 100%; height: 300%; display: block; background-size: auto 100%; background-repeat: repeat-x; background-position: 0 0; }
 .tt-shopbg.scroll b { animation: shopScroll var(--sbdur, 40s) linear infinite; will-change: background-position; }
 .tt-shopbg i:nth-child(1) b { top: 0; }
 .tt-shopbg i:nth-child(2) b { top: -100%; }
 .tt-shopbg i:nth-child(3) b { top: -200%; }
-/* 3 partes, rápidas: a 1ª aparece primeiro, a 2ª logo depois e a 3ª por último (cada uma desce direto, sem frear) */
-.tt-shopbg.go i { animation: shopBandIn .25s linear forwards; }
-.tt-shopbg.go i:nth-child(2) { animation-delay: .4s; }
-.tt-shopbg.go i:nth-child(3) { animation-delay: .8s; }
-/* escurece as bordas (dá fundo pro Billy e pro card), aparece quando as 3 faixas já chegaram */
-.tt-shopbg::after { content: ''; position: absolute; inset: 0; opacity: 0; pointer-events: none;
+/* escurece as bordas (dá fundo pro Billy e pro card) */
+.tt-shopbg::after { content: ''; position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(ellipse at 50% 45%, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, .55) 100%); }
-.tt-shopbg.go::after { animation: shopShade .3s ease-out 1.05s forwards; }
-@keyframes shopBandIn { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes shopScroll { from { background-position-x: 0; } to { background-position-x: var(--tw, 0px); } }
-@keyframes shopShade { to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .tt-shopbg i { clip-path: none; }
-  .tt-shopbg.go i, .tt-shopbg.go::after, .tt-shopbg.scroll b { animation: none; }
-  .tt-shopbg::after { opacity: 1; }
+  .tt-shopbg.scroll b { animation: none; }
 }
