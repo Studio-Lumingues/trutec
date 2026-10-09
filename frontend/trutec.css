@@ -698,3 +698,8 @@
   filter: drop-shadow(0 .25rem .35rem rgba(0, 0, 0, .45)) !important; }
 :is(#screen-trutec, .tt-demo) .tt-sc.poor .tt-sc-face:is(:hover, :focus-visible) {
   filter: drop-shadow(0 .25rem .35rem rgba(0, 0, 0, .45)) grayscale(.85) brightness(.78) !important; }
+
+/* desempenho: sem desfoque do fundo atrás da loja (recalculava a cada quadro) e crachás em camada própria */
+.tt-overlay.tt-shopmode { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(4, 3, 3, .86); }
+.tt-overlay.tt-shopmode .tt-sc:not(.empty) { backface-visibility: hidden; }
+.tt-overlay.tt-shopmode .tt-sc-face { transition: none; }

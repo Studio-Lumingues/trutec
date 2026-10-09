@@ -1358,20 +1358,20 @@
     var ov = $('tt-overlay');
     var els = [].slice.call(root.querySelectorAll('.tt-sc:not(.empty)'));
     var G = 9000, K = 900, C = 7.2, KP = 90, CP = 1.6, DT = 1 / 240;     // gravidade, mola, amortecimento, pêndulo
-    var AP = 3.2, AY = 2700;                                              // força do "vento" (balanço eterno)
+    var AP = 2.6, AY = 1500, TAU = 4.5, TMAX = 16;                        // vento suave que vai diminuindo (TAU = constante de tempo, em s)
     els.forEach(function (el, n) {
       var fresh = !!el.closest('.tt-fresh') || el.classList.contains('just');
       var r = el.getBoundingClientRect(), h = r.height || 200;
       var y = fresh ? -(r.bottom + 40) : 0, v = 0, th = 0, w = 0, phase = fresh ? 0 : 1, last = 0, t0 = 0, T = 0;
       var delay = fresh ? n * 45 : 0, kick = (0.7 + Math.random() * 0.5) * (Math.random() < .5 ? -1 : 1);
-      var f1 = 2 * Math.PI * (0.38 + Math.random() * .2), f2 = 2 * Math.PI * (0.9 + Math.random() * .3);
-      var p1 = Math.random() * 6.28, p2 = Math.random() * 6.28, fy = 2 * Math.PI * (0.55 + Math.random() * .25), py = Math.random() * 6.28;
+      var f1 = 2 * Math.PI * (0.16 + Math.random() * .1), f2 = 2 * Math.PI * (0.38 + Math.random() * .15);
+      var p1 = Math.random() * 6.28, p2 = Math.random() * 6.28, fy = 2 * Math.PI * (0.22 + Math.random() * .1), py = Math.random() * 6.28;
       el.style.transformOrigin = '50% 0';
       if (fresh) el.style.transform = 'translateY(' + y + 'px)';
       function draw() {
         var st = y > 0 ? 1 + Math.min(y / (h * 2.2), .35) : 1 - Math.min(-y / (h * 4), .06);   // estica quando a fita estica
         var sx = 1 / Math.sqrt(st);
-        el.style.transform = 'translateY(' + y.toFixed(2) + 'px) rotate(' + th.toFixed(4) + 'rad) scale(' + sx.toFixed(4) + ',' + st.toFixed(4) + ')';
+        el.style.transform = 'translate3d(0,' + y.toFixed(1) + 'px,0) rotate(' + th.toFixed(4) + 'rad) scale(' + sx.toFixed(3) + ',' + st.toFixed(3) + ')';
       }
       function frame(now) {
         if (!el.isConnected || ov.classList.contains('hidden')) return;
@@ -1385,14 +1385,19 @@
             if (y >= 0) { y = 0; v *= 0.6; w = kick; phase = 1; }     // o tranco: perde energia e dá um empurrão de lado
           } else {                                                    // mola amortecida (a fita) + pêndulo, sempre com vento
             T += dt;
-            var wind = AP * (Math.sin(f1 * T + p1) + .6 * Math.sin(f2 * T + p2));
-            v += (-K * y - C * v + AY * Math.sin(fy * T + py)) * dt; y += v * dt;
+            var env = Math.exp(-T / TAU);                              // o balanço vai morrendo com o tempo
+            var wind = env * AP * (Math.sin(f1 * T + p1) + .6 * Math.sin(f2 * T + p2));
+            v += (-K * y - C * v + env * AY * Math.sin(fy * T + py)) * dt; y += v * dt;
             w += (-KP * th - CP * w + wind) * dt; th += w * dt;
           }
+        }
+        if (phase === 1 && T > TMAX && Math.abs(y) < .1 && Math.abs(th) < .003 && Math.abs(w) < .02) {   // parou: libera a camada
+          el.style.transform = ''; el.style.transformOrigin = ''; el.style.willChange = ''; return;
         }
         draw();
         requestAnimationFrame(frame);
       }
+      el.style.willChange = 'transform';                              // vira camada própria na GPU: sem repintar a cada quadro
       requestAnimationFrame(frame);
     });
   }
