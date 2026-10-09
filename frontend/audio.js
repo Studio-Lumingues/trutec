@@ -8,8 +8,7 @@
 //   editor), ela some em fade out. Ao trocar de tela, uma faixa some enquanto
 //   a outra entra. Na mesa do jogo não toca música.
 // - Continua tocando mesmo com a aba em segundo plano (só o botão de mudo pausa).
-// - Cliques em botões, switches e janelas tocam arquivos de assets/sons/; sons de carta vêm de assets/card-*.wav.
-//   Se algum arquivo não carregar, o clique e as cartas usam um som sintetizado de reserva.
+// - Cliques em botões e sons de carta (bater na mesa / distribuir) são sintetizados aqui, sem arquivos.
 // - As falas tocam quando alguém pede (ou aumenta pra) truco, seis, nove, doze.
 // - O sfx01 toca quando a partida começa (início da transição pra mesa).
 // - Navegadores bloqueiam áudio antes do primeiro clique/toque; se a música
@@ -71,7 +70,6 @@
     analyser.smoothingTimeConstant = 0.2;
     tracks.jungle.fade.connect(analyser);
     loadCardSamples();
-    loadUiSamples();
     return true;
   }
 
@@ -149,8 +147,8 @@
     return noiseBuf;
   }
 
-  // [RESERVA] clique sintetizado: só toca se os arquivos de assets/sons/ não carregarem
-  function sfxClickSynth() {
+  // clique: "tick" curtinho
+  function sfxClick() {
     if (!sfxReady()) return;
     var t = ctx.currentTime;
     var osc = ctx.createOscillator();
@@ -163,6 +161,38 @@
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
     osc.connect(g); g.connect(ctx.destination);
     osc.start(t); osc.stop(t + 0.08);
+  }
+
+  // LOJA: sininho de porta ("ding-dong") + três moedinhas tilintando. Sintetizado, sem arquivo.
+  // Cada badalada soma alguns parciais não-harmônicos (jeito de metal) com decaimentos diferentes.
+  function bellTone(t, f, dur, peak) {
+    [[1, 1, 1], [2.01, 0.45, 0.7], [2.76, 0.32, 0.5], [5.4, 0.14, 0.3]].forEach(function (p) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = f * p[0];
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak * p[1] * SFX_VOLUME), t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur * p[2]);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(t); o.stop(t + dur * p[2] + 0.05);
+    });
+  }
+  function sfxShop(delaySec) {
+    if (!sfxReady()) return;
+    var t = ctx.currentTime + (delaySec || 0);
+    bellTone(t, 1568, 1.2, 0.30);          // ding (sol)
+    bellTone(t + 0.24, 1175, 1.7, 0.30);   // dong (ré)
+    [0.62, 0.70, 0.83].forEach(function (d, i) {   // moedinhas
+      var o = ctx.createOscillator(), g = ctx.createGain(), tt = t + d;
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(3300 + i * 450, tt);
+      o.frequency.exponentialRampToValueAtTime(2700 + i * 300, tt + 0.09);
+      g.gain.setValueAtTime(0.0001, tt);
+      g.gain.exponentialRampToValueAtTime(0.16 * SFX_VOLUME, tt + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0001, tt + 0.14);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(tt); o.stop(tt + 0.17);
+    });
   }
 
   // Uma "pancadinha" de ruído filtrado (é a base dos sons de papel/carta)
@@ -272,69 +302,6 @@
     if (!playCardSample('deal', delaySec, 1 + (variation || 0) * 0.015)) sfxCardDealSynth(delaySec, variation);
   }
 
-  // ---- Sons de interface (botões, janelas, switches) — arquivos em assets/sons/ ----
-  // Tons puros e suaves (sem ruído), gerados sob medida pro jogo. Cada tipo tem um arquivo; se algum não carregar,
-  // o clique cai no som sintetizado de antes (os outros ficam em silêncio).
-  // Ajustes: UI_GAIN (força geral), UI_PITCH (variação de tom a cada toque) e HOVER_ON (som ao passar o mouse).
-  var UI_DIR = 'assets/sons/';
-  var UI_FILES = {
-    click:  'clique-suave.wav',   // alternativas: clique-cristal.wav (mais agudo, tipo vidro) ou clique-grave.wav
-    back:   'voltar.wav',
-    open:   'abrir.wav',
-    close:  'fechar.wav',
-    on:     'ligar.wav',          // switch ligado
-    off:    'desligar.wav',       // switch desligado
-    ok:     'confirmar.wav',
-    err:    'erro.wav',
-    hover:  'hover.wav'
-  };
-  var UI_GAIN = 1.4;      // multiplica o volume de efeitos (as gravações já estão baixinhas)
-  var UI_PITCH = 0;       // variação de tom a cada toque (0 = sempre o mesmo tom, mais limpo; 0.03 = ±3%)
-  var HOVER_ON = false;   // true = toca um tick bem baixinho ao passar o mouse nos botões
-  var uiBufs = {}, uiLoading = false, uiLastT = 0;
-
-  function loadUiSamples() {
-    if (uiLoading || !ctx) return;
-    uiLoading = true;
-    Object.keys(UI_FILES).forEach(function (name) {
-      var url = UI_DIR + UI_FILES[name];
-      fetch(url)
-        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
-        .then(function (data) { return new Promise(function (ok, fail) { ctx.decodeAudioData(data, ok, fail); }); })
-        .then(function (buf) { uiBufs[name] = buf; })
-        .catch(function (err) { console.warn('[áudio] não consegui carregar ' + url + ' — confira se está na pasta assets/sons/.', err); });
-    });
-  }
-
-  // toca um som de interface pelo nome (click, back, open, close, on, off, ok, err, hover)
-  function sfxUi(name) {
-    if (!sfxReady()) return;
-    var now = performance.now();
-    if (now - uiLastT < 35) return;           // evita som dobrado (clique + change no mesmo gesto)
-    uiLastT = now;
-    var buf = uiBufs[name];
-    if (!buf) { if (name === 'click' || name === 'back') sfxClickSynth(); return; }
-    var src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.playbackRate.value = 1 + (Math.random() * 2 - 1) * UI_PITCH;
-    var g = ctx.createGain();
-    g.gain.value = Math.min(1, UI_GAIN * SFX_VOLUME);
-    src.connect(g); g.connect(ctx.destination);
-    src.start();
-  }
-  function sfxClick() { sfxUi('click'); }
-
-  // qual som combina com este botão? (data-sfx="back" no HTML força um tipo; data-sfx="none" deixa mudo)
-  function clickKind(b) {
-    var d = b.getAttribute && b.getAttribute('data-sfx');
-    if (d) return d;
-    var s = ((b.id || '') + ' ' + (typeof b.className === 'string' ? b.className : '')).toLowerCase();
-    if (/back|voltar|close|fechar|cancel/.test(s)) return 'back';
-    var t = (b.textContent || '').trim().toLowerCase().replace(/^[‹<←\s]+/, '');
-    if (/^(voltar|fechar|cancelar)/.test(t)) return 'back';
-    return 'click';
-  }
-
   // explosãozinha (jogador entrou na sala): "pof" grave abafado + sopro de ruído
   // que vai escurecendo. Propositalmente BEM baixinho.
   function sfxPoof() {
@@ -358,27 +325,8 @@
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest ? e.target.closest('button') : null;
     if (!b || b.disabled) return;
-    var kind = clickKind(b);
-    if (kind === 'none') return;
-    sfxUi(kind);
+    sfxClick();
   }, true);
-
-  // switches e caixinhas de marcar (ex.: modo daltonismo nas Configurações)
-  document.addEventListener('change', function (e) {
-    var t = e.target;
-    if (t && t.tagName === 'INPUT' && (t.type === 'checkbox' || t.type === 'radio')) sfxUi(t.checked ? 'on' : 'off');
-  }, true);
-
-  // (opcional) tick baixinho ao passar o mouse num botão — desligado por padrão
-  if (HOVER_ON) {
-    var lastHover = null;
-    document.addEventListener('mouseover', function (e) {
-      var b = e.target && e.target.closest ? e.target.closest('button') : null;
-      if (b === lastHover) return;
-      lastHover = b;
-      if (b && !b.disabled && clickKind(b) !== 'none') sfxUi('hover');
-    });
-  }
 
 
   // ---- Efeito de luz no ritmo da jungle ----
@@ -602,7 +550,7 @@
       Object.keys(calls).forEach(function (k) { calls[k].volume = callVol(k); });
     },
     click: sfxClick,
-    ui: sfxUi,   // GameAudio.ui('ok' | 'err' | 'open' | 'close' | 'on' | 'off' | 'back' | 'click')
+    shopBell: sfxShop,
     cardPlay: sfxCardPlay,
     cardDeal: sfxCardDeal,
     poof: sfxPoof,

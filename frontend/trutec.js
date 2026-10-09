@@ -493,11 +493,36 @@
     clearTimeout(billyTimer);
     billyTimer = setTimeout(function () { if (!billyEl) return; billySay('idle'); billyArmIdle(); }, 8000 + rnd(6000));
   }
+  // ---- FUNDO DA LOJA (assets/fundo_loja.png) em TRÊS FAIXAS que descem uma depois da outra (de cima pra baixo)
+  // até a imagem ficar completa. Cada faixa mostra 1/3 da imagem (mesma imagem, deslocada). A animação só
+  // começa quando a imagem carregou (ou após 1,5 s), pra não aparecer "do nada" / falhada. Ver .tt-shopbg no CSS.
+  var SHOPBG_SRC = 'assets/fundo_loja.png', shopBgEl = null, shopBgPre = null;
+  function preloadShopBg() { if (!shopBgPre) { shopBgPre = new Image(); shopBgPre.src = SHOPBG_SRC; } }
+  function buildShopBg(ov) {
+    var bg = document.createElement('div');
+    bg.className = 'tt-shopbg'; bg.setAttribute('aria-hidden', 'true');
+    for (var k = 0; k < 3; k++) {
+      var band = document.createElement('i'), im = document.createElement('img');
+      im.alt = ''; im.draggable = false; im.src = SHOPBG_SRC;
+      im.addEventListener('error', function () { this.style.display = 'none'; });
+      band.appendChild(im); bg.appendChild(band);
+    }
+    ov.insertBefore(bg, ov.firstChild);
+    shopBgEl = bg;
+    var first = bg.querySelector('img'), started = false;
+    function go() { if (started || bg !== shopBgEl) return; started = true; bg.classList.add('go'); }
+    if (first.complete && first.naturalWidth) go();
+    else { first.addEventListener('load', go); first.addEventListener('error', go); setTimeout(go, 1500); }
+  }
+  // som de entrada na loja (sininho + moedinhas, sintetizado no audio.js; respeita o volume dos efeitos)
+  function shopEnterSnd() { if (DEMO) return; try { var A = window.GameAudio; if (A && A.shopBell) A.shopBell(); } catch (e) {} }
+
   function showBilly(kind) {
     var ov = $('tt-overlay');
     if (!ov) return;
     var fresh = !billyEl;
     if (fresh) {
+      buildShopBg(ov);
       billyEl = document.createElement('div');
       billyEl.className = 'tt-billy';
       billyEl.innerHTML = '<div class="tt-stage"><div class="tt-sway"><div class="tt-body">' +
@@ -524,6 +549,8 @@
     billyStopTyping();
     if (billyEl && billyEl.parentNode) billyEl.parentNode.removeChild(billyEl);
     billyEl = null;
+    if (shopBgEl && shopBgEl.parentNode) shopBgEl.parentNode.removeChild(shopBgEl);
+    shopBgEl = null;
     var ov = $('tt-overlay');
     if (ov) ov.classList.remove('tt-shopmode');
   }
@@ -861,6 +888,7 @@
     tok++;
     R = { noteColor: pickNote(), ante: 1, bi: 0, money: START_MONEY, jokers: [], vouchers: [], score: 0, cleared: 0, blind: null, handsLeft: 0, trocasLeft: 0 };
     H = null;
+    preloadShopBg();
     blindSelect();
   }
 
@@ -1093,6 +1121,7 @@
     if (vs.length) { var v = vs[rnd(vs.length)]; items.push({ type: 'voucher', id: v.id, price: v.price }); }
     R.shop = { items: items, rerolls: 0 };
     shopShownMoney = null;
+    shopEnterSnd();
     renderShop('greet');
   }
 
