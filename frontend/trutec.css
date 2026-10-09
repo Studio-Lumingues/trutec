@@ -820,13 +820,19 @@
 .tt-deck { margin: .2rem .7rem .7rem .2rem; }
 
 :is(#screen-trutec, .tt-demo) .tt-sc-face.gone { background: none; pointer-events: none; animation: none; cursor: default; }
-/* ponta solta da fita (assets/cracha_solto.png, 1024x1536): a caixa tem 60% da largura do crachá, e a fita da foto (313px de largura)
-   é escalada pra ficar exatamente da largura da fita do crachá (55.2% da caixa) e centralizada nela.
-   A argola fica logo abaixo do fim da fita roxa. O topo da foto some num degradê pra emendar na fita de cima.
-   Ajuste fino: --cord-dy (sobe/desce a ponta; ex.: -2% sobe, 2% desce). */
+/* PONTA SOLTA da fita (assets/cracha_solto.png, 1024x1536).
+   A caixa .tt-cordend tem 60% da largura do crachá (e a fita do crachá é 55.2% dela). A foto entra a 80% da escala "fita igual à de cima",
+   que deixa o fecho do MESMO tamanho do dos crachás da loja (a argola fica logo abaixo do topo do crachá).
+   Como a fita da foto fica um pouco mais fina que a de cima, a fita de cima se afunila suavemente (::before = "pescoço") até a argola.
+   O topo da foto some num degradê pra emendar. Ajuste fino: --cord-dy (sobe/desce a ponta; ex.: -2% sobe, 2% desce). */
 .tt-cordend { position: absolute; left: 50%; top: -1.5%; width: 60%; aspect-ratio: 100 / 112; transform: translateX(-50%); transform-origin: 50% 0; pointer-events: none; }
-.tt-cordend img { position: absolute; left: -40.47%; top: calc(-90.5% + var(--cord-dy, 0%)); width: 180.6%; max-width: none; height: auto; pointer-events: none; user-select: none; -webkit-user-drag: none;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 32.9%, #000 39.6%); mask-image: linear-gradient(to bottom, transparent 32.9%, #000 39.6%); }
+.tt-cordend::before { content: ""; position: absolute; left: 22.4%; width: 55.2%; top: -3.84%; height: 14.6%; clip-path: polygon(0.00% 0.0%, 0.20% 8.3%, 0.74% 16.7%, 1.56% 25.0%, 2.59% 33.3%, 3.76% 41.7%, 5.00% 50.0%, 6.24% 58.3%, 7.41% 66.7%, 8.44% 75.0%, 9.26% 83.3%, 9.80% 91.7%, 10.00% 100.0%, 90.00% 100.0%, 90.20% 91.7%, 90.74% 83.3%, 91.56% 75.0%, 92.59% 66.7%, 93.76% 58.3%, 95.00% 50.0%, 96.24% 41.7%, 97.41% 33.3%, 98.44% 25.0%, 99.26% 16.7%, 99.80% 8.3%, 100.00% 0.0%);
+  background: linear-gradient(90deg, rgba(0,0,0,.24), rgba(0,0,0,0) 16%, rgba(255,255,255,.13) 50%, rgba(0,0,0,0) 84%, rgba(0,0,0,.24)),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.07) 0 2px, rgba(0,0,0,.07) 2px 4px), #632a95; }
+.tt-cordend img { position: absolute; left: -22.38%; top: calc(-69.88% + var(--cord-dy, 0%)); width: 144.47%; max-width: none; height: auto; pointer-events: none; user-select: none; -webkit-user-drag: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 40.88%, #000 42.19%); mask-image: linear-gradient(to bottom, transparent 40.88%, #000 42.19%); }
+/* a fita de cima termina um pouco antes (onde começa o pescoço) */
+:is(#screen-trutec, .tt-demo) .tt-sc.sold .tt-sc-face::before { bottom: calc(100% + 2.61%); }
 .tt-sc.releasing .tt-cordend { animation: ttCordRecoil 1.3s ease-out; }
 :is(#screen-trutec, .tt-demo) .tt-sc.sold .tt-sc-face.tt-fallbadge {
   position: absolute !important; left: 0; top: 0; width: 100%; z-index: 4; pointer-events: none; transform-origin: 50% 0;
