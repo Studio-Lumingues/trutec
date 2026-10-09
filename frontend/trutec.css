@@ -978,3 +978,13 @@
   #screen-trutec .tt-side .tt-have { width: calc(100% + 2.9rem); }          /* passa um pouco das bordas do card */
 }
 @media (min-width: 901px) and (min-height: 561px) { #screen-trutec .tt-side { overflow: visible; } }   /* senão o card cortaria a tira */
+
+/* ============================================================================
+   Sem o nome/ícone do adversário no card: em cima ficam só o ANTE e a pontuação (META + PONTOS).
+   O aviso de efeito do boss (texto vermelho) continua aparecendo só quando existir.
+   ============================================================================ */
+#screen-trutec .tt-side .tt-bname :is(span, b) { display: none; }
+#screen-trutec .tt-side .tt-bname:not(:has(small:not(:empty))) { display: none; }
+@media (min-width: 901px) {
+  #screen-trutec .tt-side { --nw: clamp(7.5rem, 21vh, 12rem); }               /* a folha da META ganha o espaço que sobrou */
+}
