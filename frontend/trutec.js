@@ -127,16 +127,20 @@
   var shownBlind = null;         // blind cuja meta está no post-it (pra animar a troca de folha)
   var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // FOLHINHA de calendário de arrancar (parada): bloco enrolado em cima, folha do dia embaixo
+  // grão do papel (o mesmo da tira dos PONTOS), como imagem SVG embutida
+  var NOTE_GRAIN = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 .38 0 0 0 0 .32 0 0 0 0 .22 0 0 0 .5 -.12"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>');
   function noteSvg() {
     return '<svg class="tt-paper" viewBox="0 84 200 216" aria-hidden="true" focusable="false">' +
       '<defs>' +
-        '<linearGradient id="ttsheet" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6f2e4"/><stop offset="1" stop-color="#ebe6d3"/></linearGradient>' +
+        '<linearGradient id="ttsheet" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0ebe0"/><stop offset="1" stop-color="#e5dfd2"/></linearGradient>' +
+        '<pattern id="ttnoise" width="120" height="120" patternUnits="userSpaceOnUse"><image width="120" height="120" href="' + NOTE_GRAIN + '"/></pattern>' +
         '<linearGradient id="ttroll" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ddd6c0"/><stop offset=".35" stop-color="#f7f3e6"/><stop offset="1" stop-color="#e6dfc9"/></linearGradient>' +
         '<linearGradient id="ttdrop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>' +
         '<filter id="ttblur" x="-10%" y="-10%" width="125%" height="125%"><feGaussianBlur stdDeviation="3"/></filter>' +
       '</defs>' +
       '<rect x="18" y="90" width="176" height="206" rx="6" fill="#000" opacity=".5" filter="url(#ttblur)"/>' +
       '<rect x="14" y="88" width="172" height="204" fill="url(#ttsheet)"/>' +
+      '<rect x="14" y="88" width="172" height="204" fill="url(#ttnoise)"/>' +      // mesmo papel granulado da tira dos PONTOS
     '</svg>';
   }
   var NOTE_COLORS = ['#f0489f', '#f0e062', '#5ec8f2', '#7ddc6e', '#ff9a4d', '#b98cf0'], lastNote = -1;

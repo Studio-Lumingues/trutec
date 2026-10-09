@@ -998,3 +998,13 @@
   background: var(--tape-img) center / 100% 100% no-repeat; transform: rotate(-52deg) scaleX(-1); transform-origin: 50% 50%;
   filter: drop-shadow(0 .14rem .12rem rgba(0,0,0,.42)); pointer-events: none;
 }
+
+/* ============================================================================
+   META igual aos PONTOS: mesmo papel cinza granulado (feito no SVG da folha, em trutec.js),
+   mesma fonte, número bem escuro e o mesmo estilo de rótulo.
+   ============================================================================ */
+#screen-trutec .tt-side :is(.tt-ntext, .tt-have) { font-family: "Montserrat", "Poppins", "Arial Black", "Gotham Black", "Helvetica Neue", Arial, sans-serif; }
+#screen-trutec .tt-side :is(.tt-ntext, .tt-have) small {
+  font-family: inherit; font-weight: 800; font-size: .7rem; line-height: 1; letter-spacing: .22em; text-transform: uppercase; color: rgba(18,18,20,.62); opacity: 1;
+}
+#screen-trutec .tt-side :is(.tt-ntext b, .tt-have b) { font-family: inherit; font-weight: 900; letter-spacing: -.03em; color: #121214; }
