@@ -988,3 +988,6 @@
 @media (min-width: 901px) {
   #screen-trutec .tt-side { --nw: clamp(7.5rem, 21vh, 12rem); }               /* a folha da META ganha o espaço que sobrou */
 }
+
+/* META e PONTOS não se encostam mais: a tira desce e deixa um respiro embaixo da folha (a META sobe junto) */
+#screen-trutec .tt-side .tt-have { margin-top: 1rem; }
