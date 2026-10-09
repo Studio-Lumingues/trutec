@@ -1188,12 +1188,7 @@
     function row(code, name, val) {
       return '<li><span class="rc-code">' + code + '</span><span class="rc-name">' + name + '</span><span class="rc-val">' + rcMoney(val) + '</span></li>';
     }
-    var seed = 1 + Math.floor(Math.random() * 998);      // cada nota tem as pontinhas e a dobra do papel um pouco diferentes
     return '<div class="tt-receipt">' +
-      // papel: o filtro entorta de leve as bordas (nada de reta perfeita); o texto fica por cima, sem entortar
-      '<svg class="rc-defs" width="0" height="0" aria-hidden="true"><filter id="rc-wob" x="-4%" y="-3%" width="108%" height="106%">' +
-        '<feTurbulence type="fractalNoise" baseFrequency=".022 .011" numOctaves="3" seed="' + seed + '" result="n"/>' +
-        '<feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/></filter></svg>' +
       '<div class="rc-paper"><div class="rc-paperin"></div></div>' +
       '<div class="rc-content">' +
       '<div class="rc-title">BLIND VENCIDA</div><hr class="rc-hr">' +
