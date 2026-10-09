@@ -1132,7 +1132,14 @@
   })();
   function priceTag(price) {
     var t = document.createElement('div'); t.className = 'tt-ptag'; t.setAttribute('aria-hidden', 'true');
-    t.style.setProperty('--tilt', TAG_TILT + 'deg');
+    // posição e inclinação aleatórias em cima da parte branca do crachá (muda a cada vez que a loja é desenhada)
+    var tilt = (Math.random() * 56 - 28).toFixed(1);
+    t.style.setProperty('--tilt', tilt + 'deg');
+    t.style.setProperty('left', (16 + Math.random() * 68).toFixed(1) + '%', 'important');
+    t.style.setProperty('top', (40 + Math.random() * 46).toFixed(1) + '%', 'important');
+    t.style.setProperty('right', 'auto', 'important');
+    t.style.setProperty('bottom', 'auto', 'important');
+    t.style.setProperty('transform', 'translate(-50%,-50%) rotate(' + tilt + 'deg)', 'important');
     var c = document.createElement('span'); c.className = 'cur'; c.textContent = TAG_CURRENCY;
     var n = document.createElement('span'); n.className = 'num'; n.textContent = Number(price).toFixed(2).replace('.', ',');
     t.appendChild(c); t.appendChild(n);
@@ -1339,9 +1346,51 @@
     var speech = (kind === 'greet' && S.items.length && R.money < cheapest) ? 'poor' : (kind || 'greet');
     modal('Loja', box, [{ label: 'Avançar ›', cls: 'btn-primary tt-go', fn: function () { cvShow(true); } }], { billy: speech });
     fitShop();
+    springDrop($('tt-modal'));
   }
 
   // a loja não deve precisar de rolagem: se a tela for baixa demais, encolhe as cartinhas aos poucos até caber
+  // ---- ELÁSTICO DE VERDADE: simulação de física (queda livre + mola amortecida + pêndulo) ----
+  // Cada crachá cai do topo da tela, a fita estica como borracha, ele quica pra cima e pra baixo
+  // com a energia se perdendo aos poucos, e balança de lado como um pêndulo. Tudo integrado a 240 Hz.
+  function springDrop(root) {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var els = [].slice.call(root.querySelectorAll('.tt-fresh .tt-sc:not(.empty), .tt-own .tt-sc.just'));
+    var G = 3400, K = 330, C = 5.2, KP = 62, CP = 2.0, DT = 1 / 240;     // gravidade, mola, amortecimento, pêndulo
+    els.forEach(function (el, n) {
+      var r = el.getBoundingClientRect(), h = r.height || 200;
+      var y = -(r.bottom + 40), v = 0, th = 0, w = 0, phase = 0, last = 0, t0 = 0;
+      var delay = n * 130, sgn = Math.random() < .5 ? -1 : 1, kick = (0.55 + Math.random() * 0.4) * sgn;
+      el.style.transformOrigin = '50% 0';
+      el.style.transform = 'translateY(' + y + 'px)';
+      function draw() {
+        var st = y > 0 ? 1 + Math.min(y / (h * 2.2), .35) : 1 - Math.min(-y / (h * 4), .06);   // estica quando a fita estica
+        var sx = 1 / Math.sqrt(st);
+        el.style.transform = 'translateY(' + y.toFixed(2) + 'px) rotate(' + th.toFixed(4) + 'rad) scale(' + sx.toFixed(4) + ',' + st.toFixed(4) + ')';
+      }
+      function frame(now) {
+        if (!el.isConnected) return;
+        if (!t0) { t0 = now; last = now; }
+        if (now - t0 < delay) { last = now; requestAnimationFrame(frame); return; }
+        var acc = Math.min((now - last) / 1000, 0.05); last = now;
+        while (acc > 0) {
+          var dt = Math.min(DT, acc); acc -= dt;
+          if (phase === 0) {                                          // queda livre até a fita ficar esticada
+            v += G * dt; y += v * dt;
+            if (y >= 0) { y = 0; v *= 0.62; w = kick; phase = 1; }    // o tranco: perde energia e dá um empurrão de lado
+          } else {                                                    // mola amortecida (a fita elástica) + pêndulo
+            v += (-K * y - C * v) * dt; y += v * dt;
+            w += (-KP * th - CP * w) * dt; th += w * dt;
+          }
+        }
+        draw();
+        if (phase === 1 && Math.abs(y) < .15 && Math.abs(v) < 1 && Math.abs(th) < .002 && Math.abs(w) < .01) { el.style.transform = ''; el.style.transformOrigin = ''; return; }
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
   function fitShop() {
     var m = $('tt-modal');
     if (!m || !m.querySelector('.tt-shop')) return;
