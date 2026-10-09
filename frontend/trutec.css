@@ -206,7 +206,7 @@
 .tt-billy { position: relative; z-index: 3; align-self: stretch; flex: 1 1 0; min-width: 0; max-width: 58rem; margin: -1rem -1rem -1rem 0;
   pointer-events: none; container-type: size; animation: billyIn .28s cubic-bezier(.2, 1.3, .4, 1) both; }
 /* "palco" quadrado (mesma proporção do desenho): a imagem preenche e o balão se posiciona em % dele, sempre do lado da cabeça */
-.tt-stage { --S: calc(min(100cqh, 60rem, 113cqw) * 1.15); position: absolute; right: -28%; bottom: -3%; width: var(--S); height: var(--S); }
+.tt-stage { --S: calc(min(100cqh, 60rem, 113cqw) * 1.15); position: absolute; right: -32%; bottom: -3%; width: var(--S); height: var(--S); }
 .tt-billy, .tt-stage, .tt-sway, .tt-body { overflow: visible; }
 /* hand drawn: mesmo filtro "boil" do resto do jogo (boil.js troca a semente alguns quadros por segundo) */
 .tt-billyimg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom right;
@@ -744,13 +744,13 @@
 .tt-shopbg i:nth-child(2) b { top: -100%; }
 .tt-shopbg i:nth-child(3) b { top: -200%; }
 /* 3 partes, rápidas: a 1ª aparece primeiro, a 2ª logo depois e a 3ª por último (cada uma desce direto, sem frear) */
-.tt-shopbg.go i { animation: shopBandIn .2s linear forwards; }
-.tt-shopbg.go i:nth-child(2) { animation-delay: .17s; }
-.tt-shopbg.go i:nth-child(3) { animation-delay: .34s; }
+.tt-shopbg.go i { animation: shopBandIn .25s linear forwards; }
+.tt-shopbg.go i:nth-child(2) { animation-delay: .4s; }
+.tt-shopbg.go i:nth-child(3) { animation-delay: .8s; }
 /* escurece as bordas (dá fundo pro Billy e pro card), aparece quando as 3 faixas já chegaram */
 .tt-shopbg::after { content: ''; position: absolute; inset: 0; opacity: 0; pointer-events: none;
   background: radial-gradient(ellipse at 50% 45%, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, .55) 100%); }
-.tt-shopbg.go::after { animation: shopShade .3s ease-out .5s forwards; }
+.tt-shopbg.go::after { animation: shopShade .3s ease-out 1.05s forwards; }
 @keyframes shopBandIn { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
 @keyframes shopScroll { from { background-position-x: 0; } to { background-position-x: var(--tw, 0px); } }
 @keyframes shopShade { to { opacity: 1; } }
