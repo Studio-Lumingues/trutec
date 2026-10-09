@@ -1417,28 +1417,29 @@
   }
 
   var shopShownMoney = null;      // dinheiro mostrado na última vez que a loja foi desenhada (pra animar a mudança)
-  // ---- CRACHÁ COMPRADO SOBE: uma cópia do crachá (com a fita) dá um pequeno afundo e sobe reto até sair pelo topo da tela ----
+  // ---- CRACHÁ COMPRADO SOBE: o PRÓPRIO crachá (com a fita) é levado pra uma camada por cima da tela e sobe reto até sair pelo topo.
+  // Como é o mesmo elemento, a física do elástico (springDrop) continua rodando nele: se ele ainda estiver balançando, sobe balançando. ----
+  var FLY_MS = 700;
   function shopFlyUp(card) {
     var ov = $('tt-overlay');
-    if (REDUCED || !ov || !card || !card.isConnected || !card.animate) return;
+    if (REDUCED || !ov || !card || !card.isConnected || !card.animate) return false;
+    var tf = card.style.transform; card.style.transform = 'none';            // mede a caixa SEM o balanço, pra ele não "pular" de lugar
     var r = card.getBoundingClientRect(), o = ov.getBoundingClientRect();
-    var w = card.offsetWidth || r.width, h = card.offsetHeight || r.height;
+    card.style.transform = tf;
     var wrap = document.createElement('div');
     wrap.className = 'tt-shopcards tt-flyup'; wrap.setAttribute('aria-hidden', 'true');
     wrap.style.cssText = 'position:absolute;margin:0;padding:0;z-index:30;pointer-events:none;display:flex;flex-wrap:nowrap;' +
-      'left:' + (r.left + (r.width - w) / 2 - o.left).toFixed(1) + 'px;top:' + (r.top - o.top).toFixed(1) + 'px;width:' + w + 'px;height:' + h + 'px;--scw:' + w + 'px;';
-    var cl = card.cloneNode(true);
-    cl.style.transform = ''; cl.style.transformOrigin = ''; cl.style.willChange = ''; cl.style.animation = 'none';
-    cl.style.flex = '0 0 ' + w + 'px'; cl.style.width = w + 'px';
-    wrap.appendChild(cl); ov.appendChild(wrap);
+      'left:' + (r.left - o.left).toFixed(1) + 'px;top:' + (r.top - o.top).toFixed(1) + 'px;width:' + r.width.toFixed(1) + 'px;height:' + r.height.toFixed(1) + 'px;--scw:' + r.width.toFixed(1) + 'px;';
+    wrap.appendChild(card); ov.appendChild(wrap);                           // (mover o elemento não reinicia o transform do balanço, que é inline)
     var up = -((r.bottom - o.top) + 80);
     var an = wrap.animate([
       { transform: 'translateY(0)', easing: 'ease-out', offset: 0 },
-      { transform: 'translateY(' + Math.round(h * 0.05) + 'px)', easing: 'cubic-bezier(.55, 0, .9, .45)', offset: .2 },
+      { transform: 'translateY(' + Math.round(r.height * 0.05) + 'px)', easing: 'cubic-bezier(.55, 0, .9, .45)', offset: .2 },
       { transform: 'translateY(' + Math.round(up) + 'px)', offset: 1 }
-    ], { duration: 700, fill: 'forwards' });
+    ], { duration: FLY_MS, fill: 'forwards' });
     var done = function () { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); };
-    an.onfinish = done; an.oncancel = done; setTimeout(done, 1500);
+    an.onfinish = done; an.oncancel = done; setTimeout(done, FLY_MS + 800);
+    return true;
   }
   // ---- ARRUMAÇÃO DA LOJA: depois de uma compra, cada crachá que ficou desliza do lugar antigo até o novo (centro) ----
   function shopSlotsX() {
@@ -1448,13 +1449,14 @@
     });
     return o;
   }
-  function shopSlotsFlip(old) {
+  function shopSlotsFlip(old, delay) {
     if (REDUCED) return;
     [].forEach.call(document.querySelectorAll('#tt-modal .tt-stall .tt-sc[data-si]'), function (el) {
       var x0 = old[el.dataset.si]; if (x0 === undefined || !el.animate) return;
       var r = el.getBoundingClientRect(), dx = x0 - (r.left + r.width / 2);
       if (Math.abs(dx) < 1) return;
-      el.animate([{ translate: dx + 'px 0' }, { translate: '0 0' }], { duration: 560, easing: 'cubic-bezier(.22, 1, .36, 1)' });   // "translate" não briga com o balanço (transform) do springDrop
+      // fill 'backwards': durante o atraso o crachá fica no lugar antigo; só depois de "delay" ms desliza pro novo
+      el.animate([{ translate: dx + 'px 0' }, { translate: '0 0' }], { delay: delay || 0, duration: 560, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'backwards' });   // "translate" não briga com o balanço (transform) do springDrop
     });
   }
   function renderShop(kind) {
@@ -1515,10 +1517,10 @@
         if (it.type === 'joker') R.jokers.push(it.id); else R.vouchers.push(it.id);
         // o crachá comprado sobe e sai pelo topo, e os outros deslizam pra ficar centralizados (junto do "Rolar loja" e do "Avançar")
         var old = shopSlotsX();
-        shopFlyUp(card);                                       // o crachá comprado sobe pela fita e sai pelo topo
+        var flew = shopFlyUp(card);                            // o crachá comprado sobe pela fita e sai pelo topo (mesmo no meio do balanço)
         it.sold = true;
         render(); renderShop('buy');
-        shopSlotsFlip(old);
+        shopSlotsFlip(old, flew ? FLY_MS : 0);                 // os outros só assumem o lugar novo depois que ele foi embora
       };
       var card = shopCard(d, d.name + (it.type === 'voucher' ? ' (permanente)' : ''), it.type === 'voucher' ? 'PERM.' : '', null,
         { label: d.name, voucher: it.type === 'voucher', poor: poor || full, i: i, price: it.price,
