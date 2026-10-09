@@ -531,21 +531,31 @@
   // começa quando a imagem carregou (ou após 1,5 s), pra não aparecer "do nada" / falhada. Ver .tt-shopbg no CSS.
   var SHOPBG_SRC = 'assets/fundo_loja.png', shopBgEl = null, shopBgPre = null;
   function preloadShopBg() { if (!shopBgPre) { shopBgPre = new Image(); shopBgPre.src = SHOPBG_SRC; } }
+  var SHOPBG_SPEED = 40;   // velocidade do fundo andando pra direita, em pixels por segundo (maior = mais rápido)
+  function shopBgScroll(bg) {   // calcula o tamanho de uma "volta" da imagem e liga o movimento infinito
+    var im = shopBgPre;
+    if (!bg || !im || !im.naturalWidth || !im.naturalHeight || !bg.clientHeight) return;
+    var tw = im.naturalWidth / im.naturalHeight * bg.clientHeight;     // largura de uma imagem na altura da tela
+    bg.style.setProperty('--tw', tw + 'px');
+    bg.style.setProperty('--sbdur', (tw / SHOPBG_SPEED) + 's');
+    bg.classList.add('scroll');
+  }
+  window.addEventListener('resize', function () { if (shopBgEl && shopBgEl.isConnected) shopBgScroll(shopBgEl); });
   function buildShopBg(ov) {
+    preloadShopBg();
     var bg = document.createElement('div');
     bg.className = 'tt-shopbg'; bg.setAttribute('aria-hidden', 'true');
     for (var k = 0; k < 3; k++) {
-      var band = document.createElement('i'), im = document.createElement('img');
-      im.alt = ''; im.draggable = false; im.src = SHOPBG_SRC;
-      im.addEventListener('error', function () { this.style.display = 'none'; });
+      var band = document.createElement('i'), im = document.createElement('b');
+      im.style.backgroundImage = 'url("' + SHOPBG_SRC + '")';
       band.appendChild(im); bg.appendChild(band);
     }
     ov.insertBefore(bg, ov.firstChild);
     shopBgEl = bg;
-    var first = bg.querySelector('img'), started = false;
-    function go() { if (started || bg !== shopBgEl) return; started = true; bg.classList.add('go'); }
-    if (first.complete && first.naturalWidth) go();
-    else { first.addEventListener('load', go); first.addEventListener('error', go); setTimeout(go, 1500); }
+    var started = false;
+    function go() { if (started || bg !== shopBgEl) return; started = true; bg.classList.add('go'); shopBgScroll(bg); }
+    if (shopBgPre.complete && shopBgPre.naturalWidth) go();
+    else { shopBgPre.addEventListener('load', go); shopBgPre.addEventListener('error', go); setTimeout(go, 1500); }
   }
   // som de entrada na loja (sininho + moedinhas, sintetizado no audio.js; respeita o volume dos efeitos)
   function shopEnterSnd() { if (DEMO) return; try { var A = window.GameAudio; if (A && A.shopBell) A.shopBell(); } catch (e) {} }
