@@ -555,7 +555,7 @@
     var started = false;
     function go() { if (started || bg !== shopBgEl) return; started = true; bg.classList.add('go'); shopBgScroll(bg); }
     if (shopBgPre.complete && shopBgPre.naturalWidth) go();
-    else { shopBgPre.addEventListener('load', go); shopBgPre.addEventListener('error', go); setTimeout(go, 1500); }
+    else { shopBgPre.addEventListener('load', go); shopBgPre.addEventListener('error', go); setTimeout(go, 600); }
   }
   // som de entrada na loja (sininho + moedinhas, sintetizado no audio.js; respeita o volume dos efeitos)
   function shopEnterSnd() { if (DEMO) return; try { var A = window.GameAudio; if (A && A.shopBell) A.shopBell(); } catch (e) {} }
