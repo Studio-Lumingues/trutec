@@ -1183,6 +1183,76 @@
     return '<svg class="rc-bar" viewBox="0 0 ' + pos + ' 40" preserveAspectRatio="none" aria-hidden="true">' + bars + '</svg>' +
       '<div class="rc-num">' + digits.slice(0, 6) + ' ' + digits.slice(6) + '</div>';
   }
+  // FORMATO DO PAPEL: um caminho (path) desenhado na hora, liso e sem serrilhado (as bordas ficam bem suaves na tela).
+  // Em cima e embaixo: pontinhas SEM padrão (umas pontudas, umas arredondadas, larguras e alturas variadas) e a linha-base
+  // meio torta. As laterais ondulam de leve. A forma é sorteada uma vez por nota e se ajusta se o tamanho mudar.
+  function rcShape() {
+    var rc = document.querySelector('#tt-modal .tt-receipt'), paper = rc && rc.querySelector('.rc-paperin');
+    if (!rc || !paper) return;
+    var sd = (Math.random() * 4294967296) >>> 0;
+    function rnd() { sd = (sd + 0x6D2B79F5) >>> 0; var t = sd; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+    function R2(a, b) { return a + rnd() * (b - a); }
+    var seedTop = sd, seedBot = sd ^ 0x9E3779B9, seedL = sd ^ 0x85EBCA6B, seedR = sd ^ 0xC2B2AE35;
+    function f(n) { return n.toFixed(1); }
+    // uma borda horizontal: de x0 a x1, base em yb; dir = -1 sobe (borda de cima) / +1 desce (borda de baixo)
+    function edge(x0, x1, yb, dir, seed, rev) {
+      sd = seed >>> 0;
+      var segs = [], x = x0, y = yb;
+      while (x < x1 - 1) {
+        var w = Math.min(R2(12, 32), x1 - x), pointy = rnd() < .45;
+        var a = pointy ? R2(3.5, 7.5) : R2(2.5, 5.5);
+        var ny = Math.max(yb - 2.2, Math.min(yb + 2.2, y + R2(-1.6, 1.6)));     // base meio torta
+        segs.push({ x: x, y: y, w: w, a: a, pointy: pointy, ny: ny, lean: R2(.3, .7) });
+        x += w; y = ny;
+      }
+      var out = '';
+      var list = rev ? segs.slice().reverse() : segs;
+      list.forEach(function (g) {
+        var xa = g.x, xb = g.x + g.w, ya = g.y, yb2 = g.ny, mid = xa + g.w * g.lean, ym = Math.min(ya, yb2);
+        var top = (dir < 0 ? ym - g.a : Math.max(ya, yb2) + g.a);
+        var P = rev ? [[xb, yb2], [xa, ya]] : [[xa, ya], [xb, yb2]];
+        if (g.pointy) {   // ponta: lados levemente côncavos, como papel rasgado
+          var c1 = [xa + (mid - xa) * .55, ya + (top - ya) * .22], c2 = [mid + (xb - mid) * .45, yb2 + (top - yb2) * .22];
+          out += rev ? ' Q' + f(c2[0]) + ' ' + f(c2[1]) + ' ' + f(mid) + ' ' + f(top) + ' Q' + f(c1[0]) + ' ' + f(c1[1]) + ' ' + f(xa) + ' ' + f(ya)
+                     : ' Q' + f(c1[0]) + ' ' + f(c1[1]) + ' ' + f(mid) + ' ' + f(top) + ' Q' + f(c2[0]) + ' ' + f(c2[1]) + ' ' + f(xb) + ' ' + f(yb2);
+        } else {          // arredondada: cúpula macia
+          var k = 1.28, c1y = ya + (top - ya) * k, c2y = yb2 + (top - yb2) * k;
+          out += rev ? ' C' + f(xb) + ' ' + f(c2y) + ' ' + f(xa) + ' ' + f(c1y) + ' ' + f(xa) + ' ' + f(ya)
+                     : ' C' + f(xa) + ' ' + f(c1y) + ' ' + f(xb) + ' ' + f(c2y) + ' ' + f(xb) + ' ' + f(yb2);
+        }
+      });
+      return { d: out, startY: segs[0].y, endY: segs[segs.length - 1].ny };
+    }
+    // uma lateral ondulando de leve (curva suave por pontos)
+    function side(x, y0, y1, seed, sign) {
+      sd = seed >>> 0;
+      var pts = [[x, y0]], n = Math.max(2, Math.round((y1 - y0) / 90));
+      for (var i = 1; i < n; i++) pts.push([x + sign * R2(-3.2, 3.2), y0 + (y1 - y0) * i / n + R2(-12, 12)]);
+      pts.push([x, y1]);
+      var d = '';
+      for (var j = 1; j < pts.length; j++) {
+        var p = pts[j], q = pts[j + 1];
+        d += q ? ' Q' + f(p[0]) + ' ' + f(p[1]) + ' ' + f((p[0] + q[0]) / 2) + ' ' + f((p[1] + q[1]) / 2) : ' L' + f(p[0]) + ' ' + f(p[1]);
+      }
+      return d;
+    }
+    function build() {
+      var w = rc.offsetWidth, h = rc.offsetHeight;
+      if (!w || !h) return;
+      var m = 4, tb = 11, bb = h - 11;
+      var t = edge(m, w - m, tb, -1, seedTop, false);
+      var b = edge(m, w - m, bb, +1, seedBot, true);
+      var d = 'M' + f(m) + ' ' + f(t.startY) + t.d +
+        side(w - m, t.endY, b.endY, seedR, 1) +
+        b.d +
+        side(m, b.startY, t.startY, seedL, -1) + ' Z';
+      paper.style.clipPath = "path('" + d + "')";
+      paper.style.webkitClipPath = "path('" + d + "')";
+    }
+    build();
+    if (window.ResizeObserver) new ResizeObserver(build).observe(rc);
+  }
+
   function receiptHtml(reward, hl, interest, before, after) {
     var gain = reward + hl + interest;
     function row(code, name, val) {
@@ -1219,6 +1289,7 @@
     if (isLast) return modal('Campeão do Trutec!', '<p class="tt-bigicon">' + ic('trofeu') + '</p><p>Você derrotou O Coringa e venceu os ' + ANTES + ' Antes!</p>' + body,
       [{ label: 'Nova corrida', cls: 'btn-primary', fn: startRun }, { label: 'Sair', fn: leave }]);
     modal('Blind vencida!', receiptHtml(b.reward, hl, interest, R.money - total, R.money), [{ label: 'Ir à loja', cls: 'btn-primary', fn: openShop }], { receipt: true });
+    rcShape();
   }
 
   function openShop() {
