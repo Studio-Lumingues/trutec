@@ -1246,31 +1246,7 @@
     w.appendChild(f);
     return w;
   }
-  // ---- FITA VAZIA (crachá comprado): a fita fica no lugar, com a ponta solta (cracha_solto.png), até rolar a loja; o crachá cai ----
-  // a ponta da fita agora é a imagem assets/cracha_solto.png (argola + fecho aberto); o posicionamento fica no CSS (.tt-cordend)
-  var CORD_HTML = '<div class="tt-cordend" aria-hidden="true"><img src="assets/cracha_solto.png" alt="" draggable="false"></div>';
   var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  function soldSlot(it, i) {
-    var w = document.createElement('div'); w.className = 'tt-sc sold';
-    w.style.setProperty('--i', i);
-    var f = document.createElement('div'); f.className = 'tt-sc-face gone'; f.setAttribute('aria-hidden', 'true');
-    f.innerHTML = CORD_HTML;
-    w.appendChild(f);
-    var nm = document.createElement('span'); nm.className = 'tt-sc-name'; nm.innerHTML = '&nbsp;';
-    w.appendChild(nm);
-    var fb = it.fall; it.fall = null;                         // o crachá comprado cai só uma vez
-    if (fb && !REDUCED) {
-      fb.classList.add('tt-fallbadge'); fb.removeAttribute('tabindex'); fb.removeAttribute('role'); fb.removeAttribute('aria-label');
-      fb.setAttribute('aria-hidden', 'true');
-      fb.style.setProperty('--fall-rot', ((Math.random() < .5 ? -1 : 1) * (14 + Math.random() * 14)).toFixed(1) + 'deg');
-      var done = function () { if (fb.parentNode) fb.parentNode.removeChild(fb); w.classList.remove('releasing'); };
-      fb.addEventListener('animationend', function (e) { if (e.target === fb) done(); });
-      setTimeout(done, 1800);
-      w.classList.add('releasing');
-      w.appendChild(fb);
-    }
-    return w;
-  }
   // ---- ETIQUETA DE PREÇO (estilo etiqueta de gôndola: papel branco, 2 listras vermelhas, "R$" na vertical) ----
   // Ajustes: TAG_TILT (inclinação em graus) e TAG_CURRENCY ('R$' ou '$').
   var TAG_TILT = -14, TAG_CURRENCY = 'R$';
@@ -1441,6 +1417,23 @@
   }
 
   var shopShownMoney = null;      // dinheiro mostrado na última vez que a loja foi desenhada (pra animar a mudança)
+  // ---- ARRUMAÇÃO DA LOJA: depois de uma compra, cada crachá que ficou desliza do lugar antigo até o novo (centro) ----
+  function shopSlotsX() {
+    var o = {};
+    [].forEach.call(document.querySelectorAll('#tt-modal .tt-stall .tt-sc[data-si]'), function (el) {
+      var r = el.getBoundingClientRect(); o[el.dataset.si] = r.left + r.width / 2;
+    });
+    return o;
+  }
+  function shopSlotsFlip(old) {
+    if (REDUCED) return;
+    [].forEach.call(document.querySelectorAll('#tt-modal .tt-stall .tt-sc[data-si]'), function (el) {
+      var x0 = old[el.dataset.si]; if (x0 === undefined || !el.animate) return;
+      var r = el.getBoundingClientRect(), dx = x0 - (r.left + r.width / 2);
+      if (Math.abs(dx) < 1) return;
+      el.animate([{ translate: dx + 'px 0' }, { translate: '0 0' }], { duration: 560, easing: 'cubic-bezier(.22, 1, .36, 1)' });   // "translate" não briga com o balanço (transform) do springDrop
+    });
+  }
   function renderShop(kind) {
     hideTip(); closeConfirm();
     var S = R.shop, box = document.createElement('div'); box.className = 'tt-shop';
@@ -1487,9 +1480,9 @@
     // ---- a barraquinha ----
     var pShop = panel('tt-stall' + (kind === 'greet' || kind === 'reroll' ? ' tt-fresh' : ''), 'Loja');
     var list = document.createElement('div'); list.className = 'tt-shopcards';
-    if (!S.items.length) { var e2 = document.createElement('p'); e2.className = 'tt-best'; e2.textContent = 'Esgotado. Role a loja!'; list.appendChild(e2); }
+    if (!S.items.some(function (x) { return !x.sold; })) { var e2 = document.createElement('p'); e2.className = 'tt-best'; e2.textContent = 'Esgotado. Role a loja!'; list.appendChild(e2); }
     S.items.forEach(function (it, i) {
-      if (it.sold) { list.appendChild(soldSlot(it, i)); return; }
+      if (it.sold) return;                                   // o crachá comprado some da loja; os outros se ajeitam no meio
       var d = it.type === 'joker' ? jk(it.id) : vc(it.id);
       var full = it.type === 'joker' && R.jokers.length >= JSLOTS;
       var poor = R.money < it.price;
@@ -1497,16 +1490,18 @@
         shopSnd('buy');
         R.money -= it.price;
         if (it.type === 'joker') R.jokers.push(it.id); else R.vouchers.push(it.id);
-        // o crachá se solta da fita e cai; a fita fica vazia no lugar até rolar a loja
-        var fe = card && card.firstChild;
-        it.sold = true; it.fall = fe ? fe.cloneNode(true) : null;
+        // o crachá comprado some da loja e os outros deslizam pra ficar centralizados (junto do "Rolar loja" e do "Avançar")
+        var old = shopSlotsX();
+        it.sold = true;
         render(); renderShop('buy');
+        shopSlotsFlip(old);
       };
       var card = shopCard(d, d.name + (it.type === 'voucher' ? ' (permanente)' : ''), it.type === 'voucher' ? 'PERM.' : '', null,
         { label: d.name, voucher: it.type === 'voucher', poor: poor || full, i: i, price: it.price,
           onPick: function (face) {
             askBuy(face, { name: d.name, desc: d.desc, icon: d.icon, price: it.price, money: R.money, full: full, voucher: it.type === 'voucher', onYes: doBuy });
           } });
+      card.dataset.si = i;                                    // identifica o crachá da loja (pra animar a arrumação depois de uma compra)
       card._demoBuy = (poor || full) ? null : doBuy;          // usado pelo modo demo da tela inicial
       list.appendChild(card);
     });
