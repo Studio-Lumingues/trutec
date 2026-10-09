@@ -3231,6 +3231,36 @@ document.getElementById('btn-correr').addEventListener('click', () => {
   socket.emit('run_away');
 });
 
+// Atalhos de teclado: T = pedir truco, F = fugir (partida e Trutec solo).
+// O botão TROCAR do Trutec não tem atalho.
+(function () {
+  const isActive = (id) => {
+    const el = document.getElementById(id);
+    return !!(el && el.classList.contains('active') && !el.classList.contains('tt-demo-screen'));
+  };
+  const press = (id) => {
+    const b = document.getElementById(id);
+    if (b && !b.disabled && b.offsetParent !== null) b.click();
+  };
+  document.addEventListener('keydown', (e) => {
+    if (e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
+    const k = (e.key || '').toLowerCase();
+    if (k !== 't' && k !== 'f') return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    // qualquer janela aberta (configurações, sair da sala, resposta de truco...) bloqueia o atalho
+    if (document.querySelector('.settings-modal:not(.hidden), .exit-modal:not(.hidden), .call-overlay:not(.hidden)')) return;
+    if (isActive('screen-trutec')) {
+      const ov = document.getElementById('tt-overlay');
+      if (ov && !ov.classList.contains('hidden')) return;
+      press(k === 't' ? 'tt-truco' : 'tt-run');
+    } else if (isActive('screen-game')) {
+      press(k === 't' ? 'btn-truco' : 'btn-correr');
+    } else return;
+    e.preventDefault();
+  });
+})();
+
 // ------------------------------------------------------------------
 // Sair da sala
 // ------------------------------------------------------------------
