@@ -1246,34 +1246,15 @@
     w.appendChild(f);
     return w;
   }
-  // ---- FITA VAZIA (crachá comprado): a fita fica no lugar, com o fecho aberto, até rolar a loja; o crachá cai ----
-  var CORD_SVG =
-    '<svg class="tt-cordend" viewBox="0 0 100 112" aria-hidden="true" focusable="false">' +
-      '<defs>' +
-        '<linearGradient id="ttcMetal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8c96a3"/><stop offset=".35" stop-color="#f4f6f9"/><stop offset=".7" stop-color="#b3bcc7"/><stop offset="1" stop-color="#7d8794"/></linearGradient>' +
-        '<linearGradient id="ttcShade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".24"/><stop offset=".16" stop-color="#000" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".13"/><stop offset=".84" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".24"/></linearGradient>' +
-        '<pattern id="ttcWeave" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(135)"><rect width="2.5" height="5" fill="#fff" fill-opacity=".07"/><rect x="2.5" width="2.5" height="5" fill="#000" fill-opacity=".07"/></pattern>' +
-      '</defs>' +
-      '<rect x="22.4" y="0" width="55.2" height="42" fill="#632a95"/>' +
-      '<rect x="22.4" y="0" width="55.2" height="42" fill="url(#ttcWeave)"/>' +
-      '<rect x="22.4" y="0" width="55.2" height="42" fill="url(#ttcShade)"/>' +
-      '<path d="M26 31 H74 M26 35 H74" stroke="#2c0f48" stroke-opacity=".55" stroke-width="1" stroke-dasharray="3 2.2" fill="none"/>' +
-      '<rect x="19.5" y="40" width="61" height="14" rx="3.5" fill="url(#ttcMetal)" stroke="#59616c" stroke-width="1"/>' +
-      '<rect x="24" y="43.5" width="52" height="2" rx="1" fill="#fff" fill-opacity=".55"/>' +
-      '<ellipse cx="50" cy="63" rx="8.5" ry="9.5" fill="none" stroke="#59616c" stroke-width="5"/>' +
-      '<ellipse cx="50" cy="63" rx="8.5" ry="9.5" fill="none" stroke="url(#ttcMetal)" stroke-width="3"/>' +
-      '<path d="M50 72 V86 C50 103 33 103 33 89 V80" fill="none" stroke="#59616c" stroke-width="6" stroke-linecap="round"/>' +
-      '<path d="M50 72 V86 C50 103 33 103 33 89 V80" fill="none" stroke="url(#ttcMetal)" stroke-width="3.6" stroke-linecap="round"/>' +
-      '<path d="M33 79 L22 69" fill="none" stroke="#59616c" stroke-width="5.4" stroke-linecap="round"/>' +
-      '<path d="M33 79 L22 69" fill="none" stroke="url(#ttcMetal)" stroke-width="3" stroke-linecap="round"/>' +
-      '<circle cx="33" cy="80" r="2.4" fill="#59616c"/>' +
-    '</svg>';
+  // ---- FITA VAZIA (crachá comprado): a fita fica no lugar, com a ponta solta (cracha_solto.png), até rolar a loja; o crachá cai ----
+  // a ponta da fita agora é a imagem assets/cracha_solto.png (argola + fecho aberto); o posicionamento fica no CSS (.tt-cordend)
+  var CORD_HTML = '<div class="tt-cordend" aria-hidden="true"><img src="assets/cracha_solto.png" alt="" draggable="false"></div>';
   var REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   function soldSlot(it, i) {
     var w = document.createElement('div'); w.className = 'tt-sc sold';
     w.style.setProperty('--i', i);
     var f = document.createElement('div'); f.className = 'tt-sc-face gone'; f.setAttribute('aria-hidden', 'true');
-    f.innerHTML = CORD_SVG;
+    f.innerHTML = CORD_HTML;
     w.appendChild(f);
     var nm = document.createElement('span'); nm.className = 'tt-sc-name'; nm.innerHTML = '&nbsp;';
     w.appendChild(nm);

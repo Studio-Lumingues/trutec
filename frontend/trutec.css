@@ -814,13 +814,19 @@
 
 /* ============================================================================
    VIRA: só duas cartas viradas atrás, bem coladas.
-   CRACHÁ COMPRADO: a fita fica no lugar (com o fecho aberto, ver CORD_SVG no trutec.js) até rolar a loja;
+   CRACHÁ COMPRADO: a fita fica no lugar (ponta solta = assets/cracha_solto.png, ver CORD_HTML no trutec.js) até rolar a loja;
    o crachá se solta e cai girando (ttBadgeFall).
    ============================================================================ */
 .tt-deck { margin: .2rem .7rem .7rem .2rem; }
 
 :is(#screen-trutec, .tt-demo) .tt-sc-face.gone { background: none; pointer-events: none; animation: none; cursor: default; }
-.tt-cordend { position: absolute; left: 50%; top: -1.5%; width: 60%; height: auto; overflow: visible; transform: translateX(-50%); transform-origin: 50% 0; pointer-events: none; }
+/* ponta solta da fita (assets/cracha_solto.png, 1024x1536): a caixa tem 60% da largura do crachá, e a fita da foto (313px de largura)
+   é escalada pra ficar exatamente da largura da fita do crachá (55.2% da caixa) e centralizada nela.
+   A argola fica logo abaixo do fim da fita roxa. O topo da foto some num degradê pra emendar na fita de cima.
+   Ajuste fino: --cord-dy (sobe/desce a ponta; ex.: -2% sobe, 2% desce). */
+.tt-cordend { position: absolute; left: 50%; top: -1.5%; width: 60%; aspect-ratio: 100 / 112; transform: translateX(-50%); transform-origin: 50% 0; pointer-events: none; }
+.tt-cordend img { position: absolute; left: -40.47%; top: calc(-90.5% + var(--cord-dy, 0%)); width: 180.6%; max-width: none; height: auto; pointer-events: none; user-select: none; -webkit-user-drag: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 32.9%, #000 39.6%); mask-image: linear-gradient(to bottom, transparent 32.9%, #000 39.6%); }
 .tt-sc.releasing .tt-cordend { animation: ttCordRecoil 1.3s ease-out; }
 :is(#screen-trutec, .tt-demo) .tt-sc.sold .tt-sc-face.tt-fallbadge {
   position: absolute !important; left: 0; top: 0; width: 100%; z-index: 4; pointer-events: none; transform-origin: 50% 0;
