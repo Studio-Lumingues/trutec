@@ -878,3 +878,51 @@
 #screen-trutec .tt-pips-top i.lost { box-shadow: inset 0 1px 2px rgba(0,0,0,.2), 0 0 .7rem rgba(255,95,82,.5); }
 #screen-trutec .tt-pips-top i.tie  { box-shadow: inset 0 1px 2px rgba(0,0,0,.2), 0 0 .5rem rgba(200,196,214,.35); }
 @media (prefers-reduced-motion: reduce) { #screen-trutec .tt-pips-top i, #screen-trutec .tt-pips-top i::after { transition: none; } }
+
+/* ============================================================================
+   CARD LATERAL REORGANIZADO (sem o botão Sair; o ESC abre o menu).
+   Cabeçalho só com o ANTE centralizado; as seções se distribuem pela altura do card
+   (topo -> blind/meta -> valor da mão -> TROCAR -> dinheiro) e crescem com a altura da tela,
+   então não sobra mais buraco no meio.
+   ============================================================================ */
+#screen-trutec .tt-side .tt-top { justify-content: center; }
+#screen-trutec .tt-side .tt-ante { padding: .32rem .95rem; }
+
+@media (min-width: 901px) {
+  #screen-trutec .tt-side { justify-content: space-between; gap: .8rem; padding: clamp(.9rem, 2.2vh, 1.4rem) .95rem; }
+  #screen-trutec .tt-side > * { flex-shrink: 0; }
+  #screen-trutec .tt-side .tt-actions { margin: 0; }
+
+  #screen-trutec .tt-side .tt-blind { gap: clamp(.6rem, 1.8vh, 1.2rem); }
+  #screen-trutec .tt-side .tt-bname span { width: clamp(2.1rem, 4.6vh, 2.8rem); height: clamp(2.1rem, 4.6vh, 2.8rem); }
+  #screen-trutec .tt-side .tt-bname b { font-size: clamp(1.1rem, 2.5vh, 1.4rem); }
+  #screen-trutec .tt-side .tt-notes { width: clamp(7rem, 19vh, 11rem); }            /* a META cresce junto (o número usa cqw) */
+  #screen-trutec .tt-side .tt-have b { font-size: clamp(2rem, 5vh, 2.9rem); }
+
+  #screen-trutec .tt-side .tt-counters span { padding: clamp(.4rem, 1.3vh, .85rem) .2rem clamp(.45rem, 1.4vh, .9rem); }
+  #screen-trutec .tt-side .tt-counters b { font-size: clamp(1.45rem, 3.7vh, 2.2rem); }
+
+  #screen-trutec .tt-side .tt-calc { gap: clamp(.35rem, 1vh, .6rem); padding-top: clamp(.85rem, 2.2vh, 1.4rem); }
+  #screen-trutec .tt-side .tt-chips, #screen-trutec .tt-side .tt-mult { font-size: clamp(1.8rem, 5vh, 2.9rem); }
+
+  #screen-trutec .tt-side .tt-actions .action-btn { min-height: clamp(3rem, 7.6vh, 4.3rem); font-size: clamp(1.05rem, 2.5vh, 1.35rem); }
+
+  #screen-trutec .tt-side .tt-moneybox { padding: clamp(.65rem, 1.7vh, 1.05rem) 1rem; }
+  #screen-trutec .tt-side .tt-moneybox .tt-money { font-size: clamp(1.7rem, 3.9vh, 2.4rem); }
+}
+
+/* ============================================================================
+   MENU DO ESC (Continuar / Configurações / Sair da partida)
+   ============================================================================ */
+.tt-pause { position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 1rem;
+  background: rgba(4,3,3,.72); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); animation: ttPauseIn .18s ease-out both; }
+.tt-pause.hidden { display: none; }
+.tt-pause-box { width: min(20rem, 100%); padding: 1.3rem 1.2rem 1.2rem; border-radius: 1.4rem; text-align: center; color: #fff8f0;
+  background: linear-gradient(160deg, rgba(255,255,255,.2), rgba(255,255,255,.06) 45%, rgba(255,255,255,.03)), rgba(18,26,52,.78);
+  border: 1px solid rgba(255,255,255,.28); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 1.4rem 3rem rgba(0,0,0,.55);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5); }
+.tt-pause-box h2 { margin: 0 0 .25rem; font-size: 1.5rem; }
+.tt-pause-sub { margin: 0; font-size: .9rem; opacity: .75; }
+.tt-pause-box .tt-mbtns { margin-top: 1.1rem; }
+@keyframes ttPauseIn { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .tt-pause { animation: none; } }

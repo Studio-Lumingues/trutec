@@ -194,7 +194,6 @@
       '<div class="tt-wrap">' +
         '<aside class="tt-side">' +
         '<header class="tt-top">' +
-          '<button type="button" class="btn btn-secondary tt-exit" id="tt-exit">‹ Sair</button>' +
           '<div class="tt-ante" id="tt-ante">Trutec</div>' +
         '</header>' +
         '<div class="tt-blind" id="tt-blind">' +
@@ -255,7 +254,8 @@
           '<button type="button" class="btn btn-primary tt-cv-go hidden" id="tt-cv-go">Próxima blind ›</button>' +
         '</div>' +
       '</div>' +
-      '<div class="tt-overlay hidden" id="tt-overlay"><div class="tt-modal" id="tt-modal"></div></div>';
+      '<div class="tt-overlay hidden" id="tt-overlay"><div class="tt-modal" id="tt-modal"></div></div>' +
+      '<div class="tt-pause hidden" id="tt-pause"><div class="tt-pause-box" id="tt-pause-box" role="dialog" aria-modal="true" aria-label="Menu"></div></div>';
     s.style.setProperty('--cart-img', 'url("assets/carteira.png")');   // imagem da carteira (pasta assets/)
     s.style.setProperty('--badge-img', 'url("assets/cracha.png")');    // imagem do crachá dos curingas (pasta assets/)
     host.appendChild(s);
@@ -294,11 +294,43 @@
       window.addEventListener('blur', jcHide);
     }
 
-    $('tt-exit').addEventListener('click', function () {
-      if (!R) return leave();
-      modal('Abandonar a corrida?', '<p>Você perde o progresso desta corrida.</p>', [
-        { label: 'Continuar jogando', cls: 'btn-primary' }, { label: 'Sair', cls: 'btn-danger', fn: leave }
-      ]);
+    // ---- MENU DO ESC: Continuar / Configurações / Sair da partida ----
+    var pauseEl = $('tt-pause'), pauseBox = $('tt-pause-box');
+    function pauseIsOpen() { return !pauseEl.classList.contains('hidden'); }
+    function pauseClose() { pauseEl.classList.add('hidden'); }
+    function pauseBtn(label, cls, fn) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn ' + cls; b.textContent = label;
+      b.addEventListener('click', fn);
+      return b;
+    }
+    function pauseRender(step) {
+      pauseBox.innerHTML = '<h2></h2><p class="tt-pause-sub"></p><div class="tt-mbtns"></div>';
+      var h = pauseBox.querySelector('h2'), sub = pauseBox.querySelector('.tt-pause-sub'), box = pauseBox.querySelector('.tt-mbtns');
+      if (step === 'confirm') {
+        h.textContent = 'Abandonar a corrida?';
+        sub.textContent = 'Você perde o progresso desta corrida.';
+        box.appendChild(pauseBtn('Continuar jogando', 'btn-primary', pauseClose));
+        box.appendChild(pauseBtn('Sair', 'btn-danger', function () { pauseClose(); leave(); }));
+      } else {
+        h.textContent = 'Pausa';
+        sub.textContent = 'O que você quer fazer?';
+        box.appendChild(pauseBtn('Continuar', 'btn-primary', pauseClose));
+        if (window.openSettings) box.appendChild(pauseBtn('Configurações', 'btn-secondary', function () { pauseClose(); window.openSettings(); }));
+        box.appendChild(pauseBtn('Sair da partida', 'btn-danger', function () { if (!R) { pauseClose(); leave(); } else pauseRender('confirm'); }));
+      }
+      var f = box.querySelector('button'); if (f) f.focus();
+    }
+    pauseEl.addEventListener('mousedown', function (e) { if (e.target === pauseEl) pauseClose(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || e.repeat) return;
+      var scr = $('screen-trutec');
+      if (!scr || !scr.classList.contains('active')) return;
+      if (pauseIsOpen()) { e.preventDefault(); pauseClose(); return; }
+      if (cvOpen) return;                                                   // a carteira de curingas trata o próprio Esc
+      if (confEl && confEl.classList.contains('show')) return;              // confirmação de compra também
+      if (document.querySelector('.settings-modal:not(.hidden), .exit-modal:not(.hidden)')) return;
+      e.preventDefault(); pauseRender('menu'); pauseEl.classList.remove('hidden');
     });
     $('tt-truco').addEventListener('click', playerCall);
     $('tt-run').addEventListener('click', playerRun);
@@ -940,6 +972,7 @@
   function leave() {
     if (cvOpen) cvHide();
     tok++; R = H = null; closeModal();
+    var pz = $('tt-pause'); if (pz) pz.classList.add('hidden');
     if (window.showScreen) window.showScreen('screen-lobby');
   }
 
