@@ -276,11 +276,19 @@
     if (jcHover) {
       var jx = 0, jy = 0, jraf = 0, jwant = null;
       document.addEventListener('mousemove', function (e) {
-        var el = e.target && e.target.closest ? e.target.closest('#tt-jokers .tt-joker, #tt-cv-jokers .tt-joker') : null;
-        if (!el || !el.dataset.id || cvDrag) { jwant = null; if (jcId !== null) jcHide(); return; }
-        jx = e.clientX; jy = e.clientY; jwant = el.dataset.id;
+        var tg = e.target && e.target.closest ? e.target : null, info = null;
+        var el = tg ? tg.closest('#tt-jokers .tt-joker, #tt-cv-jokers .tt-joker') : null;
+        if (el) {
+          var jj = el.dataset.id && !cvDrag ? jk(el.dataset.id) : null;
+          if (jj) info = { key: el.dataset.id, name: jj.name, desc: jj.desc };
+        } else {
+          var sf = tg ? tg.closest('.tt-sc-face') : null;       // carta da loja: mesmo card, mesmo "seguir o mouse"
+          if (sf && sf._tip) info = sf._tip;
+        }
+        if (!info) { jwant = null; if (jcId !== null) jcHide(); return; }
+        jx = e.clientX; jy = e.clientY; jwant = info;
         if (jraf) return;                                         // no máximo 1 atualização por quadro
-        jraf = requestAnimationFrame(function () { jraf = 0; if (jwant) { jcShow(jwant); jcPlace(jx, jy); } });
+        jraf = requestAnimationFrame(function () { jraf = 0; if (jwant) { jcShowInfo(jwant.key, jwant.name, jwant.desc); jcPlace(jx, jy); } });
       }, { passive: true });
       document.addEventListener('mouseleave', jcHide);
       window.addEventListener('blur', jcHide);
@@ -561,8 +569,7 @@
   // card do efeito do curinga (reaproveita o visual .stats-card do card de vitórias/derrotas)
   var jcard = null, jcId = null, JC_OFF = 18;
   var jcHover = !!(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
-  function jcShow(id) {
-    var j = jk(id); if (!j) return jcHide();
+  function jcShowInfo(key, name, desc) {
     if (!jcard) {
       jcard = document.createElement('div');
       jcard.className = 'stats-card tt-jcard';
@@ -570,8 +577,20 @@
       jcard.innerHTML = '<div class="stats-row"><b class="tt-jc-name"></b></div><div class="stats-row tt-jc-desc"></div>';
       document.body.appendChild(jcard);
     }
-    if (jcId !== id) { jcId = id; jcard.querySelector('.tt-jc-name').textContent = j.name; jcard.querySelector('.tt-jc-desc').textContent = j.desc; }
+    if (jcId !== key) { jcId = key; jcard.querySelector('.tt-jc-name').textContent = name; jcard.querySelector('.tt-jc-desc').textContent = desc; }
     jcard.classList.add('show');
+  }
+  function jcShow(id) {
+    var j = jk(id); if (!j) return jcHide();
+    jcShowInfo(id, j.name, j.desc);
+  }
+  // card em cima do elemento (teclado/toque, onde não existe mouse pra seguir); sem espaço em cima, abre embaixo
+  function jcPlaceAt(rc) {
+    if (!jcard) return;
+    var r = jcard.getBoundingClientRect();
+    var nx = Math.max(8, Math.min(window.innerWidth - r.width - 8, rc.left + rc.width / 2 - r.width / 2));
+    var ny = rc.top - r.height - 10; if (ny < 8) ny = rc.bottom + 10;
+    jcard.style.transform = 'translate(' + nx + 'px,' + ny + 'px)';
   }
   function jcHide() { jcId = null; if (jcard) jcard.classList.remove('show'); }
   function jcPlace(x, y) {
@@ -1077,23 +1096,9 @@
     renderShop('greet');
   }
 
-  // ---- cardzinhos da loja: nome e descrição aparecem numa dica ao passar o mouse (ou tocar/focar) ----
-  var tipEl = null;
-  function hideTip() { if (tipEl) tipEl.classList.remove('show'); }
-  function showTip(face, name, desc) {
-    var ov = $('tt-overlay');
-    if (!tipEl) {
-      tipEl = document.createElement('div'); tipEl.className = 'tt-tip'; tipEl.setAttribute('role', 'tooltip');
-      tipEl.innerHTML = '<b></b><small></small>'; ov.appendChild(tipEl);
-    }
-    tipEl.querySelector('b').textContent = name; tipEl.querySelector('small').textContent = desc;
-    tipEl.classList.add('show');
-    var r = face.getBoundingClientRect(), o = ov.getBoundingClientRect(), w = tipEl.offsetWidth, h = tipEl.offsetHeight;
-    var x = Math.max(w / 2 + 8, Math.min(o.width - w / 2 - 8, r.left - o.left + r.width / 2));
-    var above = r.top - o.top - h - 10 >= 6;                  // sem espaço em cima: abre embaixo
-    tipEl.style.left = x + 'px';
-    tipEl.style.top = (above ? r.top - o.top - h - 10 : r.bottom - o.top + 10) + 'px';
-  }
+  // ---- cardzinhos da loja: nome e descrição aparecem no MESMO card da carteira (.stats-card):
+  // no desktop acompanha o mouse (ver o mousemove lá em cima); no teclado/toque abre em cima da carta ----
+  function hideTip() { if (typeof jcId !== 'undefined' && jcId !== null && String(jcId).indexOf('shop:') === 0) jcHide(); }
   function emptySlot() {
     var w = document.createElement('div'); w.className = 'tt-sc empty';
     var f = document.createElement('div'); f.className = 'tt-sc-face';
@@ -1154,9 +1159,11 @@
     f.innerHTML = ic(d.icon) + (tag ? '<span class="tt-sc-tag">' + tag + '</span>' : '');
     f.setAttribute('aria-label', name + ': ' + d.desc + (o.price !== undefined ? '. Preço: ' + o.price : ''));
     if (o.price !== undefined) f.appendChild(priceTag(o.price));   // etiqueta em cima da carta
-    var on = function () { showTip(f, name, d.desc); };
-    f.addEventListener('mouseenter', on); f.addEventListener('focus', on);
-    f.addEventListener('mouseleave', hideTip); f.addEventListener('blur', hideTip);
+    f._tip = { key: 'shop:' + name, name: name, desc: d.desc };
+    var anchor = function () { jcShowInfo(f._tip.key, f._tip.name, f._tip.desc); jcPlaceAt(f.getBoundingClientRect()); };
+    f.addEventListener('focus', anchor); f.addEventListener('blur', hideTip);
+    f.addEventListener('mouseleave', hideTip);
+    if (!jcHover) f.addEventListener('mouseenter', anchor);   // toque: o "mouseenter" emulado abre o card
     var nm = document.createElement('span'); nm.className = 'tt-sc-name'; nm.textContent = o.label || d.name;
     w.appendChild(f); w.appendChild(nm); if (button) w.appendChild(button);
     if (o.onPick) {                                           // clicar (ou Enter/Espaço) na carta abre a confirmação
