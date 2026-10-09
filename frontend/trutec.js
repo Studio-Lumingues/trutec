@@ -327,6 +327,7 @@
   function modal(title, body, buttons, opts) {
     var m = $('tt-modal');
     if (opts && opts.billy) showBilly(opts.billy); else hideBilly();
+    m.classList.toggle('tt-rcpt', !!(opts && opts.receipt));   // receipt: a janela vira só a nota fiscal (sem painel escuro)
     m.innerHTML = '<h2></h2><div class="tt-mbody"></div><div class="tt-mbtns"></div>';
     m.querySelector('h2').textContent = title;
     var b = m.querySelector('.tt-mbody');
@@ -1165,6 +1166,39 @@
   }
 
   // ---------- fim de blind / loja ----------
+  // NOTA FISCAL da blind vencida (estilo cupom de sorveteria: papel creme com a borda serrilhada, fonte de máquina,
+  // itens com código, subtotal, total e código de barras). O visual está em .tt-receipt no CSS.
+  function rcMoney(n) { return Number(n).toFixed(2).replace('.', ','); }
+  function rcBarcode(seed) {            // código de barras de enfeite (sempre o mesmo pra mesma nota) + os 12 números embaixo
+    var x = (seed >>> 0) || 1;
+    function rnd01() { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; return x / 4294967296; }
+    var digits = '', i;
+    for (i = 0; i < 12; i++) digits += Math.floor(rnd01() * 10);
+    var bars = '', pos = 0;
+    for (i = 0; i < 64; i++) {
+      var w = rnd01() < .55 ? 1 : (rnd01() < .6 ? 2 : 3), gap = rnd01() < .6 ? 1 : 2;
+      bars += '<rect x="' + pos + '" y="0" width="' + w + '" height="40"/>';
+      pos += w + gap;
+    }
+    return '<svg class="rc-bar" viewBox="0 0 ' + pos + ' 40" preserveAspectRatio="none" aria-hidden="true">' + bars + '</svg>' +
+      '<div class="rc-num">' + digits.slice(0, 6) + ' ' + digits.slice(6) + '</div>';
+  }
+  function receiptHtml(reward, hl, interest, before, after) {
+    var gain = reward + hl + interest;
+    function row(code, name, val) {
+      return '<li><span class="rc-code">' + code + '</span><span class="rc-name">' + name + '</span><span class="rc-val">' + rcMoney(val) + '</span></li>';
+    }
+    return '<div class="tt-receipt">' +
+      '<div class="rc-title">BLIND VENCIDA</div><hr class="rc-hr">' +
+      '<ul class="rc-items">' + row('A01', 'RECOMPENSA', reward) + row('A02', 'MÃOS RESTANTES (' + hl + ')', hl) + row('A03', 'JUROS (1/5)', interest) + '</ul>' +
+      '<hr class="rc-dash">' +
+      '<div class="rc-sub"><span>SUBTOTAL</span><span>' + rcMoney(gain) + '</span></div>' +
+      '<div class="rc-sub"><span>SALDO ANTERIOR</span><span>' + rcMoney(before) + '</span></div>' +
+      '<div class="rc-total"><span>TOTAL</span><span>' + rcMoney(after) + '</span></div>' +
+      rcBarcode(R.cleared * 7919 + R.ante * 104729 + R.bi * 1299709 + after * 15485863 + (Date.now() % 100000)) +
+      '</div>';
+  }
+
   function blindWon() {
     var b = R.blind;
     H = null;
@@ -1182,7 +1216,7 @@
       '<p class="tt-best">Você tem $' + R.money + '</p>';
     if (isLast) return modal('Campeão do Trutec!', '<p class="tt-bigicon">' + ic('trofeu') + '</p><p>Você derrotou O Coringa e venceu os ' + ANTES + ' Antes!</p>' + body,
       [{ label: 'Nova corrida', cls: 'btn-primary', fn: startRun }, { label: 'Sair', fn: leave }]);
-    modal('Blind vencida!', body, [{ label: 'Ir à loja', cls: 'btn-primary', fn: openShop }]);
+    modal('Blind vencida!', receiptHtml(b.reward, hl, interest, R.money - total, R.money), [{ label: 'Ir à loja', cls: 'btn-primary', fn: openShop }], { receipt: true });
   }
 
   function openShop() {

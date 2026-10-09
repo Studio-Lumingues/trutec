@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap');
 /* ============================================================ */
 /* TRUTEC — truco roguelike solo (estilo Balatro)                 */
 /* ============================================================ */
@@ -751,3 +752,34 @@
 @media (prefers-reduced-motion: reduce) {
   .tt-shopbg.scroll b { animation: none; }
 }
+
+
+/* ===== NOTA FISCAL (blind vencida): papel creme, bordas serrilhadas, fonte de cupom, itens, total e código de barras ===== */
+.tt-modal.tt-rcpt { width: min(21rem, 100%); padding: 0; background: none; border: 0; box-shadow: none; overflow: visible; max-height: none; }
+.tt-modal.tt-rcpt > h2 { display: none; }                         /* o título já está escrito dentro da nota */
+.tt-modal.tt-rcpt .tt-mbody { filter: drop-shadow(0 .7rem 1rem rgba(0, 0, 0, .55)); }   /* a sombra segue as pontinhas do papel */
+.tt-modal.tt-rcpt .tt-mbtns { margin-top: 1.1rem; }
+.tt-receipt { position: relative; padding: 2.2rem 1.6rem 1.7rem; text-align: left; color: #2a2722;
+  font-family: 'IBM Plex Mono', 'Courier Prime', 'Courier New', ui-monospace, monospace; font-size: .9rem; line-height: 1.25;
+  background: linear-gradient(180deg, #f0eadc 0%, #ece5d5 100%);
+  /* borda de cima e de baixo serrilhada (bolinhas "mordendo" o papel) */
+  -webkit-mask: radial-gradient(circle at 50% 0, transparent 3.4px, #000 3.9px) 0 0 / 9px 51% repeat-x, radial-gradient(circle at 50% 100%, transparent 3.4px, #000 3.9px) 0 100% / 9px 51% repeat-x;
+          mask: radial-gradient(circle at 50% 0, transparent 3.4px, #000 3.9px) 0 0 / 9px 51% repeat-x, radial-gradient(circle at 50% 100%, transparent 3.4px, #000 3.9px) 0 100% / 9px 51% repeat-x;
+  animation: rcPrint .7s cubic-bezier(.3, .7, .3, 1) both; }
+/* dobra do papel */
+.tt-receipt::before { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(100deg, transparent 47%, rgba(60, 50, 30, .04) 49.5%, rgba(255, 255, 255, .18) 51%, transparent 53%); }
+.rc-title { text-align: center; font-weight: 700; font-size: 1.45rem; letter-spacing: .06em; margin-bottom: .9rem; }
+.rc-hr { border: 0; border-top: 1.5px solid #4a463f; margin: 0 0 1rem; opacity: .75; }
+.rc-dash { border: 0; border-top: 2px dashed #3a362f; margin: .5rem 0 1rem; opacity: .85; }
+.rc-items { list-style: none; margin: 0; padding: 0; }
+.rc-items li { display: flex; align-items: baseline; gap: .8rem; padding: .22rem 0; }
+.rc-code { flex: none; }
+.rc-name { flex: 1 1 auto; min-width: 0; }
+.rc-val { flex: none; text-align: right; }
+.rc-sub { display: flex; justify-content: space-between; padding: .2rem 0; }
+.rc-total { display: flex; justify-content: space-between; margin: .55rem 0 1.1rem; font-weight: 700; font-size: 1.3rem; }
+.rc-bar { display: block; width: 100%; height: 3.4rem; fill: #26231f; }
+.rc-num { text-align: center; font-size: 1.2rem; letter-spacing: .06em; margin-top: .1rem; }
+@keyframes rcPrint { from { clip-path: inset(0 0 100% 0); transform: translateY(-.8rem); } to { clip-path: inset(0 0 0 0); transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tt-receipt { animation: none; } }
