@@ -206,7 +206,7 @@
 .tt-billy { position: relative; z-index: 3; align-self: stretch; flex: 1 1 0; min-width: 0; max-width: 58rem; margin: -1rem -1rem -1rem 0;
   pointer-events: none; container-type: size; animation: billyIn .28s cubic-bezier(.2, 1.3, .4, 1) both; }
 /* "palco" quadrado (mesma proporção do desenho): a imagem preenche e o balão se posiciona em % dele, sempre do lado da cabeça */
-.tt-stage { --S: min(92cqh, 52rem, 95cqw); position: absolute; right: -26%; bottom: -3%; width: var(--S); height: var(--S); }
+.tt-stage { --S: min(92cqh, 52rem, 95cqw); position: absolute; right: -50%; bottom: -3%; width: var(--S); height: var(--S); }
 .tt-billy, .tt-stage, .tt-sway, .tt-body { overflow: visible; }
 /* hand drawn: mesmo filtro "boil" do resto do jogo (boil.js troca a semente alguns quadros por segundo) */
 .tt-billyimg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom right;

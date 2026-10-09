@@ -492,7 +492,7 @@
     b.style.maxWidth = Math.max(150, Math.min(cap, rightEdge - minLeft)) + 'px';
     var bw = b.offsetWidth, bh = b.offsetHeight;
     var left = Math.max(minLeft, Math.min(rightEdge - bw, o.width - Rm - bw));
-    var top = mobile ? (g.bottom - o.top - bh - 12) : (g.top - o.top + 0.40 * g.width - 14);
+    var top = mobile ? (g.bottom - o.top - bh - 12) : (g.top - o.top + 0.56 * g.width - 14);
     top = Math.max(T, Math.min(top, o.height - Bm - bh));    // o topo visível tem prioridade
     b.style.left = Math.round(left) + 'px'; b.style.top = Math.round(top) + 'px';
   }
