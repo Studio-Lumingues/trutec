@@ -217,15 +217,41 @@
 .tt-billy.talking .tt-body { animation: billyTalk .42s ease-in-out infinite; }
 /* balão igual ao do Jailson (tutorial.js): papel creme, borda grossa torta com tremido #boil-sm, perninha e etiqueta com o nome */
 .tt-bubble { position: absolute; z-index: 3; top: 43%; right: 70%; width: max-content; max-width: min(27rem, max(12rem, calc(100cqw - .61 * var(--S) - .5rem))); isolation: isolate;
-  padding: 1.2rem 1.5rem 1.05rem; font-size: clamp(1.1rem, calc(var(--S) / 30), 1.45rem); line-height: 1.35; font-weight: 500; color: #0a0a0a; }
-.tt-bubble .tt-bg { position: absolute; inset: 0; z-index: -1; background: #fff8f0; border: 3px solid #0a0a0a;
-  border-radius: 1.4rem 1.1rem 1.5rem 1.2rem / 1.2rem 1.5rem 1.1rem 1.4rem; filter: url(#boil-sm); box-shadow: .25rem .3rem 0 rgba(0, 0, 0, .45); }
-/* perninha apontando pro Billy (à direita): triângulo preto + triângulo creme menor por cima, dentro do .tt-bg pra tremer junto */
-.tt-tail { position: absolute; top: 2.2rem; right: 0; width: 0; height: 22px; }
-.tt-tail::before, .tt-tail::after { content: ""; position: absolute; }
-.tt-tail::before { left: 0; top: 0; width: 14px; height: 22px; background: #0a0a0a; clip-path: polygon(100% 50%, 0 0, 0 100%); }
-.tt-tail::after { left: -4px; top: 3.8px; width: 13.2px; height: 14.4px; background: #fff8f0;
-  clip-path: polygon(100% 50%, calc(100% - 9.2px) 0, 0 0, 0 100%, calc(100% - 9.2px) 100%); }
+  padding: 1.35rem 1.8rem 1.2rem; font-size: clamp(1.1rem, calc(var(--S) / 30), 1.45rem); line-height: 1.35; font-weight: 500; color: #0a0a0a;
+  translate: var(--bx, 0px) var(--by, 0px); }
+/* ===== BALÃO DE FUMAÇA: nuvem cremosa com bordas que ondulam, bolinhas de fumaça que incham e murcham,
+   rabinho de bolinhas apontando pro Billy e fiapinhos subindo. O contorno ondula pelo filtro #smoke-wob (index.html). ===== */
+.tt-bubble .tt-bg { position: absolute; inset: 0; z-index: -1; border-radius: 2.6rem 2.2rem 2.8rem 2.3rem / 2.2rem 2.8rem 2.2rem 2.6rem;
+  background: radial-gradient(ellipse at 28% 22%, #ffffff 0%, #fff6e8 46%, #efe2cc 100%);
+  box-shadow: inset -.5rem -.7rem 1.2rem rgba(120, 100, 70, .26), inset .4rem .4rem .9rem rgba(255, 255, 255, .85);
+  filter: url(#smoke-wob) drop-shadow(0 .4rem .55rem rgba(0, 0, 0, .42));
+  animation: smokeBreath 6s ease-in-out infinite; }
+.tt-pf { position: absolute; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffffff, #fff4e4 55%, #ecdcc2);
+  box-shadow: inset -.25rem -.3rem .6rem rgba(120, 100, 70, .24); }
+.tt-pf.p1 { width: 3.3rem; height: 3.3rem; left: -1.2rem; top: 34%; animation: puffA 5.2s ease-in-out infinite; }
+.tt-pf.p2 { width: 2.9rem; height: 2.9rem; left: 46%; top: -1.35rem; animation: puffB 6.3s ease-in-out -1.4s infinite; }
+.tt-pf.p3 { width: 3.5rem; height: 3.5rem; right: -1.1rem; top: -.8rem; animation: puffC 5.7s ease-in-out -.6s infinite; }
+.tt-pf.p4 { width: 3rem; height: 3rem; left: -.8rem; bottom: -1rem; animation: puffB 6.8s ease-in-out -2.2s infinite; }
+.tt-pf.p5 { width: 3.2rem; height: 3.2rem; right: 20%; bottom: -1.3rem; animation: puffA 5.9s ease-in-out -3s infinite; }
+/* rabinho: três bolinhas que sobem em direção à cabeça do Billy (à direita) */
+.tt-tail { position: absolute; right: 0; top: 0; width: 0; height: 0; }
+.tt-tail u { position: absolute; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffffff, #fff1de 60%, #e8d7bb);
+  box-shadow: inset -.12rem -.16rem .3rem rgba(120, 100, 70, .26); animation: tailPuff 2.6s ease-in-out infinite; }
+.tt-tail u:nth-child(1) { width: 1.15rem; height: 1.15rem; left: .35rem; top: 1.7rem; }
+.tt-tail u:nth-child(2) { width: .78rem; height: .78rem; left: 1.5rem; top: 1.15rem; animation-delay: -.5s; }
+.tt-tail u:nth-child(3) { width: .5rem; height: .5rem; left: 2.35rem; top: .7rem; animation-delay: -1s; }
+/* fiapinhos de fumaça subindo da parte de cima */
+.tt-wisp { position: absolute; top: -.2rem; width: .9rem; height: .9rem; border-radius: 50%; background: rgba(255, 248, 235, .9); opacity: 0;
+  animation: wisp 4.2s ease-out infinite; }
+.tt-wisp:nth-of-type(1) { left: 22%; }
+.tt-wisp:nth-of-type(2) { left: 58%; width: .65rem; height: .65rem; animation-delay: -1.5s; animation-duration: 4.8s; }
+.tt-wisp:nth-of-type(3) { left: 80%; width: .75rem; height: .75rem; animation-delay: -3s; animation-duration: 3.9s; }
+@keyframes smokeBreath { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.03); } }
+@keyframes puffA { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(-.18rem, -.2rem) scale(1.1); } 66% { transform: translate(.12rem, .16rem) scale(.93); } }
+@keyframes puffB { 0%, 100% { transform: translate(0, 0) scale(1); } 40% { transform: translate(.2rem, -.16rem) scale(.92); } 75% { transform: translate(-.14rem, .12rem) scale(1.12); } }
+@keyframes puffC { 0%, 100% { transform: translate(0, 0) scale(1); } 30% { transform: translate(.16rem, .18rem) scale(1.08); } 65% { transform: translate(-.1rem, -.2rem) scale(.9); } }
+@keyframes tailPuff { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(.1rem, -.12rem) scale(1.22); } }
+@keyframes wisp { 0% { transform: translate(0, 0) scale(.4); opacity: 0; } 20% { opacity: .85; } 100% { transform: translate(.6rem, -2.4rem) scale(1.2); opacity: 0; } }
 .tt-name { position: absolute; left: 1.2rem; top: -1.25rem; z-index: 1; padding: .12rem .85rem .18rem; font-size: 1.3rem; font-weight: 800; color: #0a0a0a;
   background: #ffd23f; border: 2.5px solid #0a0a0a; border-radius: .7rem .5rem .8rem .55rem / .55rem .8rem .5rem .7rem; transform: rotate(-3deg);
   box-shadow: .1rem .12rem 0 rgba(0, 0, 0, .45); }
@@ -251,9 +277,8 @@
   .tt-billyimg { animation: billyIdle 5.5s ease-in-out infinite; }
   .tt-billyimg { position: absolute; inset: auto 0 -2.5% auto; width: auto; height: 100%; max-width: 100%; }
   .tt-bubble { top: auto; bottom: 1rem; right: auto; left: .8rem; max-width: calc(100% - 10.5rem); font-size: 1.05rem; padding: 1rem 1rem .8rem; }
-  .tt-tail { top: auto; bottom: 1.2rem; }
 }
-@media (prefers-reduced-motion: reduce) { .tt-billy, .tt-billyimg, .tt-sway, .tt-body, .tt-bubble.pop { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .tt-billy, .tt-billyimg, .tt-sway, .tt-body, .tt-bubble.pop, .tt-bubble .tt-bg, .tt-pf, .tt-tail u, .tt-wisp { animation: none !important; } .tt-wisp { display: none; } }
 
 
 /* ===== ÍCONES DESENHADOS (no lugar dos emojis) ===== */

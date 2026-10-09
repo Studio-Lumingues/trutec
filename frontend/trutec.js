@@ -466,6 +466,31 @@
 
   // ---- fala letra por letra (igual ao Jailson) ----
   function billyStopTyping() { clearInterval(billyTyper); billyTyper = 0; if (billyEl) billyEl.classList.remove('talking'); }
+  // Garante que o balão (com as bolinhas de fumaça e a etiqueta) fique INTEIRO dentro da tela da loja.
+  // Falta largura à esquerda? Estreita o balão (o texto quebra em mais linhas, ele cresce pra baixo).
+  // Ainda passando? Desloca (--bx/--by no CSS). Roda a cada fala, ao redimensionar e depois da entrada do Billy.
+  function billyFit() {
+    if (!billyEl) return;
+    var b = billyEl.querySelector('.tt-bubble'), ov = $('tt-overlay');
+    if (!b || !ov || ov.classList.contains('hidden')) return;
+    b.style.maxWidth = ''; b.style.setProperty('--bx', '0px'); b.style.setProperty('--by', '0px');
+    var o = ov.getBoundingClientRect(), r = b.getBoundingClientRect();
+    if (!r.width || !o.width) return;
+    var L = 34, R_ = 14, T = 34, B = 26;                     // folga pras bolinhas (esq/dir), etiqueta "Billy" (topo) e sombra
+    var over = (o.left + L) - r.left;
+    if (over > 0) {                                          // passou da esquerda: estreita (a borda direita fica no lugar)
+      b.style.maxWidth = Math.max(150, r.width - over) + 'px';
+      r = b.getBoundingClientRect();
+    }
+    var dx = 0, dy = 0;
+    if (r.left < o.left + L) dx = o.left + L - r.left;
+    if (r.right + dx > o.right - R_) dx -= (r.right + dx) - (o.right - R_);
+    if (r.bottom > o.bottom - B) dy = (o.bottom - B) - r.bottom;
+    if (r.top + dy < o.top + T) dy = o.top + T - r.top;     // o topo visível tem prioridade
+    b.style.setProperty('--bx', Math.round(dx) + 'px'); b.style.setProperty('--by', Math.round(dy) + 'px');
+  }
+  window.addEventListener('resize', function () { billyFit(); });
+
   function billySay(kind) {
     if (!billyEl) return;
     var line = billyLine(kind);
@@ -473,6 +498,7 @@
     var full = b.querySelector('.tt-full'), typed = b.querySelector('.tt-typed');
     b.setAttribute('aria-label', line);
     full.textContent = line;                                   // texto invisível: já reserva o tamanho do balão
+    billyFit(); requestAnimationFrame(billyFit); setTimeout(billyFit, 420);   // 420 ms: depois da animação de entrada do Billy
     billyStopTyping();
     var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) { typed.textContent = line; return; }
@@ -518,6 +544,9 @@
   function shopEnterSnd() { if (DEMO) return; try { var A = window.GameAudio; if (A && A.shopBell) A.shopBell(); } catch (e) {} }
 
   function showBilly(kind) {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      [].forEach.call(document.querySelectorAll('#smoke-wob animate'), function (a) { a.parentNode.removeChild(a); });
+    }
     var ov = $('tt-overlay');
     if (!ov) return;
     var fresh = !billyEl;
@@ -528,7 +557,8 @@
       billyEl.innerHTML = '<div class="tt-stage"><div class="tt-sway"><div class="tt-body">' +
         '<img class="tt-billyimg" src="' + BILLY_SRCS[0] + '" alt="Billy, o vendedor" draggable="false">' +
         '<div class="tt-bubble" role="status">' +
-          '<span class="tt-bg"><i class="tt-tail"></i></span><span class="tt-name">Billy</span>' +
+          '<span class="tt-bg"><b class="tt-pf p1"></b><b class="tt-pf p2"></b><b class="tt-pf p3"></b><b class="tt-pf p4"></b><b class="tt-pf p5"></b>' +
+          '<s class="tt-wisp"></s><s class="tt-wisp"></s><s class="tt-wisp"></s><i class="tt-tail"><u></u><u></u><u></u></i></span><span class="tt-name">Billy</span>' +
           '<div class="tt-text"><span class="tt-full" aria-hidden="true"></span><span class="tt-typed" aria-hidden="true"></span></div>' +
         '</div>' +
         '</div></div></div>';

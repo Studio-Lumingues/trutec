@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" href="assets/personagem.png" />
 <link rel="apple-touch-icon" href="assets/personagem.png" />
 <link rel="stylesheet" href="style.css?v=17" />
-<link rel="stylesheet" href="trutec.css?v=10" />
+<link rel="stylesheet" href="trutec.css?v=11" />
 <link rel="stylesheet" href="mode-pick.css?v=1" />
 <script>
 try { if (localStorage.getItem('trutec-colorblind') === '1') document.documentElement.classList.add('colorblind'); } catch (e) {}
@@ -77,6 +77,14 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
       <filter id="boil-lg" x="-3%" y="-3%" width="106%" height="106%" color-interpolation-filters="sRGB">
         <feTurbulence data-boil type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="1" result="n"/>
         <feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+      <!-- balão de fala do Billy: contorno de fumaça. O ruído muda devagar (SMIL) e empurra as bordas, então o balão "respira" -->
+      <filter id="smoke-wob" x="-12%" y="-30%" width="124%" height="160%" color-interpolation-filters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.016 0.026" numOctaves="2" seed="5" result="n">
+          <animate attributeName="baseFrequency" dur="11s" repeatCount="indefinite" values="0.016 0.026;0.023 0.019;0.014 0.03;0.016 0.026"/>
+        </feTurbulence>
+        <feDisplacementMap in="SourceGraphic" in2="n" scale="13" xChannelSelector="R" yChannelSelector="G" result="d"/>
+        <feGaussianBlur in="d" stdDeviation="0.7"/>
       </filter>
       <!-- ícones: tremido bem sutil (escala pequena) -->
       <filter id="boil-ic" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
@@ -1066,7 +1074,7 @@ try { if (sessionStorage.getItem('trutec-leave-intro') === '1') document.documen
   <script src="starter-draw.js"></script>
   <script src="client.js?v=35"></script>
   <script src="count-up.js?v=2"></script>
-  <script src="trutec.js?v=6"></script>
+  <script src="trutec.js?v=7"></script>
   <script src="trutec-bg.js?v=4"></script>
   <script src="mode-pick.js?v=1"></script>
   <script src="profile-chart.js"></script>
